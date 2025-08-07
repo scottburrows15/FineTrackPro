@@ -64,6 +64,11 @@ export interface IStorage {
   
   // Audit log
   createAuditLog(log: InsertAuditLog): Promise<void>;
+
+  // Admin operations
+  getUnpaidFines(teamId: string): Promise<FineWithDetails[]>;
+  getTeamMembers(teamId: string): Promise<User[]>;
+  addPlayerToTeam(userId: string, teamId: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,23 +159,34 @@ export class DatabaseStorage implements IStorage {
 
   async getUserFines(userId: string): Promise<FineWithDetails[]> {
     const result = await db
-      .select()
+      .select({
+        fine: fines,
+        player: users,
+        subcategory: fineSubcategories,
+        category: fineCategories,
+        issuedByUser: {
+          id: sql`issued_by_user.id`.as('issued_by_id'),
+          firstName: sql`issued_by_user.first_name`.as('issued_by_first_name'),
+          lastName: sql`issued_by_user.last_name`.as('issued_by_last_name'),
+          email: sql`issued_by_user.email`.as('issued_by_email'),
+        }
+      })
       .from(fines)
       .innerJoin(users, eq(fines.playerId, users.id))
       .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
       .innerJoin(fineCategories, eq(fineSubcategories.categoryId, fineCategories.id))
-      .innerJoin(users as any, eq(fines.issuedBy, (users as any).id))
+      .innerJoin(sql`users as issued_by_user`, eq(fines.issuedBy, sql`issued_by_user.id`))
       .where(eq(fines.playerId, userId))
       .orderBy(desc(fines.createdAt));
 
     // Transform the result to match FineWithDetails type
     return result.map(row => ({
-      ...row.fines,
-      player: row.users,
-      issuedByUser: row.users, // This will be overridden by the correct user in a real query
+      ...row.fine,
+      player: row.player,
+      issuedByUser: row.issuedByUser as any,
       subcategory: {
-        ...row.fine_subcategories,
-        category: row.fine_categories,
+        ...row.subcategory,
+        category: row.category,
       },
     }));
   }
@@ -273,6 +289,57 @@ export class DatabaseStorage implements IStorage {
 
   async createAuditLog(logData: InsertAuditLog): Promise<void> {
     await db.insert(auditLog).values(logData);
+  }
+
+  // Admin operations
+  async getUnpaidFines(teamId: string): Promise<FineWithDetails[]> {
+    const result = await db
+      .select({
+        fine: fines,
+        player: users,
+        subcategory: fineSubcategories,
+        category: fineCategories,
+        issuedByUser: {
+          id: sql`issued_by_user.id`.as('issued_by_id'),
+          firstName: sql`issued_by_user.first_name`.as('issued_by_first_name'),
+          lastName: sql`issued_by_user.last_name`.as('issued_by_last_name'),
+          email: sql`issued_by_user.email`.as('issued_by_email'),
+        }
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
+      .innerJoin(fineCategories, eq(fineSubcategories.categoryId, fineCategories.id))
+      .innerJoin(sql`users as issued_by_user`, eq(fines.issuedBy, sql`issued_by_user.id`))
+      .where(and(eq(users.teamId, teamId), eq(fines.isPaid, false)))
+      .orderBy(desc(fines.createdAt));
+
+    return result.map(row => ({
+      ...row.fine,
+      player: row.player,
+      issuedByUser: row.issuedByUser as any,
+      subcategory: {
+        ...row.subcategory,
+        category: row.category,
+      },
+    }));
+  }
+
+  async getTeamMembers(teamId: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.teamId, teamId))
+      .orderBy(users.firstName, users.lastName);
+  }
+
+  async addPlayerToTeam(userId: string, teamId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ teamId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 

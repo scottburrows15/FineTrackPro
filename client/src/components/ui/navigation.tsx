@@ -7,10 +7,12 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
-import { Gavel, Bell, ChevronDown, LogOut, User } from "lucide-react";
+import { Gavel, Bell, ChevronDown, LogOut, User, Settings, Users, AlertTriangle, Tags, Download } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
+import ProfileModal from "@/components/profile-modal";
 
 interface NavigationProps {
   user: UserType | null;
@@ -20,12 +22,38 @@ interface NavigationProps {
 }
 
 export default function Navigation({ user, currentView, onViewChange, canSwitchView }: NavigationProps) {
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  
   const { data: notifications } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
   });
 
   const unreadCount = notifications ? notifications.filter((n: any) => !n.isRead)?.length : 0;
+
+  const handleAdminAction = (action: string) => {
+    switch (action) {
+      case 'unpaid-fines':
+        // This would trigger the admin dashboard to show unpaid fines
+        if (currentView !== 'admin') {
+          onViewChange('admin');
+        }
+        // Add logic to show unpaid fines section
+        break;
+      case 'team-members':
+        if (currentView !== 'admin') {
+          onViewChange('admin');
+        }
+        // Add logic to show team members section
+        break;
+      case 'categories':
+        // Future feature
+        break;
+      case 'export':
+        // Future feature
+        break;
+    }
+  };
 
   return (
     <>
@@ -96,7 +124,35 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                     <ChevronDown className="w-4 h-4 text-slate-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile Settings
+                  </DropdownMenuItem>
+                  
+                  {user?.role === 'admin' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleAdminAction('unpaid-fines')}>
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        View Unpaid Fines
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAdminAction('team-members')}>
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Team
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAdminAction('categories')}>
+                        <Tags className="w-4 h-4 mr-2" />
+                        Manage Categories
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAdminAction('export')}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Data
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => window.location.href = '/api/logout'}
                     className="text-red-600 hover:text-red-700"
@@ -139,6 +195,15 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          user={user}
+        />
       )}
     </>
   );

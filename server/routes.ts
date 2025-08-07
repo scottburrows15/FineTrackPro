@@ -325,6 +325,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile routes
+  app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firstName, lastName, position } = req.body;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updatedUser = await storage.upsertUser({
+        ...user,
+        firstName,
+        lastName,
+        position,
+      });
+
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: userId,
+        action: 'update',
+        userId,
+        changes: { firstName, lastName, position },
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/unpaid-fines', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const unpaidFines = await storage.getUnpaidFines(user.teamId!);
+      res.json(unpaidFines);
+    } catch (error) {
+      console.error("Error fetching unpaid fines:", error);
+      res.status(500).json({ message: "Failed to fetch unpaid fines" });
+    }
+  });
+
+  app.get('/api/admin/team-members', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const members = await storage.getTeamMembers(user.teamId!);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ message: "Failed to fetch team members" });
+    }
+  });
+
+  app.delete('/api/admin/fines/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      // For now, just mark as paid to "delete" it
+      await storage.updateFine(id, { isPaid: true, paidAt: new Date() });
+      
+      await storage.createAuditLog({
+        entityType: 'fine',
+        entityId: id,
+        action: 'delete',
+        userId: user.id,
+        changes: { isPaid: true },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting fine:", error);
+      res.status(500).json({ message: "Failed to delete fine" });
+    }
+  });
+
   // Notifications routes
   app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
     try {

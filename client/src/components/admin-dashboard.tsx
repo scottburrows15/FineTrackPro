@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import IssueFineModal from "./issue-fine-modal";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import type { FineWithDetails, TeamStats, Team } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import type { FineWithDetails, TeamStats, Team, User } from "@shared/schema";
 import { 
   Plus, 
   UserPlus, 
@@ -21,12 +22,17 @@ import {
   Check,
   Trash2,
   Copy,
-  Share
+  Share,
+  CheckCircle,
+  Crown
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showIssueFineModal, setShowIssueFineModal] = useState(false);
+  const [showUnpaidFines, setShowUnpaidFines] = useState(false);
+  const [showTeamMembers, setShowTeamMembers] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
     queryKey: ["/api/stats/team"],
@@ -38,6 +44,38 @@ export default function AdminDashboard() {
 
   const { data: teamInfo, isLoading: teamLoading } = useQuery<Team>({
     queryKey: ["/api/team/info"],
+  });
+
+  const { data: unpaidFines = [], isLoading: unpaidLoading } = useQuery<FineWithDetails[]>({
+    queryKey: ["/api/admin/unpaid-fines"],
+    enabled: showUnpaidFines,
+  });
+
+  const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
+    queryKey: ["/api/admin/team-members"],
+    enabled: showTeamMembers,
+  });
+
+  const deleteFine = useMutation({
+    mutationFn: async (fineId: string) => {
+      return await apiRequest("DELETE", `/api/admin/fines/${fineId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Fine Deleted",
+        description: "The fine has been successfully deleted.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/unpaid-fines"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete fine",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleCopyTeamCode = async () => {
@@ -208,45 +246,71 @@ export default function AdminDashboard() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3">
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
+                  onClick={() => setShowUnpaidFines(!showUnpaidFines)}
+                >
                   <div className="w-8 h-8 bg-danger/10 rounded-lg flex items-center justify-center">
                     <AlertTriangle className="text-danger text-sm" />
                   </div>
                   <div>
                     <div className="font-medium text-slate-900">View Unpaid Fines</div>
-                    <div className="text-xs text-slate-600">15 players with outstanding fines</div>
+                    <div className="text-xs text-slate-600">{unpaidFines.length} unpaid fines</div>
                   </div>
-                </button>
+                </Button>
 
-                <button className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3">
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
+                  onClick={() => setShowTeamMembers(!showTeamMembers)}
+                >
                   <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Tags className="text-primary text-sm" />
+                    <Users className="text-primary text-sm" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-slate-900">Manage Team</div>
+                    <div className="text-xs text-slate-600">View and manage team members</div>
+                  </div>
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Coming Soon",
+                      description: "Category management will be available soon.",
+                    });
+                  }}
+                >
+                  <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
+                    <Tags className="text-secondary text-sm" />
                   </div>
                   <div>
                     <div className="font-medium text-slate-900">Manage Categories</div>
                     <div className="text-xs text-slate-600">Edit fine types and amounts</div>
                   </div>
-                </button>
+                </Button>
 
-                <button className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
-                    <Download className="text-secondary text-sm" />
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Coming Soon",
+                      description: "Data export will be available soon.",
+                    });
+                  }}
+                >
+                  <div className="w-8 h-8 bg-slate-400/10 rounded-lg flex items-center justify-center">
+                    <Download className="text-slate-600 text-sm" />
                   </div>
                   <div>
                     <div className="font-medium text-slate-900">Export Data</div>
                     <div className="text-xs text-slate-600">Download CSV reports</div>
                   </div>
-                </button>
-
-                <button className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-slate-400/10 rounded-lg flex items-center justify-center">
-                    <Settings className="text-slate-600 text-sm" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-900">Team Settings</div>
-                    <div className="text-xs text-slate-600">Invite codes, permissions</div>
-                  </div>
-                </button>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -376,6 +440,133 @@ export default function AdminDashboard() {
           </div>
         </div>
       </Card>
+
+      {/* Unpaid Fines Section */}
+      {showUnpaidFines && (
+        <Card className="mt-8">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Unpaid Fines</h3>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowUnpaidFines(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+          <CardContent className="p-6">
+            {unpaidLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : unpaidFines.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">All Caught Up!</h3>
+                <p className="text-slate-600">No unpaid fines at the moment.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {unpaidFines.map((fine) => (
+                  <div key={fine.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-slate-600">
+                          {fine.player.firstName?.[0] || ''}{fine.player.lastName?.[0] || ''}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900">
+                          {fine.player.firstName} {fine.player.lastName}
+                        </div>
+                        <div className="text-sm text-slate-600">{fine.subcategory.name}</div>
+                        {fine.description && (
+                          <div className="text-xs text-slate-500">{fine.description}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="font-semibold text-slate-900">
+                        {formatCurrency(parseFloat(fine.amount))}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteFine.mutate(fine.id)}
+                        disabled={deleteFine.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Team Members Section */}
+      {showTeamMembers && (
+        <Card className="mt-8">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Team Members</h3>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowTeamMembers(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+          <CardContent className="p-6">
+            {membersLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {teamMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-slate-600">
+                          {member.firstName?.[0] || ''}{member.lastName?.[0] || ''}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900">
+                          {member.firstName} {member.lastName}
+                        </div>
+                        <div className="text-sm text-slate-600">{member.email}</div>
+                        {member.position && (
+                          <div className="text-xs text-slate-500">{member.position}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
+                        {member.role === 'admin' ? 'Admin' : 'Player'}
+                      </Badge>
+                      {member.role === 'admin' && (
+                        <Crown className="w-4 h-4 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Issue Fine Modal */}
       {showIssueFineModal && (
