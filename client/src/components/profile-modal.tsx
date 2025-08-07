@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getSportPositions, getSportRequiresPositions } from "@/lib/sportPositions";
 import type { User } from "@shared/schema";
 import { User as UserIcon, Save, Camera } from "lucide-react";
 
@@ -16,16 +17,29 @@ interface ProfileModalProps {
   user: User | null;
 }
 
+interface TeamInfo {
+  id: string;
+  name: string;
+  sport: string;
+  inviteCode: string;
+}
+
 export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Fetch team info to get sport
+  const { data: teamInfo } = useQuery<TeamInfo>({
+    queryKey: ["/api/team/info"],
+    enabled: !!user?.teamId,
+  });
   
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     email: user?.email || "",
     position: user?.position || "",
-    nickname: "", // This would be team-specific
+    nickname: user?.nickname || "", // Team-specific nickname
   });
 
   const updateProfile = useMutation({
@@ -65,28 +79,13 @@ export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProp
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       position: formData.position.trim(),
-      // nickname would be handled separately for team-specific functionality
+      nickname: formData.nickname.trim(),
     });
   };
 
-  const positions = [
-    "Goalkeeper",
-    "Defender", 
-    "Centre-Back",
-    "Left-Back",
-    "Right-Back",
-    "Midfielder",
-    "Central Midfielder",
-    "Defensive Midfielder",
-    "Attacking Midfielder",
-    "Left Winger",
-    "Right Winger",
-    "Forward",
-    "Striker",
-    "Centre-Forward",
-    "Left Forward",
-    "Right Forward",
-  ];
+  // Get sport-specific positions
+  const sportPositions = teamInfo?.sport ? getSportPositions(teamInfo.sport as any) : [];
+  const requiresPositions = teamInfo?.sport ? getSportRequiresPositions(teamInfo.sport as any) : false;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -168,24 +167,26 @@ export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProp
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="position">Position</Label>
-            <Select 
-              value={formData.position}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select your position..." />
-              </SelectTrigger>
-              <SelectContent>
-                {positions.map(position => (
-                  <SelectItem key={position} value={position}>
-                    {position}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {requiresPositions && (
+            <div className="space-y-2">
+              <Label htmlFor="position">Position</Label>
+              <Select 
+                value={formData.position}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your position..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {sportPositions.map(position => (
+                    <SelectItem key={position} value={position}>
+                      {position}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Team-specific nickname section */}
           <div className="space-y-2">

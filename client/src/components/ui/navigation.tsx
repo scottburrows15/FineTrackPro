@@ -13,6 +13,7 @@ import {
 import { Gavel, Bell, ChevronDown, LogOut, User, Settings, Users, AlertTriangle, Tags, Download } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 import ProfileModal from "@/components/profile-modal";
+import { getDisplayName, getFullName } from "@/lib/userUtils";
 
 interface NavigationProps {
   user: UserType | null;
@@ -119,7 +120,7 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                       <User className="w-8 h-8 p-2 bg-slate-200 rounded-full" />
                     )}
                     <span className="hidden sm:block text-sm font-medium text-slate-700">
-                      {user?.firstName || 'User'} {user?.lastName || ''}
+                      {getFullName(user)}
                     </span>
                     <ChevronDown className="w-4 h-4 text-slate-600" />
                   </Button>

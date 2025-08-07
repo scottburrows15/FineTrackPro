@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency, formatDate, getDaysOverdue } from "@/lib/utils";
+import { getGreeting } from "@/lib/userUtils";
 import type { FineWithDetails, PlayerStats } from "@shared/schema";
 import { 
   CreditCard, 
@@ -56,7 +57,7 @@ export default function PlayerDashboard() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                  Welcome back, {user?.firstName || 'Player'}!
+                  {getGreeting(user)}
                 </h1>
                 <p className="text-slate-600">Here's your current fine status</p>
               </div>

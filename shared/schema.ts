@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   role: varchar("role").notNull().default("player"), // 'player' or 'admin'
   teamId: varchar("team_id").references(() => teams.id),
   position: varchar("position"), // e.g., "Striker", "Midfielder"
+  nickname: varchar("nickname"), // Team-specific nickname
   stripeCustomerId: varchar("stripe_customer_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -44,6 +45,7 @@ export const users = pgTable("users", {
 export const teams = pgTable("teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
+  sport: varchar("sport").notNull().default("Football"), // e.g., "Football", "Rugby", "Netball", "Hockey"
   inviteCode: varchar("invite_code").unique().notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

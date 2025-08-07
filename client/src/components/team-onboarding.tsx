@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,6 +20,7 @@ export default function TeamOnboarding() {
   
   const [createData, setCreateData] = useState({
     teamName: "",
+    sport: "",
   });
 
   const joinTeamMutation = useMutation({
@@ -45,7 +47,7 @@ export default function TeamOnboarding() {
   });
 
   const createTeamMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: { name: string; sport: string }) => {
       return await apiRequest("POST", "/api/teams", data);
     },
     onSuccess: () => {
@@ -94,7 +96,16 @@ export default function TeamOnboarding() {
       return;
     }
 
-    createTeamMutation.mutate({ name: createData.teamName.trim() });
+    if (!createData.sport) {
+      toast({
+        title: "Missing Sport",
+        description: "Please select your team's sport",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createTeamMutation.mutate({ name: createData.teamName.trim(), sport: createData.sport });
   };
 
   return (
@@ -191,7 +202,7 @@ export default function TeamOnboarding() {
                       type="text"
                       placeholder="Enter your team name (e.g., Manchester United FC)"
                       value={createData.teamName}
-                      onChange={(e) => setCreateData({ teamName: e.target.value })}
+                      onChange={(e) => setCreateData(prev => ({ ...prev, teamName: e.target.value }))}
                       className="text-lg"
                       maxLength={50}
                       disabled={createTeamMutation.isPending}
@@ -201,10 +212,38 @@ export default function TeamOnboarding() {
                     </p>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="sport" className="text-sm font-medium">Sport</Label>
+                    <Select
+                      value={createData.sport}
+                      onValueChange={(value) => setCreateData(prev => ({ ...prev, sport: value }))}
+                      disabled={createTeamMutation.isPending}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your team's sport..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Football">Football</SelectItem>
+                        <SelectItem value="Rugby">Rugby</SelectItem>
+                        <SelectItem value="Netball">Netball</SelectItem>
+                        <SelectItem value="Hockey">Hockey</SelectItem>
+                        <SelectItem value="Darts">Darts</SelectItem>
+                        <SelectItem value="Golf">Golf</SelectItem>
+                        <SelectItem value="Pool">Pool</SelectItem>
+                        <SelectItem value="Cricket">Cricket</SelectItem>
+                        <SelectItem value="Basketball">Basketball</SelectItem>
+                        <SelectItem value="Tennis">Tennis</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500">
+                      This will determine available player positions and fine categories
+                    </p>
+                  </div>
+
                   <Button 
                     type="submit" 
                     className="w-full bg-success hover:bg-emerald-700 text-white py-3"
-                    disabled={createTeamMutation.isPending || !createData.teamName.trim()}
+                    disabled={createTeamMutation.isPending || !createData.teamName.trim() || !createData.sport}
                   >
                     {createTeamMutation.isPending ? (
                       <div className="flex items-center space-x-2">

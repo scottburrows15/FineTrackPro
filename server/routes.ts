@@ -329,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { firstName, lastName, position } = req.body;
+      const { firstName, lastName, position, nickname } = req.body;
       
       const user = await storage.getUser(userId);
       if (!user) {
@@ -341,6 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName,
         lastName,
         position,
+        nickname,
       });
 
       await storage.createAuditLog({
@@ -348,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: userId,
         action: 'update',
         userId,
-        changes: { firstName, lastName, position },
+        changes: { firstName, lastName, position, nickname },
       });
 
       res.json(updatedUser);

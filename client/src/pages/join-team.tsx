@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getFullName } from "@/lib/userUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Gavel, Users, CheckCircle } from "lucide-react";
 
@@ -105,7 +106,7 @@ export default function JoinTeam() {
               <span>Invite Code: {inviteCode}</span>
             </div>
             <p className="text-slate-600 text-sm">
-              You're joining as <strong>{user?.firstName} {user?.lastName}</strong>
+              You're joining as <strong>{getFullName(user)}</strong>
             </p>
           </div>
 
