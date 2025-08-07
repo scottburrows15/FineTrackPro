@@ -65,6 +65,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Auto-join via share link route
+  app.get('/api/teams/join/:inviteCode', isAuthenticated, async (req: any, res) => {
+    try {
+      const { inviteCode } = req.params;
+      const userId = req.user.claims.sub;
+      
+      const team = await storage.getTeamByInviteCode(inviteCode);
+      if (!team) {
+        return res.status(404).json({ message: "Invalid invite code or team not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user is already in a team
+      if (user.teamId) {
+        return res.status(400).json({ message: "You are already a member of a team" });
+      }
+
+      // Update user's team
+      const updatedUser = await storage.upsertUser({
+        ...user,
+        teamId: team.id,
+        role: 'player',
+      });
+
+      res.json({ 
+        message: `Successfully joined ${team.name}`,
+        team,
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error("Error auto-joining team:", error);
+      res.status(500).json({ message: "Failed to join team" });
+    }
+  });
+
   app.post('/api/teams', isAuthenticated, async (req: any, res) => {
     try {
       const { name } = req.body;
@@ -205,6 +244,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating fine:", error);
       res.status(500).json({ message: "Failed to create fine" });
+    }
+  });
+
+  // Bulk fine creation route
+  app.post('/api/fines/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const { playerIds, subcategoryId, amount, description } = req.body;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!playerIds || !Array.isArray(playerIds) || playerIds.length === 0) {
+        return res.status(400).json({ message: "Player IDs are required" });
+      }
+
+      const fines = [];
+      
+      for (const playerId of playerIds) {
+        const fine = await storage.createFine({
+          playerId,
+          subcategoryId,
+          amount: amount.toString(),
+          description,
+          issuedBy: userId,
+        });
+
+        // Create notification for each player
+        await storage.createNotification({
+          userId: playerId,
+          title: "New Fine Issued",
+          message: `You have received a new fine of £${amount}`,
+          type: "fine_issued",
+          relatedEntityId: fine.id,
+        });
+
+        // Create audit log for each fine
+        await storage.createAuditLog({
+          entityType: 'fine',
+          entityId: fine.id,
+          action: 'create',
+          userId,
+          changes: { playerId, subcategoryId, amount, description },
+        });
+
+        fines.push(fine);
+      }
+
+      res.json({ 
+        message: `Successfully issued ${fines.length} fines`,
+        fines 
+      });
+    } catch (error) {
+      console.error("Error creating bulk fines:", error);
+      res.status(500).json({ message: "Failed to create bulk fines" });
     }
   });
 
@@ -356,6 +452,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating profile:", error);
       res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Admin team share link
+  app.get('/api/admin/share-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const team = await storage.getTeam(user.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      const shareUrl = `${req.protocol}://${req.hostname}/join/${team.inviteCode}`;
+      
+      res.json({ 
+        shareUrl,
+        inviteCode: team.inviteCode,
+        teamName: team.name 
+      });
+    } catch (error) {
+      console.error("Error generating share link:", error);
+      res.status(500).json({ message: "Failed to generate share link" });
     }
   });
 

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import IssueFineModal from "./issue-fine-modal";
+import AdminShareLink from "./admin-share-link";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,9 +52,10 @@ export default function AdminDashboard() {
     enabled: showUnpaidFines,
   });
 
-  const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
+  const { data: teamMembers = [], isLoading: membersLoading, refetch: refetchMembers } = useQuery<User[]>({
     queryKey: ["/api/admin/team-members"],
     enabled: showTeamMembers,
+    refetchInterval: showTeamMembers ? 30000 : false, // Refresh every 30 seconds when viewing
   });
 
   const deleteFine = useMutation({
@@ -238,6 +240,11 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Admin Share Link */}
+      <div className="mb-8">
+        <AdminShareLink />
+      </div>
+
       {/* Quick Actions & Team Leaderboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Quick Actions */}
@@ -263,7 +270,12 @@ export default function AdminDashboard() {
                 <Button 
                   variant="ghost" 
                   className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-                  onClick={() => setShowTeamMembers(!showTeamMembers)}
+                  onClick={() => {
+                    setShowTeamMembers(!showTeamMembers);
+                    if (!showTeamMembers) {
+                      refetchMembers(); // Refresh data when opening
+                    }
+                  }}
                 >
                   <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                     <Users className="text-primary text-sm" />

@@ -52,6 +52,7 @@ export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProp
         description: "Your profile has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/team-members"] });
       onClose();
     },
     onError: (error) => {
