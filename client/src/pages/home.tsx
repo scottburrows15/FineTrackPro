@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/ui/navigation";
 import PlayerDashboard from "@/components/player-dashboard";
 import AdminDashboard from "@/components/admin-dashboard";
+import TeamOnboarding from "@/components/team-onboarding";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -17,23 +18,7 @@ export default function Home() {
   }
 
   if (!user || !user.teamId) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <Navigation 
-          user={user || null} 
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          canSwitchView={false}
-        />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Welcome to TeamFines Pro</h1>
-          <p className="text-slate-600 mb-8">You need to join a team to get started.</p>
-          <p className="text-sm text-slate-500">
-            Ask your team admin for an invite link to join your team.
-          </p>
-        </div>
-      </div>
-    );
+    return <TeamOnboarding />;
   }
 
   const canSwitchView = user && user.role === 'admin';

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import IssueFineModal from "./issue-fine-modal";
 import { formatCurrency } from "@/lib/utils";
-import type { FineWithDetails, TeamStats } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import type { FineWithDetails, TeamStats, Team } from "@shared/schema";
 import { 
   Plus, 
   UserPlus, 
@@ -18,10 +19,13 @@ import {
   Settings,
   Edit,
   Check,
-  Trash2
+  Trash2,
+  Copy,
+  Share
 } from "lucide-react";
 
 export default function AdminDashboard() {
+  const { toast } = useToast();
   const [showIssueFineModal, setShowIssueFineModal] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
@@ -32,7 +36,29 @@ export default function AdminDashboard() {
     queryKey: ["/api/fines/team"],
   });
 
-  if (statsLoading || finesLoading) {
+  const { data: teamInfo, isLoading: teamLoading } = useQuery<Team>({
+    queryKey: ["/api/team/info"],
+  });
+
+  const handleCopyTeamCode = async () => {
+    if (teamInfo?.inviteCode) {
+      try {
+        await navigator.clipboard.writeText(teamInfo.inviteCode);
+        toast({
+          title: "Team Code Copied!",
+          description: "The team code has been copied to your clipboard.",
+        });
+      } catch (err) {
+        toast({
+          title: "Copy Failed",
+          description: "Unable to copy team code. Please copy it manually.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  if (statsLoading || finesLoading || teamLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
@@ -65,7 +91,33 @@ export default function AdminDashboard() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 mb-2">Team Management Dashboard</h1>
-                <p className="text-slate-600">Manage fines, players, and team settings</p>
+                <p className="text-slate-600 mb-3">Manage fines, players, and team settings</p>
+                {teamInfo && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 max-w-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-primary mb-1">Team: {teamInfo.name}</p>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-slate-600">Team Code:</span>
+                          <code className="bg-slate-100 px-2 py-1 rounded text-sm font-mono font-bold text-slate-900">
+                            {teamInfo.inviteCode}
+                          </code>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCopyTeamCode}
+                        className="h-8 w-8 p-0 hover:bg-primary/10"
+                      >
+                        <Copy className="w-4 h-4 text-primary" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Share this code with players to join your team
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button 

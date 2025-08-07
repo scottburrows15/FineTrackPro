@@ -49,6 +49,9 @@ export const teams = pgTable("teams", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
 // Fine categories table
 export const fineCategories = pgTable("fine_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

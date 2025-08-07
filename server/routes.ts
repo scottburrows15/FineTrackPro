@@ -132,6 +132,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team info route
+  app.get('/api/team/info', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.teamId) {
+        return res.status(404).json({ message: "User not in a team" });
+      }
+
+      const team = await storage.getTeamById(user.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      res.json(team);
+    } catch (error) {
+      console.error("Error fetching team info:", error);
+      res.status(500).json({ message: "Failed to fetch team info" });
+    }
+  });
+
   // Fine routes
   app.get('/api/fines/my', isAuthenticated, async (req: any, res) => {
     try {
