@@ -144,7 +144,23 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
             <div className="space-y-4">
               <PaymentElement 
                 options={{
-                  layout: "tabs",
+                  layout: "accordion",
+                  paymentMethodOrder: ['card', 'apple_pay', 'google_pay', 'link'],
+                  fields: {
+                    billingDetails: {
+                      name: 'auto',
+                      email: 'auto',
+                      phone: 'never',
+                      address: {
+                        country: 'never',
+                        line1: 'never',
+                        line2: 'never',
+                        city: 'never',
+                        state: 'never',
+                        postalCode: 'never'
+                      }
+                    }
+                  },
                   defaultValues: {
                     billingDetails: {
                       name: "",
@@ -186,7 +202,7 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p>
                 <strong>Demo Mode:</strong> This is a test environment. No real payments will be processed.
-                Use test card number 4242 4242 4242 4242 with any future date and CVC.
+                Use test card 4242 4242 4242 4242, or try the quick payment options above if available on your device.
               </p>
             </div>
           </form>

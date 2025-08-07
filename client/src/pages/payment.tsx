@@ -126,7 +126,8 @@ export default function Payment() {
                   colorDanger: '#dc2626',
                   borderRadius: '8px',
                 }
-              }
+              },
+              loader: 'auto'
             }}
           >
             <PaymentModal 
