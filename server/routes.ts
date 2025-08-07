@@ -1,0 +1,327 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import Stripe from "stripe";
+import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
+
+// Use dummy Stripe key for testing if not provided
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_testing';
+
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: "2025-07-30.basil",
+});
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Team routes
+  app.post('/api/teams/join', isAuthenticated, async (req: any, res) => {
+    try {
+      const { inviteCode } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const team = await storage.getTeamByInviteCode(inviteCode);
+      if (!team) {
+        return res.status(404).json({ message: "Invalid invite code" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user's team
+      const updatedUser = await storage.upsertUser({
+        ...user,
+        teamId: team.id,
+      });
+
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: userId,
+        action: 'join_team',
+        userId,
+        changes: { teamId: team.id },
+      });
+
+      res.json({ team, user: updatedUser });
+    } catch (error) {
+      console.error("Error joining team:", error);
+      res.status(500).json({ message: "Failed to join team" });
+    }
+  });
+
+  app.post('/api/teams', isAuthenticated, async (req: any, res) => {
+    try {
+      const { name } = req.body;
+      const userId = req.user.claims.sub;
+
+      const inviteCode = storage.generateInviteCode();
+      const team = await storage.createTeam({
+        name,
+        inviteCode,
+      });
+
+      // Update user to be admin of this team
+      const user = await storage.getUser(userId);
+      if (user) {
+        await storage.upsertUser({
+          ...user,
+          teamId: team.id,
+          role: 'admin',
+        });
+      }
+
+      // Create default categories
+      const trainingCategory = await storage.createFineCategory({
+        teamId: team.id,
+        name: "Training",
+        color: "#1E40AF",
+        sortOrder: 0,
+      });
+
+      const matchCategory = await storage.createFineCategory({
+        teamId: team.id,
+        name: "Match Day",
+        color: "#DC2626",
+        sortOrder: 1,
+      });
+
+      const socialCategory = await storage.createFineCategory({
+        teamId: team.id,
+        name: "Social",
+        color: "#7C3AED",
+        sortOrder: 2,
+      });
+
+      // Create default subcategories
+      await storage.createFineSubcategory({
+        categoryId: trainingCategory.id,
+        name: "Late Arrival",
+        defaultAmount: "5.00",
+        icon: "fas fa-clock",
+        sortOrder: 0,
+      });
+
+      await storage.createFineSubcategory({
+        categoryId: matchCategory.id,
+        name: "Red Card",
+        defaultAmount: "32.50",
+        icon: "fas fa-square",
+        sortOrder: 0,
+      });
+
+      res.json(team);
+    } catch (error) {
+      console.error("Error creating team:", error);
+      res.status(500).json({ message: "Failed to create team" });
+    }
+  });
+
+  // Fine routes
+  app.get('/api/fines/my', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const fines = await storage.getUserFines(userId);
+      res.json(fines);
+    } catch (error) {
+      console.error("Error fetching user fines:", error);
+      res.status(500).json({ message: "Failed to fetch fines" });
+    }
+  });
+
+  app.post('/api/fines', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validation = insertFineSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid fine data", errors: validation.error.issues });
+      }
+
+      const fine = await storage.createFine({
+        ...validation.data,
+        issuedBy: userId,
+      });
+
+      // Create notification for player
+      await storage.createNotification({
+        userId: fine.playerId,
+        title: "New Fine Issued",
+        message: `You have received a new fine of £${fine.amount}`,
+        type: "fine_issued",
+        relatedEntityId: fine.id,
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'fine',
+        entityId: fine.id,
+        action: 'create',
+        userId,
+        changes: validation.data,
+      });
+
+      res.json(fine);
+    } catch (error) {
+      console.error("Error creating fine:", error);
+      res.status(500).json({ message: "Failed to create fine" });
+    }
+  });
+
+  // Categories routes
+  app.get('/api/categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      
+      if (!user?.teamId) {
+        return res.status(404).json({ message: "User not in a team" });
+      }
+
+      const categories = await storage.getTeamCategories(user.teamId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.get('/api/categories/:id/subcategories', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const subcategories = await storage.getCategorySubcategories(id);
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching subcategories:", error);
+      res.status(500).json({ message: "Failed to fetch subcategories" });
+    }
+  });
+
+  // Statistics routes
+  app.get('/api/stats/player', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stats = await storage.getPlayerStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching player stats:", error);
+      res.status(500).json({ message: "Failed to fetch player stats" });
+    }
+  });
+
+  app.get('/api/stats/team', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const stats = await storage.getTeamStats(user.teamId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching team stats:", error);
+      res.status(500).json({ message: "Failed to fetch team stats" });
+    }
+  });
+
+  // Payment routes
+  app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { amount } = req.body;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to pence
+        currency: "gbp", // UK currency
+      });
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  app.post("/api/confirm-payment", isAuthenticated, async (req: any, res) => {
+    try {
+      const { paymentIntentId, fineIds } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Mark fines as paid
+      for (const fineId of fineIds) {
+        await storage.updateFine(fineId, {
+          isPaid: true,
+          paidAt: new Date(),
+          paymentIntentId,
+        });
+
+        // Create notification
+        await storage.createNotification({
+          userId,
+          title: "Fine Paid",
+          message: "Your fine payment has been processed successfully",
+          type: "fine_paid",
+          relatedEntityId: fineId,
+        });
+
+        // Create audit log
+        await storage.createAuditLog({
+          entityType: 'fine',
+          entityId: fineId,
+          action: 'pay',
+          userId,
+          changes: { isPaid: true, paymentIntentId },
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      res.status(500).json({ message: "Failed to confirm payment" });
+    }
+  });
+
+  // Notifications routes
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getUserNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post('/api/notifications/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.markNotificationRead(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
