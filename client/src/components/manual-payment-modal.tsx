@@ -105,9 +105,9 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <span>Record Manual Payment</span>
           </DialogTitle>
@@ -223,7 +223,7 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <Button
               type="button"
               variant="outline"

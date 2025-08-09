@@ -147,15 +147,15 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <Users className="w-5 h-5" />
             <span>Manage Team</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2 space-y-4 sm:space-y-6">
           {/* Team Details Section */}
           <Card>
             <CardContent className="p-6">
@@ -183,7 +183,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
               {editingTeam ? (
                 <form onSubmit={handleUpdateTeam} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="teamName">Team Name</Label>
                       <Input

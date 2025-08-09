@@ -91,7 +91,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
           </div>
@@ -102,9 +102,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <User className="w-5 h-5" />
             <span>Edit Profile</span>
           </DialogTitle>
@@ -124,14 +124,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               variant="outline" 
               size="sm"
               onClick={handleFileUpload}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
               <span>Upload Picture</span>
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">First Name</Label>
               <Input
