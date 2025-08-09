@@ -382,7 +382,7 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                         className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
                       >
                         <Tags className="w-4 h-4 mr-3 text-purple-500" />
-                        <span>Manage Categories</span>
+                        <span>Fine Types</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleAdminAction('export')}

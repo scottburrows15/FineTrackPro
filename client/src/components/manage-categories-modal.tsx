@@ -547,7 +547,7 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <Tags className="w-5 h-5" />
-            <span>Manage Fine Categories</span>
+            <span>Fine Types</span>
           </DialogTitle>
         </DialogHeader>
 
