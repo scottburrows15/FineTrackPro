@@ -2,6 +2,11 @@
 
 TeamFines Pro is a comprehensive fine management system designed specifically for UK sports teams. The application streamlines the process of issuing, tracking, and paying team fines through an automated system that replaces traditional spreadsheet-based approaches. The system provides role-based access with separate interfaces for players and administrators, integrated payment processing via Stripe, real-time notifications, and comprehensive reporting capabilities.
 
+## Recent Changes (January 2025)
+- ✅ **Complete Mobile Optimization**: All popup windows and modals now fully optimized for mobile devices with 95vw responsive width, mobile-first grids, and touch-friendly button layouts
+- ✅ **Analytics Dashboard**: Added comprehensive team analytics with charts, trends, and real-time data visualization
+- ✅ **Modal Mobile Fixes**: Updated base Dialog and AlertDialog components for consistent mobile defaults across entire application
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
