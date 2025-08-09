@@ -28,7 +28,6 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [playerSearchTerm, setPlayerSearchTerm] = useState("");
-  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
 
   const [formData, setFormData] = useState({
     selectedPlayerIds: [] as string[],
@@ -64,26 +63,16 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
     return fullName.includes(searchLower) || position.includes(searchLower);
   });
 
-  // Bulk fine mutation for multiple players
+  // Unified fine mutation that works for any number of players
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      if (data.selectedPlayerIds.length === 1) {
-        // Single player fine
-        return await apiRequest("POST", "/api/fines", {
-          playerId: data.selectedPlayerIds[0],
-          subcategoryId: data.subcategoryId,
-          amount: data.amount,
-          description: data.description,
-        });
-      } else {
-        // Bulk fine assignment
-        return await apiRequest("POST", "/api/fines/bulk", {
-          playerIds: data.selectedPlayerIds,
-          subcategoryId: data.subcategoryId,
-          amount: data.amount,
-          description: data.description,
-        });
-      }
+      // Always use bulk endpoint which can handle single or multiple players
+      return await apiRequest("POST", "/api/fines/bulk", {
+        playerIds: data.selectedPlayerIds,
+        subcategoryId: data.subcategoryId,
+        amount: data.amount,
+        description: data.description,
+      });
     },
     onSuccess: () => {
       const playerCount = formData.selectedPlayerIds.length;
@@ -116,7 +105,6 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
       sendNotification: true,
     });
     setPlayerSearchTerm("");
-    setSelectionMode('single');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -179,24 +167,6 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
             <div className="space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Label className="text-base font-semibold">Players *</Label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant={selectionMode === 'multiple' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setSelectionMode(selectionMode === 'multiple' ? 'single' : 'multiple');
-                      setFormData(prev => ({ ...prev, selectedPlayerIds: [] }));
-                    }}
-                  >
-                    <Users className="w-4 h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">
-                      {selectionMode === 'multiple' ? 'Multi-Select' : 'Single Player'}
-                    </span>
-                    <span className="sm:hidden">
-                      {selectionMode === 'multiple' ? 'Multi' : 'Single'}
-                    </span>
-                  </Button>
                 {formData.selectedPlayerIds.length > 0 && (
                   <Badge variant="secondary" className="px-2 py-1">
                     {formData.selectedPlayerIds.length} selected
@@ -216,8 +186,8 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               />
             </div>
 
-            {/* Quick Actions for Multiple Selection */}
-            {selectionMode === 'multiple' && filteredPlayers.length > 0 && (
+            {/* Quick Actions for Selection */}
+            {filteredPlayers.length > 0 && (
               <div className="flex items-center space-x-2 text-sm">
                 <Button
                   type="button"
@@ -265,33 +235,19 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 p-2">
                   {filteredPlayers.map(member => {
                     const isSelected = formData.selectedPlayerIds.includes(member.id);
-                    const canSelect = selectionMode === 'multiple' || formData.selectedPlayerIds.length === 0 || isSelected;
                     
                     return (
                       <div
                         key={member.id}
-                        className={`relative group cursor-pointer transition-all duration-200 ${
-                          !canSelect ? 'opacity-40 cursor-not-allowed' : ''
-                        }`}
-                        onClick={() => {
-                          if (!canSelect) return;
-                          
-                          if (selectionMode === 'multiple') {
-                            handlePlayerToggle(member.id);
-                          } else {
-                            setFormData(prev => ({ 
-                              ...prev, 
-                              selectedPlayerIds: isSelected ? [] : [member.id] 
-                            }));
-                          }
-                        }}
+                        className="relative group cursor-pointer transition-all duration-200"
+                        onClick={() => handlePlayerToggle(member.id)}
                       >
                         <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg border-2 sm:border-4 transition-all duration-200 ${
                           isSelected
                             ? 'bg-primary border-primary shadow-lg scale-110'
                             : 'bg-slate-400 border-slate-300 group-hover:bg-slate-500 group-hover:border-slate-400 group-hover:scale-105'
                         }`}>
-                          {isSelected && selectionMode === 'multiple' ? (
+                          {isSelected ? (
                             <Check className="w-6 h-6" />
                           ) : (
                             <span className="text-sm">
@@ -313,16 +269,11 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                           </p>
                         </div>
                         
-                        {/* Selection indicator for multi-select */}
-                        {selectionMode === 'multiple' && isSelected && (
+                        {/* Selection indicator */}
+                        {isSelected && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
                             <Check className="w-3 h-3 text-white" />
                           </div>
-                        )}
-                        
-                        {/* Selection ring for single select */}
-                        {selectionMode === 'single' && isSelected && (
-                          <div className="absolute -inset-1 rounded-full border-2 border-primary animate-pulse" />
                         )}
                       </div>
                     );
@@ -340,107 +291,105 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                 )}
               </div>
             )}
-          </div>
 
-          {/* Category and Fine Details */}
-          <div className="space-y-4">
-            {/* Category Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <Select 
-                value={formData.categoryId} 
-                onValueChange={(categoryId) => {
-                  setFormData(prev => ({ ...prev, categoryId, subcategoryId: "", amount: "" }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Subcategory Selection */}
-            {formData.categoryId && (
+            {/* Category and Fine Details */}
+            <div className="space-y-4">
+              {/* Category Selection */}
               <div className="space-y-2">
-                <Label htmlFor="subcategory">Fine Type *</Label>
+                <Label htmlFor="category">Category *</Label>
                 <Select 
-                  value={formData.subcategoryId} 
-                  onValueChange={handleSubcategoryChange}
+                  value={formData.categoryId} 
+                  onValueChange={(categoryId) => {
+                    setFormData(prev => ({ ...prev, categoryId, subcategoryId: "", amount: "" }));
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select fine type" />
+                    <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subcategories.map(subcategory => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        <div className="flex justify-between items-center w-full">
-                          <span>{subcategory.name}</span>
-                          {subcategory.defaultAmount && (
-                            <span className="text-sm text-slate-500 ml-2">
-                              £{subcategory.defaultAmount}
-                            </span>
-                          )}
-                        </div>
+                    {categories.map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (£) *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                placeholder="Enter fine amount"
-              />
-              {formData.selectedPlayerIds.length > 1 && formData.amount && (
-                <p className="text-sm text-slate-600">
-                  Total cost: <span className="font-semibold">{formatCurrency(totalCost)}</span> 
-                  ({formData.selectedPlayerIds.length} players × {formatCurrency(parseFloat(formData.amount))})
-                </p>
+              {/* Subcategory Selection */}
+              {formData.categoryId && (
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory">Fine Type *</Label>
+                  <Select 
+                    value={formData.subcategoryId} 
+                    onValueChange={handleSubcategoryChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select fine type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories.map(subcategory => (
+                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{subcategory.name}</span>
+                            {subcategory.defaultAmount && (
+                              <span className="text-sm text-slate-500 ml-2">
+                                £{subcategory.defaultAmount}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-            </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Additional details..."
-              />
-            </div>
+              {/* Amount */}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (£) *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="Enter fine amount"
+                />
+                {formData.selectedPlayerIds.length > 1 && formData.amount && (
+                  <p className="text-sm text-slate-600">
+                    Total cost: <span className="font-semibold">{formatCurrency(totalCost)}</span> 
+                    ({formData.selectedPlayerIds.length} players × {formatCurrency(parseFloat(formData.amount))})
+                  </p>
+                )}
+              </div>
 
-            {/* Send Notification */}
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="sendNotification"
-                checked={formData.sendNotification}
-                onChange={(e) => setFormData(prev => ({ ...prev, sendNotification: e.target.checked }))}
-                className="rounded border-slate-300"
-              />
-              <Label htmlFor="sendNotification" className="text-sm">
-                Send notification to player(s)
-              </Label>
-            </div>
-          </div>
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Additional details..."
+                />
+              </div>
 
+              {/* Send Notification */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="sendNotification"
+                  checked={formData.sendNotification}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sendNotification: e.target.checked }))}
+                  className="rounded border-slate-300"
+                />
+                <Label htmlFor="sendNotification" className="text-sm">
+                  Send notification to player(s)
+                </Label>
+              </div>
+            </div>
           </form>
         </div>
         
