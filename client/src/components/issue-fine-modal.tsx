@@ -168,29 +168,35 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Issue New Fine</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Player Selection */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Players *</Label>
-              <div className="flex items-center space-x-2">
-                <Button
-                  type="button"
-                  variant={selectionMode === 'multiple' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setSelectionMode(selectionMode === 'multiple' ? 'single' : 'multiple');
-                    setFormData(prev => ({ ...prev, selectedPlayerIds: [] }));
-                  }}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  {selectionMode === 'multiple' ? 'Multi-Select' : 'Single Player'}
-                </Button>
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+          <form id="issue-fine-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            {/* Player Selection */}
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <Label className="text-base font-semibold">Players *</Label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant={selectionMode === 'multiple' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectionMode(selectionMode === 'multiple' ? 'single' : 'multiple');
+                      setFormData(prev => ({ ...prev, selectedPlayerIds: [] }));
+                    }}
+                  >
+                    <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">
+                      {selectionMode === 'multiple' ? 'Multi-Select' : 'Single Player'}
+                    </span>
+                    <span className="sm:hidden">
+                      {selectionMode === 'multiple' ? 'Multi' : 'Single'}
+                    </span>
+                  </Button>
                 {formData.selectedPlayerIds.length > 0 && (
                   <Badge variant="secondary" className="px-2 py-1">
                     {formData.selectedPlayerIds.length} selected
@@ -255,8 +261,8 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                 {playerSearchTerm ? 'No players found matching your search.' : 'No players available.'}
               </div>
             ) : (
-              <div className="max-h-80 overflow-y-auto">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+              <div className="max-h-60 sm:max-h-80 overflow-y-auto">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 p-2">
                   {filteredPlayers.map(member => {
                     const isSelected = formData.selectedPlayerIds.includes(member.id);
                     const canSelect = selectionMode === 'multiple' || formData.selectedPlayerIds.length === 0 || isSelected;
@@ -280,7 +286,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                           }
                         }}
                       >
-                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-lg border-4 transition-all duration-200 ${
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg border-2 sm:border-4 transition-all duration-200 ${
                           isSelected
                             ? 'bg-primary border-primary shadow-lg scale-110'
                             : 'bg-slate-400 border-slate-300 group-hover:bg-slate-500 group-hover:border-slate-400 group-hover:scale-105'
@@ -435,25 +441,28 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={mutation.isPending || formData.selectedPlayerIds.length === 0}
-            >
-              {mutation.isPending ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin w-4 h-4 border-4 border-white border-t-transparent rounded-full" />
-                  <span>Issuing...</span>
-                </div>
-              ) : (
-                `Issue Fine${formData.selectedPlayerIds.length > 1 ? 's' : ''}`
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </div>
+        
+        <DialogFooter className="pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            form="issue-fine-form"
+            disabled={mutation.isPending || formData.selectedPlayerIds.length === 0}
+          >
+            {mutation.isPending ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin w-4 h-4 border-4 border-white border-t-transparent rounded-full" />
+                <span>Issuing...</span>
+              </div>
+            ) : (
+              `Issue Fine${formData.selectedPlayerIds.length > 1 ? 's' : ''}`
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

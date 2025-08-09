@@ -203,7 +203,6 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
         <ProfileModal
           isOpen={showProfileModal}
           onClose={() => setShowProfileModal(false)}
-          user={user}
         />
       )}
     </>

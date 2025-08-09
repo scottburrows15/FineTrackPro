@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [showManageTeamModal, setShowManageTeamModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
 
@@ -129,41 +130,50 @@ export default function AdminDashboard() {
         <Card>
           <CardContent className="p-4">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Admin Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <Button 
                 variant="outline" 
-                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200"
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200"
                 onClick={() => setShowIssueFineModal(true)}
               >
                 <Gavel className="w-5 h-5 text-red-600" />
-                <span className="text-sm font-medium">Issue Fine</span>
+                <span className="text-xs sm:text-sm font-medium">Issue Fine</span>
               </Button>
               
               <Button 
                 variant="outline" 
-                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200"
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200"
                 onClick={() => setShowAddPlayerModal(true)}
               >
                 <UserPlus className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium">Add Player</span>
+                <span className="text-xs sm:text-sm font-medium">Add Player</span>
               </Button>
               
               <Button 
                 variant="outline" 
-                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200"
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-orange-50 hover:border-orange-200"
+                onClick={() => setShowAnalyticsModal(true)}
+              >
+                <TrendingUp className="w-5 h-5 text-orange-600" />
+                <span className="text-xs sm:text-sm font-medium">Analytics</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200"
                 onClick={() => setShowManageCategoriesModal(true)}
               >
                 <Tags className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium">Fine Types</span>
+                <span className="text-xs sm:text-sm font-medium">Fine Types</span>
               </Button>
               
               <Button 
                 variant="outline" 
-                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-200"
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-200"
                 onClick={() => setShowManageTeamModal(true)}
               >
                 <Settings className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium">Team Settings</span>
+                <span className="text-xs sm:text-sm font-medium">Settings</span>
               </Button>
             </div>
           </CardContent>
@@ -304,6 +314,22 @@ export default function AdminDashboard() {
             isOpen={showManageTeamModal} 
             onClose={() => setShowManageTeamModal(false)} 
           />
+        )}
+        
+        {showAnalyticsModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-lg font-semibold">Analytics Dashboard</h2>
+                <Button variant="outline" size="sm" onClick={() => setShowAnalyticsModal(false)}>
+                  Close
+                </Button>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <AnalyticsDashboard />
+              </div>
+            </div>
+          </div>
         )}
         
         {showProfileModal && (

@@ -543,23 +543,23 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <Tags className="w-5 h-5" />
             <span>Manage Fine Categories</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2 space-y-4 sm:space-y-6">
           {/* Categories Section */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <h3 className="text-lg font-semibold">Categories</h3>
               <Button 
                 onClick={() => setShowAddCategory(!showAddCategory)}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Category</span>
@@ -570,8 +570,8 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
               <Card className="mb-4">
                 <CardContent className="p-4">
                   <form onSubmit={handleCreateCategory} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-2">
                         <Label htmlFor="categoryName">Category Name</Label>
                         <Input
                           id="categoryName"
