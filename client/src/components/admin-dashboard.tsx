@@ -162,6 +162,7 @@ export default function AdminDashboard() {
                 variant="outline" 
                 className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200"
                 onClick={() => setShowManageCategoriesModal(true)}
+                data-action="manage-categories"
               >
                 <Tags className="w-5 h-5 text-purple-600" />
                 <span className="text-xs sm:text-sm font-medium">Fine Types</span>

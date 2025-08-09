@@ -109,11 +109,17 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
         }, 100);
         break;
       case 'categories':
-        // Show coming soon toast for now
-        toast({
-          title: "Coming Soon",
-          description: "Category management feature will be available soon.",
-        });
+        // Switch to admin view and open fine types modal
+        if (currentView !== 'admin') {
+          onViewChange('admin');
+        }
+        // Trigger the manage categories modal (Fine Types)
+        setTimeout(() => {
+          const manageCategoriesButton = document.querySelector('[data-action="manage-categories"]') as HTMLButtonElement;
+          if (manageCategoriesButton) {
+            manageCategoriesButton.click();
+          }
+        }, 100);
         break;
       case 'export':
         // Show coming soon toast for now
