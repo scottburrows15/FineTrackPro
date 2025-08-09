@@ -140,4 +140,14 @@
   .hover\:bg-danger:hover {
     background-color: hsl(var(--danger));
   }
+
+  /* Hide scrollbars for horizontal carousel */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

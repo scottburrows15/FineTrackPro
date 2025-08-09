@@ -130,52 +130,63 @@ export default function AdminDashboard() {
         <Card>
           <CardContent className="p-4">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Admin Actions</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Button 
-                variant="outline" 
-                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200"
-                onClick={() => setShowIssueFineModal(true)}
-              >
-                <Gavel className="w-5 h-5 text-red-600" />
-                <span className="text-xs sm:text-sm font-medium">Issue Fine</span>
-              </Button>
+            
+            {/* Horizontal Carousel */}
+            <div className="relative">
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-3 pb-2" style={{ minWidth: 'max-content' }}>
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowIssueFineModal(true)}
+                  >
+                    <Gavel className="w-6 h-6 text-red-600" />
+                    <span className="text-xs font-medium text-center">Issue Fine</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowAddPlayerModal(true)}
+                  >
+                    <UserPlus className="w-6 h-6 text-blue-600" />
+                    <span className="text-xs font-medium text-center">Add Player</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-orange-50 hover:border-orange-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowAnalyticsModal(true)}
+                  >
+                    <TrendingUp className="w-6 h-6 text-orange-600" />
+                    <span className="text-xs font-medium text-center">Analytics</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowManageCategoriesModal(true)}
+                    data-action="manage-categories"
+                  >
+                    <Tags className="w-6 h-6 text-purple-600" />
+                    <span className="text-xs font-medium text-center">Fine Types</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowManageTeamModal(true)}
+                  >
+                    <Settings className="w-6 h-6 text-green-600" />
+                    <span className="text-xs font-medium text-center">Team Settings</span>
+                  </Button>
+                </div>
+              </div>
               
-              <Button 
-                variant="outline" 
-                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200"
-                onClick={() => setShowAddPlayerModal(true)}
-              >
-                <UserPlus className="w-5 h-5 text-blue-600" />
-                <span className="text-xs sm:text-sm font-medium">Add Player</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-orange-50 hover:border-orange-200"
-                onClick={() => setShowAnalyticsModal(true)}
-              >
-                <TrendingUp className="w-5 h-5 text-orange-600" />
-                <span className="text-xs sm:text-sm font-medium">Analytics</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200"
-                onClick={() => setShowManageCategoriesModal(true)}
-                data-action="manage-categories"
-              >
-                <Tags className="w-5 h-5 text-purple-600" />
-                <span className="text-xs sm:text-sm font-medium">Fine Types</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-200"
-                onClick={() => setShowManageTeamModal(true)}
-              >
-                <Settings className="w-5 h-5 text-green-600" />
-                <span className="text-xs sm:text-sm font-medium">Settings</span>
-              </Button>
+              {/* Scroll indicators for mobile */}
+              <div className="absolute top-2 right-2 text-xs text-slate-400 md:hidden">
+                Scroll →
+              </div>
             </div>
           </CardContent>
         </Card>
