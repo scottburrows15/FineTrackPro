@@ -656,6 +656,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reorder categories route
+  app.patch('/api/categories/reorder', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { categoryIds } = req.body;
+      if (!Array.isArray(categoryIds)) {
+        return res.status(400).json({ message: "Invalid category IDs array" });
+      }
+
+      await storage.reorderCategories(categoryIds);
+      
+      await storage.createAuditLog({
+        entityType: 'category',
+        entityId: 'bulk',
+        action: 'reorder',
+        userId: user.id,
+        changes: { newOrder: categoryIds },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering categories:", error);
+      res.status(500).json({ message: "Failed to reorder categories" });
+    }
+  });
+
+  // Reorder subcategories route
+  app.patch('/api/categories/:categoryId/subcategories/reorder', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { categoryId } = req.params;
+      const { subcategoryIds } = req.body;
+      
+      if (!Array.isArray(subcategoryIds)) {
+        return res.status(400).json({ message: "Invalid subcategory IDs array" });
+      }
+
+      await storage.reorderSubcategories(categoryId, subcategoryIds);
+      
+      await storage.createAuditLog({
+        entityType: 'subcategory',
+        entityId: 'bulk',
+        action: 'reorder',
+        userId: user.id,
+        changes: { categoryId, newOrder: subcategoryIds },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering subcategories:", error);
+      res.status(500).json({ message: "Failed to reorder subcategories" });
+    }
+  });
+
   // Add player route
   app.post('/api/admin/add-player', isAuthenticated, async (req: any, res) => {
     try {

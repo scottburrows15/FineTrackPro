@@ -11,15 +11,202 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Tags, Edit, Trash2, PoundSterling, Edit2, GripVertical } from "lucide-react";
 import type { FineCategory, FineSubcategory } from "@shared/schema";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ManageCategoriesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface SortableCategoryCardProps {
+  category: FineCategory;
+  subcategories: FineSubcategory[];
+  isSelected: boolean;
+  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SortableCategoryCard({ 
+  category, 
+  subcategories, 
+  isSelected, 
+  onSelect, 
+  onEdit, 
+  onDelete 
+}: SortableCategoryCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      style={style}
+      className={`cursor-pointer transition-all hover:shadow-md ${
+        isSelected ? 'ring-2 ring-primary' : ''
+      } ${isDragging ? 'z-50' : ''}`}
+      onClick={onSelect}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 flex-1">
+            <div 
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
+            >
+              <GripVertical className="w-4 h-4 text-gray-400" />
+            </div>
+            <div 
+              className="w-4 h-4 rounded-full"
+              style={{ backgroundColor: category.color }}
+            />
+            <div className="flex-1">
+              <h4 className="font-medium text-slate-900">{category.name}</h4>
+              <p className="text-xs text-slate-600">
+                {subcategories.length} subcategories
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-1">
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface SortableSubcategoryCardProps {
+  subcategory: FineSubcategory;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SortableSubcategoryCard({ 
+  subcategory, 
+  onEdit, 
+  onDelete 
+}: SortableSubcategoryCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: subcategory.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 flex-1">
+            <div 
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
+            >
+              <GripVertical className="w-4 h-4 text-gray-400" />
+            </div>
+            <div>
+              <h4 className="font-medium text-slate-900">{subcategory.name}</h4>
+              <p className="text-sm text-slate-600">
+                Default: £{parseFloat(subcategory.defaultAmount).toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onEdit}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
@@ -197,6 +384,71 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
       });
     },
   });
+
+  // Reorder categories mutation
+  const reorderCategories = useMutation({
+    mutationFn: async (reorderedIds: string[]) => {
+      return apiRequest("PATCH", "/api/categories/reorder", { categoryIds: reorderedIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    },
+    onError: (error) => {
+      console.error("Error reordering categories:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder categories",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reorder subcategories mutation
+  const reorderSubcategories = useMutation({
+    mutationFn: async (reorderedIds: string[]) => {
+      return apiRequest("PATCH", `/api/categories/${selectedCategoryId}/subcategories/reorder`, { subcategoryIds: reorderedIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+    },
+    onError: (error) => {
+      console.error("Error reordering subcategories:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder subcategories",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Drag handlers
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      const oldIndex = categories.findIndex((item) => item.id === active.id);
+      const newIndex = categories.findIndex((item) => item.id === over?.id);
+      
+      const newOrder = arrayMove(categories, oldIndex, newIndex);
+      const reorderedIds = newOrder.map(item => item.id);
+      
+      reorderCategories.mutate(reorderedIds);
+    }
+  };
+
+  const handleSubcategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      const oldIndex = subcategories.findIndex((item) => item.id === active.id);
+      const newIndex = subcategories.findIndex((item) => item.id === over?.id);
+      
+      const newOrder = arrayMove(subcategories, oldIndex, newIndex);
+      const reorderedIds = newOrder.map(item => item.id);
+      
+      reorderSubcategories.mutate(reorderedIds);
+    }
+  };
 
   const handleCreateCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,56 +629,28 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                   <p className="text-slate-600">No categories yet. Create your first category above.</p>
                 </div>
               ) : (
-                categories.map((category) => (
-                  <Card 
-                    key={category.id} 
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedCategoryId === category.id ? 'ring-2 ring-primary' : ''
-                    }`}
-                    onClick={() => setSelectedCategoryId(category.id)}
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleCategoryDragEnd}
+                >
+                  <SortableContext 
+                    items={categories.map(cat => cat.id)}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1" onClick={() => setSelectedCategoryId(category.id)}>
-                          <div 
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-medium text-slate-900">{category.name}</h4>
-                            <p className="text-xs text-slate-600">
-                              {subcategories.filter(sub => sub.categoryId === category.id).length} subcategories
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditCategory(category);
-                            }}
-                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCategory(category);
-                            }}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                    {categories.map((category) => (
+                      <SortableCategoryCard
+                        key={category.id}
+                        category={category}
+                        subcategories={subcategories.filter(sub => sub.categoryId === category.id)}
+                        isSelected={selectedCategoryId === category.id}
+                        onSelect={() => setSelectedCategoryId(category.id)}
+                        onEdit={() => handleEditCategory(category)}
+                        onDelete={() => handleDeleteCategory(category)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </div>
@@ -523,38 +747,25 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                     <p className="text-slate-600">No subcategories yet. Create your first subcategory above.</p>
                   </div>
                 ) : (
-                  subcategories.map((subcategory) => (
-                    <Card key={subcategory.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-slate-900">{subcategory.name}</h4>
-                            <p className="text-sm text-slate-600">
-                              Default: {formatCurrency(subcategory.defaultAmount)}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleEditSubcategory(subcategory)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleDeleteSubcategory(subcategory)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleSubcategoryDragEnd}
+                  >
+                    <SortableContext 
+                      items={subcategories.map(sub => sub.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {subcategories.map((subcategory) => (
+                        <SortableSubcategoryCard
+                          key={subcategory.id}
+                          subcategory={subcategory}
+                          onEdit={() => handleEditSubcategory(subcategory)}
+                          onDelete={() => handleDeleteSubcategory(subcategory)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             </div>

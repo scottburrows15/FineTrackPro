@@ -44,12 +44,14 @@ export interface IStorage {
   createFineCategory(category: InsertFineCategory): Promise<FineCategory>;
   updateCategory(id: string, updates: Partial<FineCategory>): Promise<FineCategory>;
   deleteCategory(id: string): Promise<void>;
+  reorderCategories(categoryIds: string[]): Promise<void>;
   
   // Fine subcategory operations
   getCategorySubcategories(categoryId: string): Promise<FineSubcategory[]>;
   createFineSubcategory(subcategory: InsertFineSubcategory): Promise<FineSubcategory>;
   updateSubcategory(id: string, updates: Partial<FineSubcategory>): Promise<FineSubcategory>;
   deleteSubcategory(id: string): Promise<void>;
+  reorderSubcategories(categoryId: string, subcategoryIds: string[]): Promise<void>;
   
   // Fine operations
   getUserFines(userId: string): Promise<FineWithDetails[]>;
@@ -165,6 +167,16 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fineCategories).where(eq(fineCategories.id, id));
   }
 
+  async reorderCategories(categoryIds: string[]): Promise<void> {
+    // Update sortOrder for each category based on its position in the array
+    for (let i = 0; i < categoryIds.length; i++) {
+      await db
+        .update(fineCategories)
+        .set({ sortOrder: i })
+        .where(eq(fineCategories.id, categoryIds[i]));
+    }
+  }
+
   async getCategorySubcategories(categoryId: string): Promise<FineSubcategory[]> {
     return await db
       .select()
@@ -189,6 +201,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubcategory(id: string): Promise<void> {
     await db.delete(fineSubcategories).where(eq(fineSubcategories.id, id));
+  }
+
+  async reorderSubcategories(categoryId: string, subcategoryIds: string[]): Promise<void> {
+    // Update sortOrder for each subcategory based on its position in the array
+    for (let i = 0; i < subcategoryIds.length; i++) {
+      await db
+        .update(fineSubcategories)
+        .set({ sortOrder: i })
+        .where(eq(fineSubcategories.id, subcategoryIds[i]));
+    }
   }
 
   async getUserFines(userId: string): Promise<FineWithDetails[]> {
