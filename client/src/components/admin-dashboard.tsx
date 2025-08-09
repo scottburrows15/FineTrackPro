@@ -102,276 +102,9 @@ export default function AdminDashboard() {
 
 
 
-  // Overview Section
-  const OverviewSection = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-slate-900">Team Overview</h2>
-      
-      {/* Team Invitation Section */}
-      <AdminShareLink />
 
-      {/* Key Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Total Players</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {statsLoading ? '-' : stats?.totalPlayers || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Outstanding Fines</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {statsLoading ? '-' : formatCurrency(parseFloat(stats?.outstandingFines || '0'))}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Gavel className="w-6 h-6 text-secondary" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Total Fines</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {finesLoading ? '-' : fines.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Recent Fines</h3>
-        </div>
-        <CardContent className="p-6">
-          {finesLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-              <p className="text-sm text-slate-600 mt-2">Loading fines...</p>
-            </div>
-          ) : fines.length === 0 ? (
-            <div className="text-center py-8">
-              <Gavel className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600">No fines issued yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {fines.slice(0, 5).map((fine) => (
-                <div key={fine.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-slate-600">
-                        {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {fine.player.firstName} {fine.player.lastName}
-                      </p>
-                      <p className="text-sm text-slate-600">{fine.subcategory.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
-                    <Badge variant={fine.isPaid ? 'default' : 'secondary'}>
-                      {fine.isPaid ? 'Paid' : 'Unpaid'}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // Fines Management Section
-  const FinesSection = () => (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">Recent Activity</h2>
-
-      {/* Unpaid Fines */}
-      <Card>
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Unpaid Fines</h3>
-        </div>
-        <CardContent className="p-6">
-          {unpaidLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-            </div>
-          ) : unpaidFines.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <p className="text-slate-600">All fines have been paid!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {unpaidFines.map((fine) => (
-                <div key={fine.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-red-700">
-                        {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {fine.player.firstName} {fine.player.lastName}
-                      </p>
-                      <p className="text-sm text-slate-600">{fine.subcategory.name}</p>
-                      <p className="text-xs text-slate-500">
-                        Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : 'Unknown date'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRecordPayment(fine)}
-                    >
-                      <CreditCard className="w-4 h-4 mr-1" />
-                      Record Payment
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => deleteFine.mutate(fine.id)}
-                      disabled={deleteFine.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // Team Management Section
-  const TeamSection = () => (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">Team Members</h2>
-
-      {/* Team Members */}
-      <Card>
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Team Members</h3>
-        </div>
-        <CardContent className="p-6">
-          {membersLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-slate-600">
-                        {member.firstName?.[0]}{member.lastName?.[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {member.firstName} {member.lastName}
-                      </p>
-                      <p className="text-sm text-slate-600">{member.position || 'No position set'}</p>
-                      <p className="text-xs text-slate-500">{member.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {member.role === 'admin' && (
-                      <Badge variant="default">
-                        <Crown className="w-3 h-3 mr-1" />
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-    </div>
-  );
-
-  // Settings Section
-  const SettingsSection = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-slate-900">Settings</h2>
-
-      {/* Management Options */}
-      <Card>
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Management</h3>
-        </div>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <Button 
-              variant="ghost" 
-              className="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-              onClick={() => setShowManageCategoriesModal(true)}
-            >
-              <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Tags className="text-secondary text-sm" />
-              </div>
-              <div>
-                <div className="font-medium text-slate-900">Manage Categories</div>
-                <div className="text-xs text-slate-600">Edit fine types and amounts</div>
-              </div>
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              className="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-              onClick={() => setShowManageTeamModal(true)}
-            >
-              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Settings className="text-primary text-sm" />
-              </div>
-              <div>
-                <div className="font-medium text-slate-900">Team Settings</div>
-                <div className="text-xs text-slate-600">Edit team name and sport</div>
-              </div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
@@ -392,63 +125,157 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowIssueFineModal(true)}>
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-red-200 transition-colors">
-                <Gavel className="w-6 h-6" />
+        {/* Admin Actions */}
+        <Card>
+          <CardContent className="p-4">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Admin Actions</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200"
+                onClick={() => setShowIssueFineModal(true)}
+              >
+                <Gavel className="w-5 h-5 text-red-600" />
+                <span className="text-sm font-medium">Issue Fine</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200"
+                onClick={() => setShowAddPlayerModal(true)}
+              >
+                <UserPlus className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium">Add Player</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-200"
+                onClick={() => setShowManageCategoriesModal(true)}
+              >
+                <Tags className="w-5 h-5 text-purple-600" />
+                <span className="text-sm font-medium">Fine Types</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-200"
+                onClick={() => setShowManageTeamModal(true)}
+              >
+                <Settings className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium">Team Settings</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Key Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Players</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {statsLoading ? '-' : stats?.totalPlayers || 0}
+                  </p>
+                </div>
+                <Users className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Issue Fine</h3>
-              <p className="text-sm text-slate-600">Create new fines for players</p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowAddPlayerModal(true)}>
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                <UserPlus className="w-6 h-6" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Outstanding</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {statsLoading ? '-' : formatCurrency(parseFloat(stats?.outstandingFines || '0'))}
+                  </p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-warning" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Add Player</h3>
-              <p className="text-sm text-slate-600">Invite new team members</p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowManageCategoriesModal(true)}>
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                <Tags className="w-6 h-6" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Total Fines</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {finesLoading ? '-' : fines.length}
+                  </p>
+                </div>
+                <Gavel className="w-8 h-8 text-secondary" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Fine Categories</h3>
-              <p className="text-sm text-slate-600">Manage fine types and amounts</p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowManageTeamModal(true)}>
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                <Settings className="w-6 h-6" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Monthly</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {statsLoading ? '-' : formatCurrency(parseFloat(stats?.monthlyCollection || '0'))}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Team Settings</h3>
-              <p className="text-sm text-slate-600">Edit team name and sport</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Overview & Stats */}
-          <div className="lg:col-span-2 space-y-6">
-            <OverviewSection />
-            <AnalyticsDashboard />
-          </div>
+        {/* Team Invitation */}
+        <AdminShareLink />
 
-          {/* Right Column - Team & Recent Activity */}
-          <div className="space-y-6">
-            <TeamSection />
-            <FinesSection />
+        {/* Recent Activity */}
+        <Card>
+          <div className="px-4 py-3 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
           </div>
-        </div>
+          <CardContent className="p-4">
+            {finesLoading ? (
+              <div className="text-center py-6">
+                <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                <p className="text-sm text-slate-600 mt-2">Loading...</p>
+              </div>
+            ) : fines.length === 0 ? (
+              <div className="text-center py-6">
+                <Gavel className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                <p className="text-slate-600">No fines issued yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {fines.slice(0, 5).map((fine) => (
+                  <div key={fine.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-slate-600">
+                          {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900 truncate">
+                          {fine.player.firstName} {fine.player.lastName}
+                        </p>
+                        <p className="text-sm text-slate-600 truncate">{fine.subcategory.name}</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
+                      <Badge variant={fine.isPaid ? 'default' : 'secondary'} className="text-xs">
+                        {fine.isPaid ? 'Paid' : 'Unpaid'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Modals */}
         {showIssueFineModal && (
