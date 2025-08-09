@@ -68,3 +68,13 @@ export function getGreeting(user: User | null | undefined): string {
     return `Good evening, ${displayName}!`;
   }
 }
+
+/**
+ * Formats a number as currency (GBP)
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(amount);
+}

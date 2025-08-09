@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { getDisplayName } from "@/lib/userUtils";
-import { Users, PoundSterling, Check, X, Search, UserCheck, UserX } from "lucide-react";
-import type { User, FineCategory, FineSubcategory } from "@shared/schema";
+import { formatCurrency, getDisplayName } from "@/lib/userUtils";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Plus,
+  Search,
+  Check
+} from "lucide-react";
+import type { FineCategory, FineSubcategory, User } from "@shared/schema";
 
 interface IssueFineModalProps {
   isOpen: boolean;
@@ -22,7 +27,9 @@ interface IssueFineModalProps {
 export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const [playerSearchTerm, setPlayerSearchTerm] = useState("");
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
+
   const [formData, setFormData] = useState({
     selectedPlayerIds: [] as string[],
     categoryId: "",
@@ -31,25 +38,21 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
     description: "",
     sendNotification: true,
   });
-  
-  const [showMultiSelect, setShowMultiSelect] = useState(false);
-  const [playerSearchTerm, setPlayerSearchTerm] = useState("");
-  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
 
-  // Fetch real data
-  const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
-    queryKey: ["/api/admin/team-members"],
-    enabled: isOpen,
-  });
-
+  // Fetch data
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<FineCategory[]>({
     queryKey: ["/api/categories"],
     enabled: isOpen,
   });
 
   const { data: subcategories = [], isLoading: subcategoriesLoading } = useQuery<FineSubcategory[]>({
-    queryKey: ["/api/categories", formData.categoryId, "subcategories"],
+    queryKey: ["/api/subcategories", formData.categoryId],
     enabled: isOpen && !!formData.categoryId,
+  });
+
+  const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
+    queryKey: ["/api/admin/team-members"],
+    enabled: isOpen,
   });
 
   // Filter players based on search term
@@ -112,7 +115,6 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
       description: "",
       sendNotification: true,
     });
-    setShowMultiSelect(false);
     setPlayerSearchTerm("");
     setSelectionMode('single');
   };
@@ -243,7 +245,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               </div>
             )}
 
-            {/* Player List */}
+            {/* Player List - Compact Circular Design */}
             {membersLoading ? (
               <div className="h-32 bg-slate-100 rounded-lg animate-pulse flex items-center justify-center">
                 <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
@@ -252,236 +254,205 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               <div className="text-center py-8 text-slate-500">
                 {playerSearchTerm ? 'No players found matching your search.' : 'No players available.'}
               </div>
-            ) : selectionMode === 'multiple' ? (
-              <div className="max-h-64 overflow-y-auto border-2 border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50">
-                {filteredPlayers.map(member => (
-                  <div
-                    key={member.id}
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${
-                      formData.selectedPlayerIds.includes(member.id)
-                        ? 'bg-primary/10 border-primary/30 shadow-sm'
-                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
-                    onClick={() => handlePlayerToggle(member.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        formData.selectedPlayerIds.includes(member.id)
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        <span className="text-sm font-medium">
-                          {member.firstName?.[0]}{member.lastName?.[0]}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-slate-900">
-                          {getDisplayName(member)}
-                        </div>
-                        <div className="text-sm text-slate-600">
-                          {member.position || 'No position set'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      formData.selectedPlayerIds.includes(member.id)
-                        ? 'bg-primary border-primary'
-                        : 'border-slate-300'
-                    }`}>
-                      {formData.selectedPlayerIds.includes(member.id) && (
-                        <Check className="w-4 h-4 text-white" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
             ) : (
-              <div className="space-y-2">
-                {filteredPlayers.map(member => (
-                  <div
-                    key={member.id}
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${
-                      formData.selectedPlayerIds.includes(member.id)
-                        ? 'bg-primary/10 border-primary/30 shadow-sm'
-                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
-                    onClick={() => setFormData(prev => ({ ...prev, selectedPlayerIds: [member.id] }))}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        formData.selectedPlayerIds.includes(member.id)
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        <span className="text-sm font-medium">
-                          {member.firstName?.[0]}{member.lastName?.[0]}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-slate-900">
-                          {getDisplayName(member)}
+              <div className="max-h-80 overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+                  {filteredPlayers.map(member => {
+                    const isSelected = formData.selectedPlayerIds.includes(member.id);
+                    const canSelect = selectionMode === 'multiple' || formData.selectedPlayerIds.length === 0 || isSelected;
+                    
+                    return (
+                      <div
+                        key={member.id}
+                        className={`relative group cursor-pointer transition-all duration-200 ${
+                          !canSelect ? 'opacity-40 cursor-not-allowed' : ''
+                        }`}
+                        onClick={() => {
+                          if (!canSelect) return;
+                          
+                          if (selectionMode === 'multiple') {
+                            handlePlayerToggle(member.id);
+                          } else {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              selectedPlayerIds: isSelected ? [] : [member.id] 
+                            }));
+                          }
+                        }}
+                      >
+                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-lg border-4 transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-primary border-primary shadow-lg scale-110'
+                            : 'bg-slate-400 border-slate-300 group-hover:bg-slate-500 group-hover:border-slate-400 group-hover:scale-105'
+                        }`}>
+                          {isSelected && selectionMode === 'multiple' ? (
+                            <Check className="w-6 h-6" />
+                          ) : (
+                            <span className="text-sm">
+                              {member.firstName?.[0]}{member.lastName?.[0]}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm text-slate-600">
-                          {member.position || 'No position set'}
+                        
+                        <div className="mt-2 text-center">
+                          <p className={`text-xs font-medium truncate ${
+                            isSelected ? 'text-primary' : 'text-slate-700'
+                          }`}>
+                            {getDisplayName(member)}
+                          </p>
+                          <p className={`text-xs truncate ${
+                            isSelected ? 'text-primary/80' : 'text-slate-500'
+                          }`}>
+                            {member.position || 'No position'}
+                          </p>
                         </div>
+                        
+                        {/* Selection indicator for multi-select */}
+                        {selectionMode === 'multiple' && isSelected && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                        
+                        {/* Selection ring for single select */}
+                        {selectionMode === 'single' && isSelected && (
+                          <div className="absolute -inset-1 rounded-full border-2 border-primary animate-pulse" />
+                        )}
                       </div>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      formData.selectedPlayerIds.includes(member.id)
-                        ? 'bg-primary border-primary'
-                        : 'border-slate-300'
-                    }`}>
-                      {formData.selectedPlayerIds.includes(member.id) && (
-                        <Check className="w-4 h-4 text-white" />
-                      )}
-                    </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Compact summary at bottom */}
+                {filteredPlayers.length > 8 && (
+                  <div className="mt-3 p-2 bg-slate-50 rounded-lg border-t">
+                    <p className="text-xs text-slate-600 text-center">
+                      Showing {Math.min(filteredPlayers.length, 12)} of {teamMembers.length} players
+                      {playerSearchTerm && ` matching "${playerSearchTerm}"`}
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Category and Fine Details */}
+          <div className="space-y-4">
+            {/* Category Selection */}
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              {categoriesLoading ? (
-                <div className="h-10 bg-slate-100 rounded-lg animate-pulse" />
-              ) : (
-                <Select 
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData(prev => ({ 
-                    ...prev, 
-                    categoryId: value, 
-                    subcategoryId: "", 
-                    amount: "" 
-                  }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select 
+                value={formData.categoryId} 
+                onValueChange={(categoryId) => {
+                  setFormData(prev => ({ ...prev, categoryId, subcategoryId: "", amount: "" }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategory *</Label>
-              {subcategoriesLoading ? (
-                <div className="h-10 bg-slate-100 rounded-lg animate-pulse" />
-              ) : (
+            {/* Subcategory Selection */}
+            {formData.categoryId && (
+              <div className="space-y-2">
+                <Label htmlFor="subcategory">Fine Type *</Label>
                 <Select 
-                  value={formData.subcategoryId}
+                  value={formData.subcategoryId} 
                   onValueChange={handleSubcategoryChange}
-                  disabled={!formData.categoryId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select subcategory..." />
+                    <SelectValue placeholder="Select fine type" />
                   </SelectTrigger>
                   <SelectContent>
                     {subcategories.map(subcategory => (
                       <SelectItem key={subcategory.id} value={subcategory.id}>
-                        <div className="flex items-center justify-between w-full">
+                        <div className="flex justify-between items-center w-full">
                           <span>{subcategory.name}</span>
-                          <Badge variant="outline" className="ml-2">
-                            £{subcategory.defaultAmount}
-                          </Badge>
+                          {subcategory.defaultAmount && (
+                            <span className="text-sm text-slate-500 ml-2">
+                              £{subcategory.defaultAmount}
+                            </span>
+                          )}
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-            </div>
-          </div>
-          
-          {/* Amount Section with Preset Info */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="amount">Amount per Player (£) *</Label>
-              {selectedSubcategory && (
-                <div className="text-sm text-slate-600">
-                  Preset: £{selectedSubcategory.defaultAmount}
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <PoundSterling className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
+            )}
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount (£) *</Label>
               <Input
                 id="amount"
                 type="number"
-                step="0.50"
+                step="0.01"
                 min="0"
                 value={formData.amount}
                 onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                placeholder="5.00"
-                className="pl-10"
+                placeholder="Enter fine amount"
+              />
+              {formData.selectedPlayerIds.length > 1 && formData.amount && (
+                <p className="text-sm text-slate-600">
+                  Total cost: <span className="font-semibold">{formatCurrency(totalCost)}</span> 
+                  ({formData.selectedPlayerIds.length} players × {formatCurrency(parseFloat(formData.amount))})
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Additional details..."
               />
             </div>
-            {formData.selectedPlayerIds.length > 1 && formData.amount && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-sm text-blue-900">
-                  <strong>Total Cost:</strong> £{totalCost.toFixed(2)} 
-                  ({formData.selectedPlayerIds.length} players × £{formData.amount})
-                </div>
-              </div>
-            )}
+
+            {/* Send Notification */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendNotification"
+                checked={formData.sendNotification}
+                onChange={(e) => setFormData(prev => ({ ...prev, sendNotification: e.target.checked }))}
+                className="rounded border-slate-300"
+              />
+              <Label htmlFor="sendNotification" className="text-sm">
+                Send notification to player(s)
+              </Label>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Details (Optional)</Label>
-            <Textarea
-              id="description"
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Add any additional details about the fine..."
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="notification"
-              checked={formData.sendNotification}
-              onCheckedChange={(checked) => 
-                setFormData(prev => ({ ...prev, sendNotification: !!checked }))
-              }
-            />
-            <Label htmlFor="notification">Send notification to player</Label>
-          </div>
-
-          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              className="flex-1"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={mutation.isPending}
-              className="flex-1"
+              disabled={mutation.isPending || formData.selectedPlayerIds.length === 0}
             >
               {mutation.isPending ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  <div className="animate-spin w-4 h-4 border-4 border-white border-t-transparent rounded-full" />
                   <span>Issuing...</span>
                 </div>
               ) : (
-                <span>
-                  Issue Fine{formData.selectedPlayerIds.length > 1 ? 's' : ''}
-                  {formData.selectedPlayerIds.length > 1 && ` (${formData.selectedPlayerIds.length})`}
-                </span>
+                `Issue Fine${formData.selectedPlayerIds.length > 1 ? 's' : ''}`
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

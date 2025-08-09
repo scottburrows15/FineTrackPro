@@ -127,26 +127,6 @@ export default function AdminDashboard() {
       {/* Team Invitation Section */}
       <AdminShareLink />
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button 
-          onClick={() => setShowAddPlayerModal(true)}
-          className="flex-1 flex items-center justify-center space-x-2"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Add Player</span>
-        </Button>
-        
-        <Button 
-          onClick={() => setShowIssueFineModal(true)}
-          variant="outline"
-          className="flex-1 flex items-center justify-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Issue Fine</span>
-        </Button>
-      </div>
-
       {/* Key Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
