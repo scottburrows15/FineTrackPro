@@ -12,7 +12,9 @@ import {
   Trophy,
   AlertTriangle,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Medal,
+  Award
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
@@ -233,33 +235,72 @@ export default function AnalyticsDashboard() {
 
       {/* Bottom Row - Top Offenders and Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Offenders */}
+        {/* Top Offenders with Medal System */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Offenders</CardTitle>
-            <CardDescription>Players with most fines</CardDescription>
+            <CardTitle className="flex items-center space-x-2">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              <span>Top Offenders</span>
+            </CardTitle>
+            <CardDescription>Hall of shame - players with most fines</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {analytics.topOffenders.slice(0, 5).map((offender, index) => (
-                <div key={offender.playerId} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium ${
-                      index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-orange-600' : 'bg-slate-300'
-                    }`}>
-                      {index + 1}
+            <div className="space-y-2 sm:space-y-3">
+              {analytics.topOffenders.slice(0, 5).map((offender, index) => {
+                // Medal system for top 3, badges for the rest
+                const getMedalIcon = (position: number) => {
+                  switch (position) {
+                    case 0: return <Medal className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />; // Gold
+                    case 1: return <Medal className="w-6 h-6 sm:w-7 sm:h-7 text-slate-400" />; // Silver  
+                    case 2: return <Medal className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600" />; // Bronze
+                    default: return (
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-300 flex items-center justify-center text-white font-medium text-sm">
+                        {position + 1}
+                      </div>
+                    );
+                  }
+                };
+
+                const getBackgroundStyle = (position: number) => {
+                  switch (position) {
+                    case 0: return 'bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 shadow-md'; // Gold
+                    case 1: return 'bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 shadow-sm'; // Silver
+                    case 2: return 'bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 shadow-sm'; // Bronze
+                    default: return 'bg-slate-50 border border-slate-100';
+                  }
+                };
+
+                return (
+                  <div 
+                    key={offender.playerId} 
+                    className={`flex items-center justify-between p-3 sm:p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getBackgroundStyle(index)}`}
+                  >
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <div className="flex-shrink-0">
+                        {getMedalIcon(index)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm sm:text-base truncate">{offender.playerName}</div>
+                        <div className="text-xs sm:text-sm text-slate-600">
+                          {offender.fineCount} fine{offender.fineCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium">{offender.playerName}</div>
-                      <div className="text-sm text-slate-600">{offender.fineCount} fines</div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-medium text-sm sm:text-base">£{offender.totalAmount.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm text-slate-600">total</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">£{offender.totalAmount.toFixed(2)}</div>
-                    <div className="text-sm text-slate-600">total</div>
-                  </div>
+                );
+              })}
+              
+              {analytics.topOffenders.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <Trophy className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-sm">No fines issued yet</p>
+                  <p className="text-xs text-slate-400">The leaderboard will appear once fines are issued</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
