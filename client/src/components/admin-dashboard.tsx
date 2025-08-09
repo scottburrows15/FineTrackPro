@@ -241,6 +241,159 @@ export default function AdminDashboard() {
         {/* Team Invitation */}
         <AdminShareLink />
 
+        {/* Unpaid Fines Section */}
+        <div id="unpaid-fines-section">
+          <Card>
+            <div className="px-4 py-3 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+                Unpaid Fines ({unpaidFines.length})
+              </h3>
+            </div>
+            <CardContent className="p-4">
+              {unpaidLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : unpaidFines.length === 0 ? (
+                <div className="text-center py-8">
+                  <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">All Caught Up!</h3>
+                  <p className="text-slate-600">No unpaid fines at the moment.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {unpaidFines.map((fine) => (
+                    <div key={fine.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-medium text-slate-600">
+                            {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-slate-900">
+                            {fine.player.firstName} {fine.player.lastName}
+                          </div>
+                          <div className="text-sm text-slate-600">{fine.subcategory.name}</div>
+                          {fine.description && (
+                            <div className="text-xs text-slate-500 truncate">{fine.description}</div>
+                          )}
+                          <div className="text-xs text-red-600 mt-1">
+                            Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3 flex-shrink-0">
+                        <div className="text-right">
+                          <div className="font-semibold text-slate-900">
+                            {formatCurrency(parseFloat(fine.amount))}
+                          </div>
+                          <Badge variant="destructive" className="text-xs">
+                            Unpaid
+                          </Badge>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedFineForPayment(fine);
+                              setShowManualPaymentModal(true);
+                            }}
+                            className="text-green-600 hover:bg-green-50"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteFine.mutate(fine.id)}
+                            disabled={deleteFine.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Management Section */}
+        <div id="team-management-section">
+          <Card>
+            <div className="px-4 py-3 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                Team Members ({teamMembers.length})
+              </h3>
+            </div>
+            <CardContent className="p-4">
+              {membersLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-12 bg-slate-200 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : teamMembers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No Team Members</h3>
+                  <p className="text-slate-600">Add team members to get started.</p>
+                  <Button
+                    onClick={() => setShowAddPlayerModal(true)}
+                    className="mt-4"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add First Member
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-medium text-slate-600">
+                            {member.firstName?.[0]}{member.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-slate-900">
+                            {member.firstName} {member.lastName}
+                          </div>
+                          <div className="text-sm text-slate-600 truncate">{member.email}</div>
+                          {member.position && (
+                            <div className="text-xs text-slate-500">{member.position}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                          {member.role === 'admin' ? 'Admin' : 'Player'}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowManageTeamModal(true)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Recent Activity */}
         <Card>
           <div className="px-4 py-3 border-b border-slate-200">

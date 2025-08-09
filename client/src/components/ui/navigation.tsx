@@ -84,23 +84,43 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
   const handleAdminAction = (action: string) => {
     switch (action) {
       case 'unpaid-fines':
-        // This would trigger the admin dashboard to show unpaid fines
+        // Switch to admin view and navigate to unpaid fines
         if (currentView !== 'admin') {
           onViewChange('admin');
         }
-        // Add logic to show unpaid fines section
+        // Use a small delay to ensure view switch, then scroll to unpaid fines section
+        setTimeout(() => {
+          const unpaidFinesSection = document.getElementById('unpaid-fines-section');
+          if (unpaidFinesSection) {
+            unpaidFinesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
         break;
       case 'team-members':
+        // Switch to admin view and navigate to team management  
         if (currentView !== 'admin') {
           onViewChange('admin');
         }
-        // Add logic to show team members section
+        setTimeout(() => {
+          const teamSection = document.getElementById('team-management-section');
+          if (teamSection) {
+            teamSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
         break;
       case 'categories':
-        // Future feature
+        // Show coming soon toast for now
+        toast({
+          title: "Coming Soon",
+          description: "Category management feature will be available soon.",
+        });
         break;
       case 'export':
-        // Future feature
+        // Show coming soon toast for now
+        toast({
+          title: "Coming Soon", 
+          description: "Data export feature will be available soon.",
+        });
         break;
     }
   };
@@ -260,59 +280,122 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                 </DropdownMenuContent>
               </DropdownMenu>
               
+              {/* Enhanced Profile Dropdown Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    className="flex items-center space-x-2 hover:bg-slate-100 transition-colors duration-200 rounded-lg p-2"
+                  >
                     {user?.profileImageUrl ? (
                       <img 
                         src={user.profileImageUrl} 
-                        alt="Profile" 
-                        className="w-8 h-8 rounded-full object-cover"
+                        alt={`${getFullName(user)} profile`}
+                        className="w-8 h-8 rounded-full object-cover border border-slate-200"
                       />
                     ) : (
-                      <User className="w-8 h-8 p-2 bg-slate-200 rounded-full" />
+                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-slate-600" />
+                      </div>
                     )}
-                    <span className="hidden sm:block text-sm font-medium text-slate-700">
+                    <span className="hidden sm:block text-sm font-medium text-slate-700 max-w-32 truncate">
                       {getFullName(user)}
                     </span>
-                    <ChevronDown className="w-4 h-4 text-slate-600" />
+                    <ChevronDown className="w-4 h-4 text-slate-600 flex-shrink-0" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
-                    <User className="w-4 h-4 mr-2" />
-                    Profile Settings
+                <DropdownMenuContent 
+                  align="end" 
+                  className="w-64 sm:w-56 p-2"
+                  sideOffset={5}
+                >
+                  {/* User Info Header */}
+                  <div className="px-2 py-3 border-b border-slate-200 mb-2">
+                    <div className="flex items-center space-x-3">
+                      {user?.profileImageUrl ? (
+                        <img 
+                          src={user.profileImageUrl} 
+                          alt="Profile" 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-slate-600" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {getFullName(user)}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user?.email}
+                        </p>
+                        {user?.role === 'admin' && (
+                          <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 mt-1">
+                            Admin
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Settings */}
+                  <DropdownMenuItem 
+                    onClick={() => setShowProfileModal(true)}
+                    className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                  >
+                    <User className="w-4 h-4 mr-3 text-slate-500" />
+                    <span>Profile Settings</span>
                   </DropdownMenuItem>
                   
+                  {/* Admin Actions */}
                   {user?.role === 'admin' && (
                     <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleAdminAction('unpaid-fines')}>
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        View Unpaid Fines
+                      <DropdownMenuSeparator className="my-2" />
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                          Admin Actions
+                        </p>
+                      </div>
+                      <DropdownMenuItem 
+                        onClick={() => handleAdminAction('unpaid-fines')}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-3 text-red-500" />
+                        <span>View Unpaid Fines</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAdminAction('team-members')}>
-                        <Users className="w-4 h-4 mr-2" />
-                        Manage Team
+                      <DropdownMenuItem 
+                        onClick={() => handleAdminAction('team-members')}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Users className="w-4 h-4 mr-3 text-blue-500" />
+                        <span>Manage Team</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAdminAction('categories')}>
-                        <Tags className="w-4 h-4 mr-2" />
-                        Manage Categories
+                      <DropdownMenuItem 
+                        onClick={() => handleAdminAction('categories')}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Tags className="w-4 h-4 mr-3 text-purple-500" />
+                        <span>Manage Categories</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAdminAction('export')}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Export Data
+                      <DropdownMenuItem 
+                        onClick={() => handleAdminAction('export')}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-3 text-green-500" />
+                        <span>Export Data</span>
                       </DropdownMenuItem>
                     </>
                   )}
                   
-                  <DropdownMenuSeparator />
+                  {/* Sign Out */}
+                  <DropdownMenuSeparator className="my-2" />
                   <DropdownMenuItem 
                     onClick={() => window.location.href = '/api/logout'}
-                    className="text-red-600 hover:text-red-700"
+                    className="cursor-pointer hover:bg-red-50 text-red-600 hover:text-red-700 rounded-md transition-colors"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    <LogOut className="w-4 h-4 mr-3" />
+                    <span>Sign Out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
