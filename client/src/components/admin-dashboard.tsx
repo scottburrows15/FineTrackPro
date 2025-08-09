@@ -124,6 +124,29 @@ export default function AdminDashboard() {
   // Overview Section
   const OverviewSection = () => (
     <div className="space-y-6">
+      {/* Team Invitation Section */}
+      <AdminShareLink />
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button 
+          onClick={() => setShowAddPlayerModal(true)}
+          className="flex-1 flex items-center justify-center space-x-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Add Player</span>
+        </Button>
+        
+        <Button 
+          onClick={() => setShowIssueFineModal(true)}
+          variant="outline"
+          className="flex-1 flex items-center justify-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Issue Fine</span>
+        </Button>
+      </div>
+
       {/* Key Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -175,44 +198,6 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-        </div>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button 
-              variant="ghost" 
-              className="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-              onClick={() => setShowIssueFineModal(true)}
-            >
-              <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Plus className="text-secondary text-sm" />
-              </div>
-              <div>
-                <div className="font-medium text-slate-900">Issue Fine</div>
-                <div className="text-xs text-slate-600">Add a new fine for a player</div>
-              </div>
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              className="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-              onClick={() => setShowAddPlayerModal(true)}
-            >
-              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                <UserPlus className="text-primary text-sm" />
-              </div>
-              <div>
-                <div className="font-medium text-slate-900">Add Player</div>
-                <div className="text-xs text-slate-600">Invite a new team member</div>
-              </div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Recent Activity */}
       <Card>
         <div className="px-6 py-4 border-b border-slate-200">
@@ -247,9 +232,9 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.fine.amount))}</p>
-                    <Badge variant={fine.fine.status === 'paid' ? 'default' : 'secondary'}>
-                      {fine.fine.status === 'paid' ? 'Paid' : 'Unpaid'}
+                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
+                    <Badge variant={fine.isPaid ? 'default' : 'secondary'}>
+                      {fine.isPaid ? 'Paid' : 'Unpaid'}
                     </Badge>
                   </div>
                 </div>
@@ -303,12 +288,12 @@ export default function AdminDashboard() {
                       </p>
                       <p className="text-sm text-slate-600">{fine.subcategory.name}</p>
                       <p className="text-xs text-slate-500">
-                        Issued {new Date(fine.fine.createdAt).toLocaleDateString()}
+                        Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : 'Unknown date'}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.fine.amount))}</p>
+                    <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
                     <Button
                       size="sm"
                       variant="outline"
@@ -320,7 +305,7 @@ export default function AdminDashboard() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => deleteFine.mutate(fine.fine.id)}
+                      onClick={() => deleteFine.mutate(fine.id)}
                       disabled={deleteFine.isPending}
                     >
                       <Trash2 className="w-4 h-4" />
