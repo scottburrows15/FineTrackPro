@@ -162,7 +162,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
           {/* Player Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Players *</Label>
+              <Label className="text-base font-semibold">Players *</Label>
               <div className="flex items-center space-x-2">
                 <Button
                   type="button"
@@ -171,20 +171,52 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   onClick={() => setShowMultiSelect(!showMultiSelect)}
                 >
                   <Users className="w-4 h-4 mr-2" />
-                  {showMultiSelect ? 'Multi-Select' : 'Single'}
+                  {showMultiSelect ? 'Multi-Select' : 'Single Player'}
                 </Button>
                 {formData.selectedPlayerIds.length > 0 && (
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="px-2 py-1">
                     {formData.selectedPlayerIds.length} selected
                   </Badge>
                 )}
               </div>
             </div>
 
+            {showMultiSelect && teamMembers.length > 0 && (
+              <div className="flex items-center space-x-2 text-sm">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    selectedPlayerIds: teamMembers.map(m => m.id) 
+                  }))}
+                  disabled={formData.selectedPlayerIds.length === teamMembers.length}
+                >
+                  Select All
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    selectedPlayerIds: [] 
+                  }))}
+                  disabled={formData.selectedPlayerIds.length === 0}
+                >
+                  Clear All
+                </Button>
+                <span className="text-slate-600">
+                  {formData.selectedPlayerIds.length} of {teamMembers.length} players selected
+                </span>
+              </div>
+            )}
+
             {membersLoading ? (
               <div className="h-20 bg-slate-100 rounded-lg animate-pulse" />
             ) : showMultiSelect ? (
-              <div className="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-2">
+              <div className="max-h-48 overflow-y-auto border-2 border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50">
                 {teamMembers.map(member => (
                   <div
                     key={member.id}

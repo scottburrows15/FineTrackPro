@@ -63,14 +63,18 @@ export default function AdminShareLink() {
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Team Invitations</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Team Invitations</h3>
+              <p className="text-sm text-slate-600">Share your team with new players</p>
+            </div>
             <Button 
               onClick={() => setShowShareLink(!showShareLink)}
               variant="outline"
               size="sm"
+              className="flex items-center space-x-2"
             >
-              <Share className="w-4 h-4 mr-2" />
-              {showShareLink ? 'Hide' : 'Show'} Share Options
+              <Share className="w-4 h-4" />
+              <span>{showShareLink ? 'Hide' : 'Show'} Share Options</span>
             </Button>
           </div>
 
