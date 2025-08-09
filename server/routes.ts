@@ -333,6 +333,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alternative route for subcategories (matches frontend expectations)
+  app.get('/api/subcategories/:categoryId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { categoryId } = req.params;
+      const subcategories = await storage.getCategorySubcategories(categoryId);
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching subcategories:", error);
+      res.status(500).json({ message: "Failed to fetch subcategories" });
+    }
+  });
+
   // Statistics routes
   app.get('/api/stats/player', isAuthenticated, async (req: any, res) => {
     try {
