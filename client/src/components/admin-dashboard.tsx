@@ -100,35 +100,18 @@ export default function AdminDashboard() {
     setSelectedFineForPayment(undefined);
   };
 
-  // Tab Navigation Component
-  const TabButton = ({ section, icon: Icon, label, isActive, onClick }: {
-    section: typeof activeSection;
-    icon: any;
-    label: string;
-    isActive: boolean;
-    onClick: () => void;
-  }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-        isActive 
-          ? 'bg-primary text-white' 
-          : 'text-slate-600 hover:bg-slate-100'
-      }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="font-medium">{label}</span>
-    </button>
-  );
+
 
   // Overview Section
   const OverviewSection = () => (
     <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-slate-900">Team Overview</h2>
+      
       {/* Team Invitation Section */}
       <AdminShareLink />
 
       {/* Key Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
@@ -228,14 +211,8 @@ export default function AdminDashboard() {
 
   // Fines Management Section
   const FinesSection = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">Fines Management</h2>
-        <Button onClick={() => setShowIssueFineModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Issue Fine
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">Recent Activity</h2>
 
       {/* Unpaid Fines */}
       <Card>
@@ -302,14 +279,8 @@ export default function AdminDashboard() {
 
   // Team Management Section
   const TeamSection = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">Team Management</h2>
-        <Button onClick={() => setShowAddPlayerModal(true)}>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Player
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">Team Members</h2>
 
       {/* Team Members */}
       <Card>
@@ -354,8 +325,6 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Team Share Link */}
-      <AdminShareLink />
     </div>
   );
 
@@ -415,73 +384,71 @@ export default function AdminDashboard() {
               {teamInfo ? `Managing ${teamInfo.name}` : 'Manage your team and fines'}
             </p>
           </div>
-          <div className="flex space-x-3">
-            <Button 
-              onClick={() => setShowAddPlayerModal(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Player
-            </Button>
-            <Button 
-              onClick={() => setShowIssueFineModal(true)}
-              className="bg-secondary hover:bg-secondary/90"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Issue Fine
-            </Button>
-          </div>
+          {teamInfo && (
+            <div className="text-right">
+              <p className="text-sm text-slate-500">Team Code</p>
+              <p className="font-mono text-lg font-semibold text-primary">{teamInfo.inviteCode}</p>
+            </div>
+          )}
         </div>
 
-        {/* Tab Navigation */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex space-x-2 overflow-x-auto">
-              <TabButton
-                section="overview"
-                icon={TrendingUp}
-                label="Overview"
-                isActive={activeSection === 'overview'}
-                onClick={() => setActiveSection('overview')}
-              />
-              <TabButton
-                section="fines"
-                icon={Gavel}
-                label="Fines Management"
-                isActive={activeSection === 'fines'}
-                onClick={() => setActiveSection('fines')}
-              />
-              <TabButton
-                section="analytics"
-                icon={TrendingUp}
-                label="Analytics"
-                isActive={activeSection === 'analytics'}
-                onClick={() => setActiveSection('analytics')}
-              />
-              <TabButton
-                section="team"
-                icon={Users}
-                label="Team Management"
-                isActive={activeSection === 'team'}
-                onClick={() => setActiveSection('team')}
-              />
-              <TabButton
-                section="settings"
-                icon={Settings}
-                label="Settings"
-                isActive={activeSection === 'settings'}
-                onClick={() => setActiveSection('settings')}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowIssueFineModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-red-200 transition-colors">
+                <Gavel className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Issue Fine</h3>
+              <p className="text-sm text-slate-600">Create new fines for players</p>
+            </CardContent>
+          </Card>
 
-        {/* Dynamic Content */}
-        {activeSection === 'overview' && <OverviewSection />}
-        {activeSection === 'fines' && <FinesSection />}
-        {activeSection === 'analytics' && <AnalyticsDashboard />}
-        {activeSection === 'team' && <TeamSection />}
-        {activeSection === 'settings' && <SettingsSection />}
+          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowAddPlayerModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                <UserPlus className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Add Player</h3>
+              <p className="text-sm text-slate-600">Invite new team members</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowManageCategoriesModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                <Tags className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Fine Categories</h3>
+              <p className="text-sm text-slate-600">Manage fine types and amounts</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setShowManageTeamModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                <Settings className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Team Settings</h3>
+              <p className="text-sm text-slate-600">Edit team name and sport</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Dashboard Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Overview & Stats */}
+          <div className="lg:col-span-2 space-y-6">
+            <OverviewSection />
+            <AnalyticsDashboard />
+          </div>
+
+          {/* Right Column - Team & Recent Activity */}
+          <div className="space-y-6">
+            <TeamSection />
+            <FinesSection />
+          </div>
+        </div>
 
         {/* Modals */}
         {showIssueFineModal && (
