@@ -540,6 +540,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete category route
+  app.delete('/api/categories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteCategory(id);
+      
+      await storage.createAuditLog({
+        entityType: 'category',
+        entityId: id,
+        action: 'delete',
+        userId: user.id,
+        changes: { deleted: true },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Delete subcategory route
+  app.delete('/api/subcategories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteSubcategory(id);
+      
+      await storage.createAuditLog({
+        entityType: 'subcategory',
+        entityId: id,
+        action: 'delete',
+        userId: user.id,
+        changes: { deleted: true },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting subcategory:", error);
+      res.status(500).json({ message: "Failed to delete subcategory" });
+    }
+  });
+
   // Add player route
   app.post('/api/admin/add-player', isAuthenticated, async (req: any, res) => {
     try {

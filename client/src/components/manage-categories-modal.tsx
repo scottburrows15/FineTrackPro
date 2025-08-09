@@ -93,6 +93,49 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
     },
   });
 
+  // Delete category mutation
+  const deleteCategory = useMutation({
+    mutationFn: async (categoryId: string) => {
+      return await apiRequest("DELETE", `/api/categories/${categoryId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Category Deleted",
+        description: "Fine category has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setSelectedCategoryId("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to delete category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete subcategory mutation
+  const deleteSubcategory = useMutation({
+    mutationFn: async (subcategoryId: string) => {
+      return await apiRequest("DELETE", `/api/subcategories/${subcategoryId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subcategory Deleted",
+        description: "Fine subcategory has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete subcategory", 
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryForm.name.trim()) {
@@ -117,6 +160,18 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
       return;
     }
     createSubcategory.mutate(subcategoryForm);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    if (window.confirm("Are you sure you want to delete this category? This will also delete all subcategories within it.")) {
+      deleteCategory.mutate(categoryId);
+    }
+  };
+
+  const handleDeleteSubcategory = (subcategoryId: string) => {
+    if (window.confirm("Are you sure you want to delete this subcategory?")) {
+      deleteSubcategory.mutate(subcategoryId);
+    }
   };
 
   const formatCurrency = (amount: string) => {
@@ -214,17 +269,30 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                     onClick={() => setSelectedCategoryId(category.id)}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-slate-900">{category.name}</h4>
-                          <p className="text-xs text-slate-600">
-                            {subcategories.filter(sub => sub.categoryId === category.id).length} subcategories
-                          </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1" onClick={() => setSelectedCategoryId(category.id)}>
+                          <div 
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-slate-900">{category.name}</h4>
+                            <p className="text-xs text-slate-600">
+                              {subcategories.filter(sub => sub.categoryId === category.id).length} subcategories
+                            </p>
+                          </div>
                         </div>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category.id);
+                          }}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -237,9 +305,20 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
           {selectedCategoryId && (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">
-                  Subcategories for {categories.find(c => c.id === selectedCategoryId)?.name}
-                </h3>
+                <div className="flex items-center space-x-3">
+                  <h3 className="text-lg font-semibold">
+                    Subcategories for {categories.find(c => c.id === selectedCategoryId)?.name}
+                  </h3>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleDeleteCategory(selectedCategoryId)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete Category
+                  </Button>
+                </div>
                 <Button 
                   onClick={() => setShowAddSubcategory(!showAddSubcategory)}
                   size="sm"
@@ -315,12 +394,15 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                             </p>
                           </div>
                           <div className="flex space-x-2">
-                            <Button size="sm" variant="outline">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDeleteSubcategory(subcategory.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
+
                           </div>
                         </div>
                       </CardContent>
