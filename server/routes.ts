@@ -592,6 +592,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update category route
+  app.patch('/api/categories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { name, color } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ message: "Category name is required" });
+      }
+
+      const updatedCategory = await storage.updateCategory(id, { name, color });
+      
+      await storage.createAuditLog({
+        entityType: 'category',
+        entityId: id,
+        action: 'update',
+        userId: user.id,
+        changes: { name, color },
+      });
+
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating category:", error);
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  // Update subcategory route
+  app.patch('/api/subcategories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { name, defaultAmount, icon } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ message: "Subcategory name is required" });
+      }
+
+      const updatedSubcategory = await storage.updateSubcategory(id, { name, defaultAmount, icon });
+      
+      await storage.createAuditLog({
+        entityType: 'subcategory',
+        entityId: id,
+        action: 'update',
+        userId: user.id,
+        changes: { name, defaultAmount, icon },
+      });
+
+      res.json(updatedSubcategory);
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+      res.status(500).json({ message: "Failed to update subcategory" });
+    }
+  });
+
   // Add player route
   app.post('/api/admin/add-player', isAuthenticated, async (req: any, res) => {
     try {

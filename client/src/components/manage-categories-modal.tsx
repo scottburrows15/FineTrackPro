@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Tags, Edit, Trash2, PoundSterling } from "lucide-react";
+import { Plus, Tags, Edit, Trash2, PoundSterling, Edit2, GripVertical } from "lucide-react";
 import type { FineCategory, FineSubcategory } from "@shared/schema";
 
 interface ManageCategoriesModalProps {
@@ -23,6 +24,12 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [editingCategory, setEditingCategory] = useState<FineCategory | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<FineSubcategory | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: 'category' | 'subcategory';
+    item: FineCategory | FineSubcategory;
+  } | null>(null);
   
   const [categoryForm, setCategoryForm] = useState({
     name: "",
@@ -93,6 +100,59 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
     },
   });
 
+  // Update category mutation
+  const updateCategory = useMutation({
+    mutationFn: async (data: { id: string; name: string; color: string }) => {
+      return await apiRequest("PATCH", `/api/categories/${data.id}`, {
+        name: data.name,
+        color: data.color,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Category Updated",
+        description: "Category has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setEditingCategory(null);
+      setCategoryForm({ name: "", color: "#1E40AF" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update subcategory mutation
+  const updateSubcategory = useMutation({
+    mutationFn: async (data: { id: string; name: string; defaultAmount: string; icon: string }) => {
+      return await apiRequest("PATCH", `/api/subcategories/${data.id}`, {
+        name: data.name,
+        defaultAmount: data.defaultAmount,
+        icon: data.icon,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subcategory Updated",
+        description: "Subcategory has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      setEditingSubcategory(null);
+      setSubcategoryForm({ name: "", defaultAmount: "", icon: "fas fa-gavel" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update subcategory",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete category mutation
   const deleteCategory = useMutation({
     mutationFn: async (categoryId: string) => {
@@ -104,6 +164,7 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
         description: "Fine category has been deleted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setDeleteConfirm(null);
       setSelectedCategoryId("");
     },
     onError: (error) => {
@@ -126,6 +187,7 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
         description: "Fine subcategory has been deleted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      setDeleteConfirm(null);
     },
     onError: (error) => {
       toast({
@@ -146,7 +208,15 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
       });
       return;
     }
-    createCategory.mutate(categoryForm);
+    
+    if (editingCategory) {
+      updateCategory.mutate({
+        id: editingCategory.id,
+        ...categoryForm,
+      });
+    } else {
+      createCategory.mutate(categoryForm);
+    }
   };
 
   const handleCreateSubcategory = (e: React.FormEvent) => {
@@ -159,18 +229,58 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
       });
       return;
     }
-    createSubcategory.mutate(subcategoryForm);
-  };
-
-  const handleDeleteCategory = (categoryId: string) => {
-    if (window.confirm("Are you sure you want to delete this category? This will also delete all subcategories within it.")) {
-      deleteCategory.mutate(categoryId);
+    
+    if (editingSubcategory) {
+      updateSubcategory.mutate({
+        id: editingSubcategory.id,
+        ...subcategoryForm,
+      });
+    } else {
+      createSubcategory.mutate(subcategoryForm);
     }
   };
 
-  const handleDeleteSubcategory = (subcategoryId: string) => {
-    if (window.confirm("Are you sure you want to delete this subcategory?")) {
-      deleteSubcategory.mutate(subcategoryId);
+  // Handler functions
+  const handleEditCategory = (category: FineCategory) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      name: category.name,
+      color: category.color || "#1E40AF",
+    });
+    setShowAddCategory(true);
+  };
+
+  const handleEditSubcategory = (subcategory: FineSubcategory) => {
+    setEditingSubcategory(subcategory);
+    setSubcategoryForm({
+      name: subcategory.name,
+      defaultAmount: subcategory.defaultAmount || "",
+      icon: subcategory.icon || "fas fa-gavel",
+    });
+    setShowAddSubcategory(true);
+  };
+
+  const handleDeleteCategory = (category: FineCategory) => {
+    setDeleteConfirm({
+      type: 'category',
+      item: category,
+    });
+  };
+
+  const handleDeleteSubcategory = (subcategory: FineSubcategory) => {
+    setDeleteConfirm({
+      type: 'subcategory',
+      item: subcategory,
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm) return;
+    
+    if (deleteConfirm.type === 'category') {
+      deleteCategory.mutate(deleteConfirm.item.id);
+    } else {
+      deleteSubcategory.mutate(deleteConfirm.item.id);
     }
   };
 
@@ -231,14 +341,21 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button type="submit" size="sm" disabled={createCategory.isPending}>
-                        {createCategory.isPending ? 'Creating...' : 'Create Category'}
+                      <Button type="submit" size="sm" disabled={createCategory.isPending || updateCategory.isPending}>
+                        {createCategory.isPending || updateCategory.isPending 
+                          ? (editingCategory ? 'Updating...' : 'Creating...') 
+                          : (editingCategory ? 'Update Category' : 'Create Category')
+                        }
                       </Button>
                       <Button 
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setShowAddCategory(false)}
+                        onClick={() => {
+                          setShowAddCategory(false);
+                          setEditingCategory(null);
+                          setCategoryForm({ name: "", color: "#1E40AF" });
+                        }}
                       >
                         Cancel
                       </Button>
@@ -282,17 +399,30 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCategory(category.id);
-                          }}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center space-x-1">
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCategory(category);
+                            }}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(category);
+                            }}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -312,7 +442,10 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => handleDeleteCategory(selectedCategoryId)}
+                    onClick={() => {
+                      const category = categories.find(c => c.id === selectedCategoryId);
+                      if (category) handleDeleteCategory(category);
+                    }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
@@ -359,14 +492,21 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button type="submit" size="sm" disabled={createSubcategory.isPending}>
-                          {createSubcategory.isPending ? 'Creating...' : 'Create Subcategory'}
+                        <Button type="submit" size="sm" disabled={createSubcategory.isPending || updateSubcategory.isPending}>
+                          {createSubcategory.isPending || updateSubcategory.isPending 
+                            ? (editingSubcategory ? 'Updating...' : 'Creating...') 
+                            : (editingSubcategory ? 'Update Subcategory' : 'Create Subcategory')
+                          }
                         </Button>
                         <Button 
                           type="button" 
                           variant="outline" 
                           size="sm"
-                          onClick={() => setShowAddSubcategory(false)}
+                          onClick={() => {
+                            setShowAddSubcategory(false);
+                            setEditingSubcategory(null);
+                            setSubcategoryForm({ name: "", defaultAmount: "", icon: "fas fa-gavel" });
+                          }}
                         >
                           Cancel
                         </Button>
@@ -397,12 +537,19 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleDeleteSubcategory(subcategory.id)}
+                              onClick={() => handleEditSubcategory(subcategory)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDeleteSubcategory(subcategory)}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-
                           </div>
                         </div>
                       </CardContent>
@@ -414,6 +561,30 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
           )}
         </div>
       </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteConfirm?.type === 'category' ? 'Category' : 'Subcategory'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteConfirm?.item?.name}"?
+              {deleteConfirm?.type === 'category' && 
+                ' This will also delete all subcategories within it.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
