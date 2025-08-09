@@ -362,6 +362,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoint for real-time dashboard
+  app.get('/api/analytics/team', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const analytics = await storage.getTeamAnalytics(user.teamId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching team analytics:", error);
+      res.status(500).json({ message: "Failed to fetch team analytics" });
+    }
+  });
+
+  // Manual payment recording endpoint
+  app.post('/api/admin/fines/:fineId/record-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { fineId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { paymentMethod, paymentDate, transactionId, notes, amount } = req.body;
+
+      // Validate required fields
+      if (!paymentMethod || !amount) {
+        return res.status(400).json({ message: "Payment method and amount are required" });
+      }
+
+      const fine = await storage.recordManualPayment(fineId, {
+        paymentMethod,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        transactionId,
+        notes,
+        amount: amount.toString(),
+        recordedBy: userId,
+      });
+
+      // Create notification for player
+      await storage.createNotification({
+        userId: fine.playerId,
+        title: "Payment Recorded",
+        message: `Your payment of £${amount} has been recorded`,
+        type: "payment_confirmed",
+        relatedEntityId: fine.id,
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'fine',
+        entityId: fine.id,
+        action: 'payment_recorded',
+        userId,
+        changes: { paymentMethod, amount, transactionId },
+      });
+
+      res.json({ message: "Payment recorded successfully", fine });
+    } catch (error) {
+      console.error("Error recording manual payment:", error);
+      res.status(500).json({ message: "Failed to record payment" });
+    }
+  });
+
   // Payment routes
   app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
     try {

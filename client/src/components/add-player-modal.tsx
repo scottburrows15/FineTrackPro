@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { getSportPositions, getSportRequiresPositions } from "@/lib/sportPositions";
+import { getPositionsForSport } from "@/lib/sportPositions";
 import { UserPlus, Save } from "lucide-react";
 
 interface AddPlayerModalProps {
@@ -88,8 +88,8 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
     addPlayer.mutate(formData);
   };
 
-  const sportPositions = teamInfo?.sport ? getSportPositions(teamInfo.sport as any) : [];
-  const showPositions = teamInfo?.sport ? getSportRequiresPositions(teamInfo.sport as any) : false;
+  const sportPositions = teamInfo?.sport ? getPositionsForSport(teamInfo.sport) : [];
+  const showPositions = sportPositions.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -158,7 +158,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sportPositions.map((position) => (
+                  {sportPositions.map((position: string) => (
                     <SelectItem key={position} value={position}>
                       {position}
                     </SelectItem>

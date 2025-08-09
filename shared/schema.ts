@@ -84,6 +84,9 @@ export const fines = pgTable("fines", {
   isPaid: boolean("is_paid").notNull().default(false),
   paidAt: timestamp("paid_at"),
   paymentIntentId: varchar("payment_intent_id"),
+  paymentMethod: varchar("payment_method"), // For manual payments
+  transactionId: varchar("transaction_id"), // Bank ref, PayPal ID, etc.
+  paymentNotes: text("payment_notes"), // Admin notes about payment
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

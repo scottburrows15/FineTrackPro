@@ -62,6 +62,10 @@ export interface IStorage {
   // Statistics
   getPlayerStats(userId: string): Promise<PlayerStats>;
   getTeamStats(teamId: string): Promise<TeamStats>;
+  getTeamAnalytics(teamId: string): Promise<any>;
+  
+  // Payment operations
+  recordManualPayment(fineId: string, paymentData: any): Promise<Fine>;
   
   // Notifications
   getUserNotifications(userId: string): Promise<Notification[]>;
@@ -405,6 +409,151 @@ export class DatabaseStorage implements IStorage {
       .where(eq(teams.id, id))
       .returning();
     return team;
+  }
+
+  async getTeamAnalytics(teamId: string): Promise<any> {
+    // Get basic fine statistics
+    const totalFinesResult = await db
+      .select({
+        count: sql<number>`cast(count(*) as int)`,
+        totalAmount: sql<number>`cast(coalesce(sum(cast(${fines.amount} as decimal)), 0) as decimal)`,
+        paidCount: sql<number>`cast(sum(case when ${fines.isPaid} then 1 else 0 end) as int)`,
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(eq(users.teamId, teamId));
+
+    const basicStats = totalFinesResult[0];
+    const totalFines = basicStats?.count || 0;
+    const totalRevenue = Number(basicStats?.totalAmount) || 0;
+    const paidFines = basicStats?.paidCount || 0;
+    const unpaidFines = totalFines - paidFines;
+    const paymentRate = totalFines > 0 ? paidFines / totalFines : 0;
+    const averageFineAmount = totalFines > 0 ? totalRevenue / totalFines : 0;
+
+    // Get top offenders
+    const topOffendersResult = await db
+      .select({
+        playerId: users.id,
+        playerName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        fineCount: sql<number>`cast(count(*) as int)`,
+        totalAmount: sql<number>`cast(sum(cast(${fines.amount} as decimal)) as decimal)`,
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(eq(users.teamId, teamId))
+      .groupBy(users.id, users.firstName, users.lastName)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const topOffenders = topOffendersResult.map(row => ({
+      playerId: row.playerId,
+      playerName: row.playerName,
+      fineCount: row.fineCount,
+      totalAmount: Number(row.totalAmount),
+    }));
+
+    // Get category breakdown
+    const categoryBreakdownResult = await db
+      .select({
+        categoryName: fineCategories.name,
+        count: sql<number>`cast(count(*) as int)`,
+        amount: sql<number>`cast(sum(cast(${fines.amount} as decimal)) as decimal)`,
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
+      .innerJoin(fineCategories, eq(fineSubcategories.categoryId, fineCategories.id))
+      .where(eq(users.teamId, teamId))
+      .groupBy(fineCategories.name)
+      .orderBy(sql`count(*) desc`);
+
+    const categoryBreakdown = categoryBreakdownResult.map(row => ({
+      categoryName: row.categoryName,
+      count: row.count,
+      amount: Number(row.amount),
+    }));
+
+    // Get monthly trends (last 6 months)
+    const monthlyTrendsResult = await db
+      .select({
+        month: sql<string>`to_char(${fines.createdAt}, 'Mon YYYY')`,
+        fines: sql<number>`cast(count(*) as int)`,
+        revenue: sql<number>`cast(sum(cast(${fines.amount} as decimal)) as decimal)`,
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(and(
+        eq(users.teamId, teamId),
+        sql`${fines.createdAt} >= current_date - interval '6 months'`
+      ))
+      .groupBy(sql`to_char(${fines.createdAt}, 'Mon YYYY')`, sql`date_trunc('month', ${fines.createdAt})`)
+      .orderBy(sql`date_trunc('month', ${fines.createdAt})`);
+
+    const monthlyTrends = monthlyTrendsResult.map(row => ({
+      month: row.month,
+      fines: row.fines,
+      revenue: Number(row.revenue),
+    }));
+
+    // Get recent activity (last 20 items)
+    const recentActivityResult = await db
+      .select({
+        id: fines.id,
+        type: sql<string>`case when ${fines.isPaid} then 'payment_made' else 'fine_issued' end`,
+        description: sql<string>`${users.firstName} || ' ' || ${users.lastName} || ' - ' || ${fineSubcategories.name}`,
+        amount: sql<number>`cast(${fines.amount} as decimal)`,
+        timestamp: fines.createdAt,
+      })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
+      .where(eq(users.teamId, teamId))
+      .orderBy(desc(fines.createdAt))
+      .limit(20);
+
+    const recentActivity = recentActivityResult.map(row => ({
+      id: row.id,
+      type: row.type,
+      description: row.description,
+      amount: Number(row.amount),
+      timestamp: row.timestamp.toISOString(),
+    }));
+
+    return {
+      totalFines,
+      totalRevenue,
+      paidFines,
+      unpaidFines,
+      paymentRate,
+      averageFineAmount,
+      topOffenders,
+      categoryBreakdown,
+      monthlyTrends,
+      recentActivity,
+    };
+  }
+
+  async recordManualPayment(fineId: string, paymentData: any): Promise<Fine> {
+    const [fine] = await db
+      .update(fines)
+      .set({
+        isPaid: true,
+        paidAt: paymentData.paymentDate || new Date(),
+        paymentMethod: paymentData.paymentMethod,
+        transactionId: paymentData.transactionId || null,
+        paymentNotes: paymentData.notes || null,
+        amount: paymentData.amount,
+        updatedAt: new Date(),
+      })
+      .where(eq(fines.id, fineId))
+      .returning();
+
+    if (!fine) {
+      throw new Error("Fine not found");
+    }
+
+    return fine;
   }
 }
 

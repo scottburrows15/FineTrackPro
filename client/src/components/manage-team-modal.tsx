@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
+import { UK_SPORTS } from "@/lib/sportPositions";
 import { Users, Edit, Trash2, Crown, UserCog, Save, Settings } from "lucide-react";
 import type { User, Team } from "@shared/schema";
 
@@ -194,13 +196,21 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                     </div>
                     <div>
                       <Label htmlFor="teamSport">Sport</Label>
-                      <Input
-                        id="teamSport"
+                      <Select
                         value={teamForm.sport}
-                        onChange={(e) => setTeamForm(prev => ({ ...prev, sport: e.target.value }))}
-                        placeholder="Enter sport"
-                        required
-                      />
+                        onValueChange={(value) => setTeamForm(prev => ({ ...prev, sport: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a sport" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UK_SPORTS.map((sport) => (
+                            <SelectItem key={sport} value={sport}>
+                              {sport}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="flex space-x-2">

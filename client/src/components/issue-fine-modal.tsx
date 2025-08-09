@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
-import { Users, PoundSterling, Check, X } from "lucide-react";
+import { Users, PoundSterling, Check, X, Search, UserCheck, UserX } from "lucide-react";
 import type { User, FineCategory, FineSubcategory } from "@shared/schema";
 
 interface IssueFineModalProps {
@@ -33,6 +33,8 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
   });
   
   const [showMultiSelect, setShowMultiSelect] = useState(false);
+  const [playerSearchTerm, setPlayerSearchTerm] = useState("");
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
 
   // Fetch real data
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
@@ -48,6 +50,15 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
   const { data: subcategories = [], isLoading: subcategoriesLoading } = useQuery<FineSubcategory[]>({
     queryKey: ["/api/categories", formData.categoryId, "subcategories"],
     enabled: isOpen && !!formData.categoryId,
+  });
+
+  // Filter players based on search term
+  const filteredPlayers = teamMembers.filter(player => {
+    if (!playerSearchTerm) return true;
+    const searchLower = playerSearchTerm.toLowerCase();
+    const fullName = `${player.firstName} ${player.lastName}`.toLowerCase();
+    const position = (player.position || '').toLowerCase();
+    return fullName.includes(searchLower) || position.includes(searchLower);
   });
 
   // Bulk fine mutation for multiple players
@@ -102,6 +113,8 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
       sendNotification: true,
     });
     setShowMultiSelect(false);
+    setPlayerSearchTerm("");
+    setSelectionMode('single');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -166,12 +179,15 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               <div className="flex items-center space-x-2">
                 <Button
                   type="button"
-                  variant={showMultiSelect ? "default" : "outline"}
+                  variant={selectionMode === 'multiple' ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setShowMultiSelect(!showMultiSelect)}
+                  onClick={() => {
+                    setSelectionMode(selectionMode === 'multiple' ? 'single' : 'multiple');
+                    setFormData(prev => ({ ...prev, selectedPlayerIds: [] }));
+                  }}
                 >
                   <Users className="w-4 h-4 mr-2" />
-                  {showMultiSelect ? 'Multi-Select' : 'Single Player'}
+                  {selectionMode === 'multiple' ? 'Multi-Select' : 'Single Player'}
                 </Button>
                 {formData.selectedPlayerIds.length > 0 && (
                   <Badge variant="secondary" className="px-2 py-1">
@@ -181,7 +197,19 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               </div>
             </div>
 
-            {showMultiSelect && teamMembers.length > 0 && (
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input
+                placeholder="Search players by name or position..."
+                value={playerSearchTerm}
+                onChange={(e) => setPlayerSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Quick Actions for Multiple Selection */}
+            {selectionMode === 'multiple' && filteredPlayers.length > 0 && (
               <div className="flex items-center space-x-2 text-sm">
                 <Button
                   type="button"
@@ -189,11 +217,12 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   size="sm"
                   onClick={() => setFormData(prev => ({ 
                     ...prev, 
-                    selectedPlayerIds: teamMembers.map(m => m.id) 
+                    selectedPlayerIds: filteredPlayers.map(m => m.id) 
                   }))}
-                  disabled={formData.selectedPlayerIds.length === teamMembers.length}
+                  disabled={formData.selectedPlayerIds.length === filteredPlayers.length}
                 >
-                  Select All
+                  <UserCheck className="w-4 h-4 mr-1" />
+                  Select All ({filteredPlayers.length})
                 </Button>
                 <Button
                   type="button"
@@ -205,6 +234,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   }))}
                   disabled={formData.selectedPlayerIds.length === 0}
                 >
+                  <UserX className="w-4 h-4 mr-1" />
                   Clear All
                 </Button>
                 <span className="text-slate-600">
@@ -213,23 +243,34 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               </div>
             )}
 
+            {/* Player List */}
             {membersLoading ? (
-              <div className="h-20 bg-slate-100 rounded-lg animate-pulse" />
-            ) : showMultiSelect ? (
-              <div className="max-h-48 overflow-y-auto border-2 border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50">
-                {teamMembers.map(member => (
+              <div className="h-32 bg-slate-100 rounded-lg animate-pulse flex items-center justify-center">
+                <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : filteredPlayers.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                {playerSearchTerm ? 'No players found matching your search.' : 'No players available.'}
+              </div>
+            ) : selectionMode === 'multiple' ? (
+              <div className="max-h-64 overflow-y-auto border-2 border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50">
+                {filteredPlayers.map(member => (
                   <div
                     key={member.id}
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${
                       formData.selectedPlayerIds.includes(member.id)
-                        ? 'bg-primary/10 border-primary/20'
-                        : 'bg-slate-50 hover:bg-slate-100'
+                        ? 'bg-primary/10 border-primary/30 shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300'
                     }`}
                     onClick={() => handlePlayerToggle(member.id)}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-slate-600">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        formData.selectedPlayerIds.includes(member.id)
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        <span className="text-sm font-medium">
                           {member.firstName?.[0]}{member.lastName?.[0]}
                         </span>
                       </div>
@@ -238,32 +279,65 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                           {getDisplayName(member)}
                         </div>
                         <div className="text-sm text-slate-600">
-                          {member.position || 'No position'}
+                          {member.position || 'No position set'}
                         </div>
                       </div>
                     </div>
-                    {formData.selectedPlayerIds.includes(member.id) && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      formData.selectedPlayerIds.includes(member.id)
+                        ? 'bg-primary border-primary'
+                        : 'border-slate-300'
+                    }`}>
+                      {formData.selectedPlayerIds.includes(member.id) && (
+                        <Check className="w-4 h-4 text-white" />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <Select 
-                value={formData.selectedPlayerIds[0] || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, selectedPlayerIds: value ? [value] : [] }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a player..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {getDisplayName(member)} {member.position && `(${member.position})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                {filteredPlayers.map(member => (
+                  <div
+                    key={member.id}
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${
+                      formData.selectedPlayerIds.includes(member.id)
+                        ? 'bg-primary/10 border-primary/30 shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300'
+                    }`}
+                    onClick={() => setFormData(prev => ({ ...prev, selectedPlayerIds: [member.id] }))}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        formData.selectedPlayerIds.includes(member.id)
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        <span className="text-sm font-medium">
+                          {member.firstName?.[0]}{member.lastName?.[0]}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900">
+                          {getDisplayName(member)}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          {member.position || 'No position set'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      formData.selectedPlayerIds.includes(member.id)
+                        ? 'bg-primary border-primary'
+                        : 'border-slate-300'
+                    }`}>
+                      {formData.selectedPlayerIds.includes(member.id) && (
+                        <Check className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

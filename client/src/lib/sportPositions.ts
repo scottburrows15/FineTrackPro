@@ -1,102 +1,71 @@
-// Sport-specific position lists
-export const SPORT_POSITIONS = {
+// Common UK sports and their typical positions
+export const UK_SPORTS = [
+  "Football",
+  "Rugby", 
+  "Cricket",
+  "Netball",
+  "Hockey",
+  "Basketball",
+  "Volleyball",
+  "Tennis",
+  "Badminton",
+  "Swimming",
+  "Athletics",
+  "Golf",
+  "Squash"
+] as const;
+
+export type UKSport = typeof UK_SPORTS[number];
+
+// Position mappings for each sport
+export const SPORT_POSITIONS: Record<string, string[]> = {
   Football: [
-    "Goalkeeper",
-    "Centre-Back",
-    "Left-Back", 
-    "Right-Back",
-    "Sweeper",
-    "Central Midfielder",
-    "Defensive Midfielder",
-    "Attacking Midfielder",
-    "Left Midfielder",
-    "Right Midfielder",
-    "Left Winger",
-    "Right Winger",
-    "Centre-Forward",
-    "Striker",
-    "Second Striker",
+    "Goalkeeper", "Right Back", "Left Back", "Centre Back", "Sweeper",
+    "Right Wing Back", "Left Wing Back", "Defensive Midfielder", 
+    "Central Midfielder", "Attacking Midfielder", "Right Midfielder", 
+    "Left Midfielder", "Right Winger", "Left Winger", "Striker", 
+    "Centre Forward", "Second Striker"
   ],
   Rugby: [
-    "Loosehead Prop",
-    "Hooker", 
-    "Tighthead Prop",
-    "Lock",
-    "Second Row",
-    "Blindside Flanker",
-    "Openside Flanker",
-    "Number 8",
-    "Scrum-half",
-    "Fly-half",
-    "Left Wing",
-    "Inside Centre",
-    "Outside Centre", 
-    "Right Wing",
-    "Fullback",
-  ],
-  Netball: [
-    "Goal Shooter (GS)",
-    "Goal Attack (GA)",
-    "Wing Attack (WA)",
-    "Centre (C)",
-    "Wing Defence (WD)",
-    "Goal Defence (GD)",
-    "Goal Keeper (GK)",
-  ],
-  Hockey: [
-    "Goalkeeper",
-    "Left Back",
-    "Centre Back",
-    "Right Back",
-    "Sweeper",
-    "Left Half",
-    "Centre Half",
-    "Right Half",
-    "Left Inner",
-    "Centre Forward",
-    "Right Inner",
-    "Left Wing",
-    "Right Wing",
+    "Loosehead Prop", "Hooker", "Tighthead Prop", "Lock", "Blindside Flanker",
+    "Openside Flanker", "Number 8", "Scrum Half", "Fly Half", "Left Wing", 
+    "Inside Centre", "Outside Centre", "Right Wing", "Full Back"
   ],
   Cricket: [
-    "Wicket-keeper",
-    "Opening Batsman",
-    "Top Order Batsman",
-    "Middle Order Batsman",
-    "Lower Order Batsman",
-    "All-rounder",
-    "Fast Bowler",
-    "Spin Bowler",
-    "Medium Pace Bowler",
-    "Captain",
+    "Wicket Keeper", "Batsman", "All Rounder", "Fast Bowler", "Spin Bowler",
+    "Opening Batsman", "Middle Order", "Lower Order", "Captain"
+  ],
+  Netball: [
+    "Goal Shooter", "Goal Attack", "Wing Attack", "Centre", 
+    "Wing Defence", "Goal Defence", "Goal Keeper"
+  ],
+  Hockey: [
+    "Goalkeeper", "Right Back", "Left Back", "Centre Back", "Right Half",
+    "Left Half", "Centre Half", "Right Wing", "Left Wing", "Centre Forward",
+    "Inside Right", "Inside Left"
   ],
   Basketball: [
-    "Point Guard",
-    "Shooting Guard", 
-    "Small Forward",
-    "Power Forward",
-    "Centre",
+    "Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Centre"
   ],
-  Tennis: [
-    "Singles Player",
-    "Doubles Player",
+  Volleyball: [
+    "Setter", "Outside Hitter", "Middle Blocker", "Opposite Hitter", 
+    "Libero", "Defensive Specialist"
   ],
-  // Sports without specific positions
-  Darts: [],
-  Golf: [],
-  Pool: [],
-} as const;
+  Tennis: ["Singles Player", "Doubles Player"],
+  Badminton: ["Singles Player", "Doubles Player"],
+  Swimming: [
+    "Freestyle", "Backstroke", "Breaststroke", "Butterfly", 
+    "Individual Medley", "Distance", "Sprint"
+  ],
+  Athletics: [
+    "Sprinter", "Middle Distance", "Long Distance", "Hurdler", 
+    "High Jump", "Long Jump", "Triple Jump", "Pole Vault",
+    "Shot Put", "Discus", "Hammer", "Javelin", "Decathlon", "Heptathlon"
+  ],
+  Golf: ["Golfer"],
+  Squash: ["Player"]
+};
 
-export type Sport = keyof typeof SPORT_POSITIONS;
-
-export function getSportPositions(sport: Sport): readonly string[] {
+export function getPositionsForSport(sport: string): string[] {
   return SPORT_POSITIONS[sport] || [];
-}
-
-export function getSportRequiresPositions(sport: Sport): boolean {
-  return getSportPositions(sport).length > 0;
-}
-
-export function getAvailableSports(): Sport[] {
-  return Object.keys(SPORT_POSITIONS) as Sport[];
 }
