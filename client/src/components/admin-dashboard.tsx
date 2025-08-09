@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import IssueFineModal from "./issue-fine-modal";
 import AdminShareLink from "./admin-share-link";
+import AddPlayerModal from "./add-player-modal";
+import ManageCategoriesModal from "./manage-categories-modal";
+import ManageTeamModal from "./manage-team-modal";
+import ProfileModal from "./profile-modal";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -32,6 +36,10 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showIssueFineModal, setShowIssueFineModal] = useState(false);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
+  const [showManageTeamModal, setShowManageTeamModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUnpaidFines, setShowUnpaidFines] = useState(false);
   const [showTeamMembers, setShowTeamMembers] = useState(false);
 
@@ -167,7 +175,11 @@ export default function AdminDashboard() {
                   <Plus className="w-4 h-4" />
                   <span>Issue Fine</span>
                 </Button>
-                <Button variant="outline" className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                  onClick={() => setShowAddPlayerModal(true)}
+                >
                   <UserPlus className="w-4 h-4" />
                   <span>Add Player</span>
                 </Button>
@@ -270,31 +282,21 @@ export default function AdminDashboard() {
                 <Button 
                   variant="ghost" 
                   className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-                  onClick={() => {
-                    setShowTeamMembers(!showTeamMembers);
-                    if (!showTeamMembers) {
-                      refetchMembers(); // Refresh data when opening
-                    }
-                  }}
+                  onClick={() => setShowManageTeamModal(true)}
                 >
                   <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                     <Users className="text-primary text-sm" />
                   </div>
                   <div>
                     <div className="font-medium text-slate-900">Manage Team</div>
-                    <div className="text-xs text-slate-600">View and manage team members</div>
+                    <div className="text-xs text-slate-600">Edit team details and members</div>
                   </div>
                 </Button>
 
                 <Button 
                   variant="ghost" 
                   className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-3 h-auto justify-start"
-                  onClick={() => {
-                    toast({
-                      title: "Coming Soon",
-                      description: "Category management will be available soon.",
-                    });
-                  }}
+                  onClick={() => setShowManageCategoriesModal(true)}
                 >
                   <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
                     <Tags className="text-secondary text-sm" />
@@ -580,13 +582,31 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* Issue Fine Modal */}
-      {showIssueFineModal && (
-        <IssueFineModal 
-          isOpen={showIssueFineModal}
-          onClose={() => setShowIssueFineModal(false)}
-        />
-      )}
+      {/* Modals */}
+      <IssueFineModal 
+        isOpen={showIssueFineModal}
+        onClose={() => setShowIssueFineModal(false)}
+      />
+      
+      <AddPlayerModal
+        isOpen={showAddPlayerModal}
+        onClose={() => setShowAddPlayerModal(false)}
+      />
+      
+      <ManageCategoriesModal
+        isOpen={showManageCategoriesModal}
+        onClose={() => setShowManageCategoriesModal(false)}
+      />
+      
+      <ManageTeamModal
+        isOpen={showManageTeamModal}
+        onClose={() => setShowManageTeamModal(false)}
+      />
+      
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </div>
   );
 }

@@ -523,20 +523,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       // For now, just mark as paid to "delete" it
-      await storage.updateFine(id, { isPaid: true, paidAt: new Date() });
+      await storage.updateFine(id, { isPaid: true });
       
       await storage.createAuditLog({
         entityType: 'fine',
         entityId: id,
         action: 'delete',
         userId: user.id,
-        changes: { isPaid: true },
+        changes: { deleted: true },
       });
 
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting fine:", error);
       res.status(500).json({ message: "Failed to delete fine" });
+    }
+  });
+
+  // Add player route
+  app.post('/api/admin/add-player', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { firstName, lastName, email, position, nickname } = req.body;
+      
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required" });
+      }
+
+      // Create new user with team assignment
+      const newPlayer = await storage.upsertUser({
+        id: email, // Use email as temporary ID
+        firstName,
+        lastName,
+        email,
+        position,
+        nickname,
+        teamId: user.teamId,
+        role: 'player',
+      });
+
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: newPlayer.id,
+        action: 'create',
+        userId: user.id,
+        changes: { firstName, lastName, email, position, nickname, teamId: user.teamId },
+      });
+
+      res.json(newPlayer);
+    } catch (error) {
+      console.error("Error adding player:", error);
+      res.status(500).json({ message: "Failed to add player" });
+    }
+  });
+
+  // Team management routes
+  app.patch('/api/team', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { name, sport } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Team name is required" });
+      }
+
+      const updatedTeam = await storage.updateTeam(user.teamId!, { name, sport });
+
+      await storage.createAuditLog({
+        entityType: 'team',
+        entityId: user.teamId!,
+        action: 'update',
+        userId: user.id,
+        changes: { name, sport },
+      });
+
+      res.json(updatedTeam);
+    } catch (error) {
+      console.error("Error updating team:", error);
+      res.status(500).json({ message: "Failed to update team" });
+    }
+  });
+
+  // Player management routes
+  app.delete('/api/admin/players/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      
+      // Remove player from team
+      await storage.upsertUser({
+        id,
+        teamId: null,
+      } as any);
+
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: id,
+        action: 'remove_from_team',
+        userId: user.id,
+        changes: { teamId: null },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing player:", error);
+      res.status(500).json({ message: "Failed to remove player" });
+    }
+  });
+
+  app.patch('/api/admin/players/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { role } = req.body;
+      
+      if (!role || !['admin', 'player'].includes(role)) {
+        return res.status(400).json({ message: "Valid role is required" });
+      }
+
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+
+      const updatedUser = await storage.upsertUser({
+        ...targetUser,
+        role,
+      });
+
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: id,
+        action: 'update_role',
+        userId: user.id,
+        changes: { role },
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating player role:", error);
+      res.status(500).json({ message: "Failed to update player role" });
+    }
+  });
+
+  // Category management routes
+  app.post('/api/categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { name, color } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Category name is required" });
+      }
+
+      const category = await storage.createFineCategory({
+        teamId: user.teamId!,
+        name,
+        color: color || '#1E40AF',
+        sortOrder: 0,
+      });
+
+      await storage.createAuditLog({
+        entityType: 'category',
+        entityId: category.id,
+        action: 'create',
+        userId: user.id,
+        changes: { name, color },
+      });
+
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  app.post('/api/categories/:id/subcategories', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { name, defaultAmount, icon } = req.body;
+      
+      if (!name || !defaultAmount) {
+        return res.status(400).json({ message: "Subcategory name and default amount are required" });
+      }
+
+      const subcategory = await storage.createFineSubcategory({
+        categoryId: id,
+        name,
+        defaultAmount,
+        icon: icon || 'fas fa-gavel',
+        sortOrder: 0,
+      });
+
+      await storage.createAuditLog({
+        entityType: 'subcategory',
+        entityId: subcategory.id,
+        action: 'create',
+        userId: user.id,
+        changes: { categoryId: id, name, defaultAmount, icon },
+      });
+
+      res.json(subcategory);
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      res.status(500).json({ message: "Failed to create subcategory" });
     }
   });
 

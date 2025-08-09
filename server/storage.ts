@@ -69,6 +69,7 @@ export interface IStorage {
   getUnpaidFines(teamId: string): Promise<FineWithDetails[]>;
   getTeamMembers(teamId: string): Promise<User[]>;
   addPlayerToTeam(userId: string, teamId: string): Promise<User>;
+  updateTeam(id: string, updates: Partial<Team>): Promise<Team>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -340,6 +341,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async updateTeam(id: string, updates: Partial<Team>): Promise<Team> {
+    const [team] = await db
+      .update(teams)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(teams.id, id))
+      .returning();
+    return team;
   }
 }
 

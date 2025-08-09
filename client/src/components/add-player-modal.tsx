@@ -1,136 +1,107 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { getDisplayName } from "@/lib/userUtils";
-import { User, Save, Upload } from "lucide-react";
-import type { User as UserType } from "@shared/schema";
+import { getSportPositions, getSportRequiresPositions } from "@/lib/sportPositions";
+import { UserPlus, Save } from "lucide-react";
 
-interface ProfileModalProps {
+interface AddPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+interface TeamInfo {
+  id: string;
+  name: string;
+  sport: string;
+  inviteCode: string;
+}
+
+export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Fetch current user data
-  const { data: user, isLoading } = useQuery<UserType>({
-    queryKey: ["/api/auth/user"],
+  // Fetch team info to get sport for positions
+  const { data: teamInfo } = useQuery<TeamInfo>({
+    queryKey: ["/api/team/info"],
     enabled: isOpen,
   });
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    email: "",
     position: "",
     nickname: "",
   });
 
-  // Initialize form when user data loads
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        position: user.position || "",
-        nickname: user.nickname || "",
-      });
-    }
-  }, [user]);
-
-  const updateProfile = useMutation({
+  const addPlayer = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("PATCH", "/api/profile", data);
+      return await apiRequest("POST", "/api/admin/add-player", data);
     },
     onSuccess: () => {
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
+        title: "Player Added",
+        description: "The player has been added to the team successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/team-members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
       onClose();
+      resetForm();
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description: error instanceof Error ? error.message : "Failed to add player",
         variant: "destructive",
       });
     },
   });
 
+  const resetForm = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      position: "",
+      nickname: "",
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please provide first name and last name.",
+        description: "Please provide first name, last name, and email.",
         variant: "destructive",
       });
       return;
     }
 
-    updateProfile.mutate(formData);
+    addPlayer.mutate(formData);
   };
 
-  const handleFileUpload = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Profile picture upload will be available soon.",
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const sportPositions = teamInfo?.sport ? getSportPositions(teamInfo.sport as any) : [];
+  const showPositions = teamInfo?.sport ? getSportRequiresPositions(teamInfo.sport as any) : false;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <User className="w-5 h-5" />
-            <span>Edit Profile</span>
+            <UserPlus className="w-5 h-5" />
+            <span>Add New Player</span>
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Profile Picture Section */}
-          <div className="flex flex-col items-center space-y-4">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.profileImageUrl || undefined} />
-              <AvatarFallback className="text-lg">
-                {user ? getDisplayName(user).split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              onClick={handleFileUpload}
-              className="flex items-center space-x-2"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Upload Picture</span>
-            </Button>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">First Name</Label>
@@ -155,6 +126,18 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           <div>
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="Enter email address"
+              required
+            />
+          </div>
+
+          <div>
             <Label htmlFor="nickname">Team Nickname (Optional)</Label>
             <Input
               id="nickname"
@@ -164,15 +147,26 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             />
           </div>
 
-          <div>
-            <Label htmlFor="position">Position (Optional)</Label>
-            <Input
-              id="position"
-              value={formData.position}
-              onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-              placeholder="Enter position"
-            />
-          </div>
+          {showPositions && (
+            <div>
+              <Label htmlFor="position">Position</Label>
+              <Select
+                value={formData.position}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sportPositions.map((position) => (
+                    <SelectItem key={position} value={position}>
+                      {position}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex space-x-3 pt-4">
             <Button
@@ -185,15 +179,15 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </Button>
             <Button
               type="submit"
-              disabled={updateProfile.isPending}
+              disabled={addPlayer.isPending}
               className="flex-1 flex items-center space-x-2"
             >
-              {updateProfile.isPending ? (
+              {addPlayer.isPending ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>{updateProfile.isPending ? 'Saving...' : 'Save Changes'}</span>
+              <span>{addPlayer.isPending ? 'Adding...' : 'Add Player'}</span>
             </Button>
           </div>
         </form>
