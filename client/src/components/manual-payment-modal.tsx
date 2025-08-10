@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
 import { formatCurrency } from "@/lib/utils";
-import { CheckCircle, CreditCard, Calendar, User, PoundSterling } from "lucide-react";
+import { CheckCircle, CreditCard, Calendar, User, PoundSterling, X } from "lucide-react";
 import type { FineWithDetails } from "@shared/schema";
 
 interface ManualPaymentModalProps {
@@ -115,13 +115,23 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="payment-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <span>Record Manual Payment</span>
           </DialogTitle>
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
         </DialogHeader>
+        <div id="payment-description" className="sr-only">
+          Record payment received for a team fine
+        </div>
         
         {/* Fine Details */}
         <div className="bg-slate-50 rounded-lg p-4 space-y-2">

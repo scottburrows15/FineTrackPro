@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getPositionsForSport } from "@/lib/sportPositions";
-import { UserCog, Mail, User, MapPin, Crown, Save, Camera, Upload } from "lucide-react";
+import { UserCog, Mail, User, MapPin, Crown, Save, Camera, Upload, X } from "lucide-react";
 import type { User as UserType, Team } from "@shared/schema";
 
 interface EditPlayerModalProps {
@@ -106,7 +106,8 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload image');
+        const errorData = await response.text();
+        throw new Error(`Upload failed: ${errorData}`);
       }
       
       return response.json();
@@ -114,12 +115,16 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
     onSuccess: (data) => {
       setPreviewImage(data.imageUrl);
       setSelectedFile(null);
+      // Invalidate cache to refetch user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
       toast({
         title: "Image Uploaded",
         description: "Profile picture has been updated successfully.",
       });
     },
     onError: (error) => {
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
@@ -172,13 +177,23 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="edit-player-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <UserCog className="w-5 h-5 text-blue-600" />
             <span>Edit Player Profile</span>
           </DialogTitle>
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
         </DialogHeader>
+        <div id="edit-player-description" className="sr-only">
+          Edit player profile information and settings
+        </div>
 
         {/* Player Info Header with Profile Picture */}
         <div className="bg-slate-50 rounded-lg p-4 space-y-4">

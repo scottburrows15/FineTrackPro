@@ -4,6 +4,8 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
+import path from "path";
+import express from "express";
 import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
 
 // Use dummy Stripe key for testing if not provided
@@ -29,6 +31,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded files
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   // Auth middleware
   await setupAuth(app);
 
@@ -1119,30 +1124,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile image upload endpoint
   app.post('/api/admin/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
+      console.log("Upload request received:", req.body, req.file);
+      
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
+        console.log("Access denied for user:", user?.role);
         return res.status(403).json({ message: "Admin access required" });
       }
 
       if (!req.file) {
+        console.log("No file in request");
         return res.status(400).json({ message: "No image file provided" });
       }
 
       const playerId = req.body.playerId;
       if (!playerId) {
+        console.log("No player ID provided");
         return res.status(400).json({ message: "Player ID is required" });
       }
 
-      // In a real implementation, you would upload to a cloud storage service
-      // For now, we'll simulate the upload and return a placeholder URL
+      // Check if the file is a valid image
+      console.log("File details:", {
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      });
+
       const imageUrl = `/uploads/${req.file.filename}`;
 
       // Update player profile with new image URL
-      await storage.upsertUser({
+      const updatedUser = await storage.upsertUser({
         id: playerId,
         profileImageUrl: imageUrl,
         updatedAt: new Date(),
       } as any);
+
+      console.log("User updated with image URL:", imageUrl);
 
       // Create audit log
       await storage.createAuditLog({
@@ -1156,7 +1174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, imageUrl });
     } catch (error) {
       console.error("Error uploading profile image:", error);
-      res.status(500).json({ message: "Failed to upload profile image" });
+      res.status(500).json({ 
+        message: "Failed to upload profile image", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 

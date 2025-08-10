@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
-import { User, Save, Upload, Camera } from "lucide-react";
+import { User, Save, Upload, Camera, X } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 interface ProfileModalProps {
@@ -106,13 +106,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="profile-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <User className="w-5 h-5" />
             <span>Edit Profile</span>
           </DialogTitle>
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
         </DialogHeader>
+        <div id="profile-description" className="sr-only">
+          Edit your personal profile information
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Profile Picture Section */}

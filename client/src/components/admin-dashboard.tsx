@@ -274,7 +274,7 @@ export default function AdminDashboard() {
                   <p className="text-slate-600">No unpaid fines at the moment.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {unpaidFines.map((fine) => (
                     <div key={fine.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
                       {/* Mobile-first responsive layout */}
@@ -433,8 +433,8 @@ export default function AdminDashboard() {
                 <p className="text-slate-600">No fines issued yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {fines.slice(0, 5).map((fine) => (
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                {fines.slice(0, 10).map((fine) => (
                   <div key={fine.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div className="flex items-center space-x-3 min-w-0 flex-1">
                       <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
