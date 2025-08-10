@@ -285,14 +285,15 @@ export default function AdminDashboard() {
                       <div key={fine.id} className="bg-red-50 border border-red-200 rounded-md overflow-hidden">
                         {/* Compact row - clickable to expand */}
                         <div 
-                          className="p-3 cursor-pointer hover:bg-red-100 transition-colors"
+                          className="p-2.5 cursor-pointer hover:bg-red-100 transition-colors"
                           onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            {/* Left: Player info and fine details */}
-                            <div className="flex items-center space-x-3 flex-1 min-w-0">
-                              <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-medium text-slate-600">
+                          {/* Mobile-first: Stack on small screens, row on larger */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                            {/* Player info row */}
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-medium text-slate-600">
                                   {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
                                 </span>
                               </div>
@@ -304,46 +305,49 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                             
-                            {/* Center: Amount and status */}
-                            <div className="text-center flex-shrink-0">
-                              <div className="font-semibold text-slate-900 text-sm">
-                                {formatCurrency(parseFloat(fine.amount))}
+                            {/* Actions row */}
+                            <div className="flex items-center justify-between sm:justify-end gap-2">
+                              {/* Amount and status */}
+                              <div className="text-left sm:text-right">
+                                <div className="font-semibold text-slate-900 text-sm">
+                                  {formatCurrency(parseFloat(fine.amount))}
+                                </div>
+                                <Badge variant="destructive" className="text-xs">
+                                  Unpaid
+                                </Badge>
                               </div>
-                              <Badge variant="destructive" className="text-xs px-2 py-1">
-                                Unpaid
-                              </Badge>
-                            </div>
-                            
-                            {/* Right: Quick action buttons + expand indicator */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedFineForPayment(fine);
-                                  setShowManualPaymentModal(true);
-                                }}
-                                className="text-green-600 hover:bg-green-50 px-3 py-2"
-                                title="Record Payment"
-                              >
-                                <CreditCard className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteFine.mutate(fine.id);
-                                }}
-                                disabled={deleteFine.isPending}
-                                className="px-3 py-2"
-                                title="Delete Fine"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                              <div className="text-slate-400 ml-2 text-sm">
-                                {isExpanded ? '▼' : '▶'}
+                              
+                              {/* Action buttons */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedFineForPayment(fine);
+                                    setShowManualPaymentModal(true);
+                                  }}
+                                  className="text-green-600 hover:bg-green-50 px-2 py-1 h-8"
+                                  title="Record Payment"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteFine.mutate(fine.id);
+                                  }}
+                                  disabled={deleteFine.isPending}
+                                  className="px-2 py-1 h-8"
+                                  title="Delete Fine"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                                <div className="text-slate-400 ml-1 text-sm">
+                                  {isExpanded ? '▼' : '▶'}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -351,35 +355,24 @@ export default function AdminDashboard() {
                         
                         {/* Expanded details - fine-specific information only */}
                         {isExpanded && (
-                          <div className="px-3 pb-3 border-t border-red-200 bg-red-25">
-                            <div className="pt-3 space-y-3">
-                              {/* Fine category and subcategory */}
-                              <div>
-                                <span className="font-medium text-slate-600 text-sm">Fine Type:</span>
-                                <div className="text-sm text-slate-900 mt-1">{fine.subcategory.name}</div>
-                                {fine.subcategory.category && (
-                                  <div className="text-xs text-slate-500">Category: {fine.subcategory.category.name}</div>
-                                )}
-                              </div>
-                              
+                          <div className="px-2.5 pb-2.5 border-t border-red-200 bg-red-25">
+                            <div className="pt-2 space-y-2">
                               {/* Full description */}
                               {fine.description && (
                                 <div>
-                                  <span className="font-medium text-slate-600 text-sm">Description:</span>
-                                  <div className="text-sm text-slate-900 mt-1 leading-relaxed">{fine.description}</div>
+                                  <span className="font-medium text-slate-600 text-xs">Description:</span>
+                                  <div className="text-xs text-slate-900 mt-1 leading-relaxed">{fine.description}</div>
                                 </div>
                               )}
                               
                               {/* Issue details */}
-                              <div className="border-t border-red-200 pt-3">
-                                <div className="text-sm text-red-600">
-                                  Issued on {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString('en-GB', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                  }) : 'Unknown date'}
-                                </div>
+                              <div className="text-xs text-red-600">
+                                Issued on {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString('en-GB', { 
+                                  weekday: 'short', 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) : 'Unknown date'}
                               </div>
                             </div>
                           </div>
