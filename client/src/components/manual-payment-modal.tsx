@@ -96,12 +96,20 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
   };
 
   const paymentMethods = [
-    { value: "cash", label: "Cash", icon: PoundSterling },
-    { value: "bank_transfer", label: "Bank Transfer", icon: CreditCard },
-    { value: "card", label: "Debit/Credit Card", icon: CreditCard },
-    { value: "paypal", label: "PayPal", icon: CreditCard },
-    { value: "other", label: "Other", icon: CreditCard },
+    { value: "cash", label: "Cash", icon: PoundSterling, color: "bg-green-50 text-green-700 border-green-200" },
+    { value: "bank_transfer", label: "Bank Transfer", icon: CreditCard, color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { value: "card", label: "Debit/Credit Card", icon: CreditCard, color: "bg-purple-50 text-purple-700 border-purple-200" },
+    { value: "paypal", label: "PayPal", icon: CreditCard, color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+    { value: "other", label: "Other", icon: CreditCard, color: "bg-gray-50 text-gray-700 border-gray-200" },
   ];
+
+  const handleQuickPayment = (method: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      paymentMethod: method,
+      amount: fine?.amount || "",
+    }));
+  };
 
   if (!fine) return null;
 
@@ -142,6 +150,28 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
               <p className="text-sm text-slate-600">{fine.description}</p>
             </div>
           )}
+        </div>
+
+        {/* Quick Payment Action Buttons */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-slate-700">Quick Actions:</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {paymentMethods.slice(0, 3).map(method => (
+              <Button
+                key={method.value}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickPayment(method.value)}
+                className={`${method.color} hover:opacity-80 transition-all border ${
+                  formData.paymentMethod === method.value ? 'ring-2 ring-blue-500' : ''
+                }`}
+              >
+                <method.icon className="w-4 h-4 mr-1.5" />
+                <span className="text-xs font-medium">{method.label}</span>
+              </Button>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

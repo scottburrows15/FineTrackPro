@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import multer from "multer";
 import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
 
 // Use dummy Stripe key for testing if not provided
@@ -10,6 +11,21 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_
 
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-07-30.basil",
+});
+
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -891,6 +907,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Player management routes
+  // Update player profile (admin)
+  app.patch('/api/admin/players/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { firstName, lastName, email, position, nickname, role } = req.body;
+
+      // Validate required fields
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required" });
+      }
+
+      // Update player
+      const updatedPlayer = await storage.upsertUser({
+        id,
+        firstName,
+        lastName,
+        email,
+        position: position || null,
+        nickname: nickname || null,
+        role: role || 'player',
+        updatedAt: new Date(),
+      } as any);
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: id,
+        action: 'profile_updated',
+        userId: user.id,
+        changes: { firstName, lastName, email, position, nickname, role },
+      });
+
+      res.json({ success: true, player: updatedPlayer });
+    } catch (error) {
+      console.error("Error updating player:", error);
+      res.status(500).json({ message: "Failed to update player" });
+    }
+  });
+
   app.delete('/api/admin/players/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -1053,6 +1113,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Profile image upload endpoint
+  app.post('/api/admin/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const playerId = req.body.playerId;
+      if (!playerId) {
+        return res.status(400).json({ message: "Player ID is required" });
+      }
+
+      // In a real implementation, you would upload to a cloud storage service
+      // For now, we'll simulate the upload and return a placeholder URL
+      const imageUrl = `/uploads/${req.file.filename}`;
+
+      // Update player profile with new image URL
+      await storage.upsertUser({
+        id: playerId,
+        profileImageUrl: imageUrl,
+        updatedAt: new Date(),
+      } as any);
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: playerId,
+        action: 'profile_image_updated',
+        userId: user.id,
+        changes: { profileImageUrl: imageUrl },
+      });
+
+      res.json({ success: true, imageUrl });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ message: "Failed to upload profile image" });
     }
   });
 

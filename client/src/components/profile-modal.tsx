@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
-import { User, Save, Upload } from "lucide-react";
+import { User, Save, Upload, Camera } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 interface ProfileModalProps {
@@ -19,6 +19,7 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch current user data
   const { data: user, isLoading } = useQuery<UserType>({
@@ -32,6 +33,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     position: "",
     nickname: "",
   });
+
+  const [previewImage, setPreviewImage] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Initialize form when user data loads
   useEffect(() => {

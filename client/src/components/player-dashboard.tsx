@@ -195,9 +195,9 @@ export default function PlayerDashboard() {
         <div className="px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Recent Activity</h2>
         </div>
-        <div className="divide-y divide-slate-200">
-          {recentActivity.length > 0 ? (
-            recentActivity.map((fine: any) => (
+        <div className="max-h-96 overflow-y-auto divide-y divide-slate-200">
+          {fines.length > 0 ? (
+            fines.map((fine: any) => (
               <div key={fine.id} className="p-6">
                 <div className="flex items-start space-x-4">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${

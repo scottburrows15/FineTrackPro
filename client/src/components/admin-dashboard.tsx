@@ -11,6 +11,7 @@ import ManageTeamModal from "./manage-team-modal";
 import ProfileModal from "./profile-modal";
 import AnalyticsDashboard from "./analytics-dashboard";
 import ManualPaymentModal from "./manual-payment-modal";
+import EditPlayerModal from "./edit-player-modal";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -46,7 +47,9 @@ export default function AdminDashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
+  const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
@@ -273,55 +276,64 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-4">
                   {unpaidFines.map((fine) => (
-                    <div key={fine.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-slate-600">
-                            {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-slate-900">
-                            {fine.player.firstName} {fine.player.lastName}
+                    <div key={fine.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      {/* Mobile-first responsive layout */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        {/* Player info section */}
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-medium text-slate-600">
+                              {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                            </span>
                           </div>
-                          <div className="text-sm text-slate-600">{fine.subcategory.name}</div>
-                          {fine.description && (
-                            <div className="text-xs text-slate-500 truncate">{fine.description}</div>
-                          )}
-                          <div className="text-xs text-red-600 mt-1">
-                            Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-slate-900">
+                              {fine.player.firstName} {fine.player.lastName}
+                            </div>
+                            <div className="text-sm text-slate-600">{fine.subcategory.name}</div>
+                            {fine.description && (
+                              <div className="text-xs text-slate-500 line-clamp-2 sm:truncate">{fine.description}</div>
+                            )}
+                            <div className="text-xs text-red-600 mt-1">
+                              Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3 flex-shrink-0">
-                        <div className="text-right">
-                          <div className="font-semibold text-slate-900">
-                            {formatCurrency(parseFloat(fine.amount))}
+                        
+                        {/* Amount and actions section */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                          <div className="text-left sm:text-right">
+                            <div className="font-semibold text-slate-900 text-lg sm:text-base">
+                              {formatCurrency(parseFloat(fine.amount))}
+                            </div>
+                            <Badge variant="destructive" className="text-xs">
+                              Unpaid
+                            </Badge>
                           </div>
-                          <Badge variant="destructive" className="text-xs">
-                            Unpaid
-                          </Badge>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedFineForPayment(fine);
-                              setShowManualPaymentModal(true);
-                            }}
-                            className="text-green-600 hover:bg-green-50"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteFine.mutate(fine.id)}
-                            disabled={deleteFine.isPending}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedFineForPayment(fine);
+                                setShowManualPaymentModal(true);
+                              }}
+                              className="text-green-600 hover:bg-green-50 px-3"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                              <span className="hidden sm:inline ml-1">Pay</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteFine.mutate(fine.id)}
+                              disabled={deleteFine.isPending}
+                              className="px-3"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span className="hidden sm:inline ml-1">Delete</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -388,7 +400,10 @@ export default function AdminDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setShowManageTeamModal(true)}
+                          onClick={() => {
+                            setSelectedPlayerForEdit(member);
+                            setShowEditPlayerModal(true);
+                          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -504,6 +519,17 @@ export default function AdminDashboard() {
             isOpen={showManualPaymentModal} 
             onClose={handleClosePaymentModal}
             fine={selectedFineForPayment}
+          />
+        )}
+
+        {showEditPlayerModal && selectedPlayerForEdit && (
+          <EditPlayerModal 
+            isOpen={showEditPlayerModal} 
+            onClose={() => {
+              setShowEditPlayerModal(false);
+              setSelectedPlayerForEdit(null);
+            }}
+            player={selectedPlayerForEdit}
           />
         )}
       </div>
