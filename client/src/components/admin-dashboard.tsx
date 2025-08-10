@@ -279,7 +279,7 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {unpaidFines.map((fine) => (
-                    <div key={fine.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div key={fine.id} className="p-3 bg-red-50 border border-red-200 rounded-lg">
                       {/* Mobile-first responsive layout */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         {/* Player info section */}
@@ -290,10 +290,10 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-slate-900">
+                            <div className="text-sm font-medium text-slate-900">
                               {fine.player.firstName} {fine.player.lastName}
                             </div>
-                            <div className="text-sm text-slate-600">{fine.subcategory.name}</div>
+                            <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
                             {fine.description && (
                               <div className="text-xs text-slate-500 line-clamp-2 sm:truncate">{fine.description}</div>
                             )}
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                         {/* Amount and actions section */}
                         <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                           <div className="text-left sm:text-right">
-                            <div className="font-semibold text-slate-900 text-lg sm:text-base">
+                            <div className="font-semibold text-slate-900 text-sm">
                               {formatCurrency(parseFloat(fine.amount))}
                             </div>
                             <Badge variant="destructive" className="text-xs">
