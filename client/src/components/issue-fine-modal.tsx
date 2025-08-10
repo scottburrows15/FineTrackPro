@@ -203,6 +203,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   }
                 }}
                 className="pl-10 pr-10"
+                autoFocus={false}
               />
               {playerSearchTerm && (
                 <button
@@ -286,13 +287,28 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                         className="relative group cursor-pointer transition-all duration-200"
                         onClick={() => handlePlayerToggle(member.id)}
                       >
-                        <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg border-2 sm:border-4 transition-all duration-200 ${
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg border-2 sm:border-4 transition-all duration-200 overflow-hidden ${
                           isSelected
                             ? 'bg-primary border-primary shadow-lg scale-110'
                             : 'bg-slate-400 border-slate-300 group-hover:bg-slate-500 group-hover:border-slate-400 group-hover:scale-105'
                         }`}>
                           {isSelected ? (
                             <Check className="w-6 h-6" />
+                          ) : member.profileImageUrl ? (
+                            <img 
+                              src={member.profileImageUrl} 
+                              alt={`${member.firstName} ${member.lastName}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initials if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span class="text-sm">${member.firstName?.[0] || ''}${member.lastName?.[0] || ''}</span>`;
+                                }
+                              }}
+                            />
                           ) : (
                             <span className="text-sm">
                               {member.firstName?.[0]}{member.lastName?.[0]}

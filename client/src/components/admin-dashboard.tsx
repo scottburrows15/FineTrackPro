@@ -291,10 +291,26 @@ export default function AdminDashboard() {
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                             {/* Player info row */}
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
-                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-medium text-slate-600">
-                                  {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                                </span>
+                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {fine.player.profileImageUrl ? (
+                                  <img 
+                                    src={fine.player.profileImageUrl} 
+                                    alt={`${fine.player.firstName} ${fine.player.lastName}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        parent.innerHTML = `<span class="text-xs font-medium text-slate-600">${fine.player.firstName?.[0] || ''}${fine.player.lastName?.[0] || ''}</span>`;
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-xs font-medium text-slate-600">
+                                    {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                                  </span>
+                                )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="text-sm font-medium text-slate-900">
@@ -418,10 +434,26 @@ export default function AdminDashboard() {
                   {teamMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-slate-600">
-                            {member.firstName?.[0]}{member.lastName?.[0]}
-                          </span>
+                        <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {member.profileImageUrl ? (
+                            <img 
+                              src={member.profileImageUrl} 
+                              alt={`${member.firstName} ${member.lastName}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span class="text-sm font-medium text-slate-600">${member.firstName?.[0] || ''}${member.lastName?.[0] || ''}</span>`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="text-sm font-medium text-slate-600">
+                              {member.firstName?.[0]}{member.lastName?.[0]}
+                            </span>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-slate-900">
