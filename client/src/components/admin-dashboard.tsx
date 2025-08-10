@@ -314,9 +314,35 @@ export default function AdminDashboard() {
                               </Badge>
                             </div>
                             
-                            {/* Right: Expand/collapse indicator */}
-                            <div className="flex-shrink-0">
-                              <div className="text-slate-400">
+                            {/* Right: Quick action buttons + expand indicator */}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedFineForPayment(fine);
+                                  setShowManualPaymentModal(true);
+                                }}
+                                className="text-green-600 hover:bg-green-50 px-2 py-1 h-7"
+                                title="Record Payment"
+                              >
+                                <CreditCard className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteFine.mutate(fine.id);
+                                }}
+                                disabled={deleteFine.isPending}
+                                className="px-2 py-1 h-7"
+                                title="Delete Fine"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                              <div className="text-slate-400 ml-1">
                                 {isExpanded ? '▼' : '▶'}
                               </div>
                             </div>
@@ -350,39 +376,9 @@ export default function AdminDashboard() {
                                 </div>
                               )}
                               
-                              <div className="flex justify-between items-center pt-2">
+                              <div className="pt-2">
                                 <div className="text-xs text-red-600">
                                   Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
-                                </div>
-                                
-                                {/* Action buttons in expanded view */}
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedFineForPayment(fine);
-                                      setShowManualPaymentModal(true);
-                                    }}
-                                    className="text-green-600 hover:bg-green-50 px-3"
-                                  >
-                                    <CreditCard className="w-4 h-4 mr-1" />
-                                    Record Payment
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteFine.mutate(fine.id);
-                                    }}
-                                    disabled={deleteFine.isPending}
-                                    className="px-3"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    Delete Fine
-                                  </Button>
                                 </div>
                               </div>
                             </div>
