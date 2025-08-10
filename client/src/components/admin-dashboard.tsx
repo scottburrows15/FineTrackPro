@@ -111,19 +111,11 @@ export default function AdminDashboard() {
     <div className="p-6 bg-slate-50 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-            <p className="text-slate-600 mt-1">
-              {teamInfo ? `Managing ${teamInfo.name}` : 'Manage your team and fines'}
-            </p>
-          </div>
-          {teamInfo && (
-            <div className="text-right">
-              <p className="text-sm text-slate-500">Team Code</p>
-              <p className="font-mono text-lg font-semibold text-primary">{teamInfo.inviteCode}</p>
-            </div>
-          )}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-slate-600 mt-1">
+            {teamInfo ? `Managing ${teamInfo.name}` : 'Manage your team and fines'}
+          </p>
         </div>
 
         {/* Admin Actions */}
@@ -191,6 +183,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Team Invitation */}
+        <AdminShareLink />
+
         {/* Key Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -249,9 +244,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Team Invitation */}
-        <AdminShareLink />
 
         {/* Unpaid Fines Section */}
         <div id="unpaid-fines-section">
