@@ -147,21 +147,21 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-            <Users className="w-5 h-5" />
-            <span>Manage Team</span>
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Team Settings</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2 space-y-4 sm:space-y-6">
+        <div className="overflow-y-auto flex-1 space-y-3 sm:space-y-6">
           {/* Team Details Section */}
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold flex items-center space-x-2">
-                  <Settings className="w-5 h-5" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2">
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Team Details</span>
                 </h3>
                 <Button
@@ -176,36 +176,38 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                   }}
                   variant="outline"
                   size="sm"
+                  className="text-xs sm:text-sm"
                 >
                   {editingTeam ? 'Cancel' : 'Edit'}
                 </Button>
               </div>
 
               {editingTeam ? (
-                <form onSubmit={handleUpdateTeam} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={handleUpdateTeam} className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <Label htmlFor="teamName">Team Name</Label>
+                      <Label htmlFor="teamName" className="text-sm">Team Name</Label>
                       <Input
                         id="teamName"
                         value={teamForm.name}
                         onChange={(e) => setTeamForm(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Enter team name"
+                        className="mt-1 h-9 text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="teamSport">Sport</Label>
+                      <Label htmlFor="teamSport" className="text-sm">Sport</Label>
                       <Select
                         value={teamForm.sport}
                         onValueChange={(value) => setTeamForm(prev => ({ ...prev, sport: value }))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1 h-9 text-sm">
                           <SelectValue placeholder="Select a sport" />
                         </SelectTrigger>
                         <SelectContent>
                           {UK_SPORTS.map((sport) => (
-                            <SelectItem key={sport} value={sport}>
+                            <SelectItem key={sport} value={sport} className="text-sm">
                               {sport}
                             </SelectItem>
                           ))}
@@ -213,32 +215,34 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                       </Select>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button type="submit" size="sm" disabled={updateTeam.isPending}>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <Button type="submit" size="sm" disabled={updateTeam.isPending} className="w-full sm:w-auto text-xs sm:text-sm">
                       {updateTeam.isPending ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                       ) : (
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       )}
                       {updateTeam.isPending ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
                 </form>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 sm:space-y-3">
                   <div>
-                    <span className="text-sm font-medium text-slate-600">Team Name:</span>
-                    <p className="text-lg font-semibold text-slate-900">{teamInfo?.name}</p>
+                    <span className="text-xs sm:text-sm font-medium text-slate-600">Team Name:</span>
+                    <p className="text-sm sm:text-base font-semibold text-slate-900 mt-1">{teamInfo?.name}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-slate-600">Sport:</span>
-                    <p className="text-slate-900">{teamInfo?.sport}</p>
+                    <span className="text-xs sm:text-sm font-medium text-slate-600">Sport:</span>
+                    <p className="text-sm sm:text-base text-slate-900 mt-1">{teamInfo?.sport}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-slate-600">Invite Code:</span>
-                    <code className="bg-slate-100 px-2 py-1 rounded text-sm font-mono ml-2">
-                      {teamInfo?.inviteCode}
-                    </code>
+                    <span className="text-xs sm:text-sm font-medium text-slate-600">Invite Code:</span>
+                    <div className="mt-1">
+                      <code className="bg-slate-100 px-2 py-1 rounded text-xs sm:text-sm font-mono">
+                        {teamInfo?.inviteCode}
+                      </code>
+                    </div>
                   </div>
                 </div>
               )}
@@ -247,9 +251,9 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
           {/* Team Members Section */}
           <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-                <UserCog className="w-5 h-5" />
+            <CardContent className="p-3 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center space-x-2">
+                <UserCog className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Team Members ({teamMembers.length})</span>
               </h3>
 
@@ -264,40 +268,43 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                   <p className="text-slate-600">No team members yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3 max-h-64 sm:max-h-80 overflow-y-auto">
                   {teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-10 h-10">
+                    <div key={member.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-slate-50 rounded-lg space-y-3 sm:space-y-0">
+                      {/* Member Info - Full width on mobile */}
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <Avatar className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0">
                           <AvatarImage src={member.profileImageUrl || undefined} />
-                          <AvatarFallback>
+                          <AvatarFallback className="text-xs sm:text-sm">
                             {getDisplayName(member).split(' ').map(n => n[0]).join('').toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">
                               {getDisplayName(member)}
                             </span>
                             {member.role === 'admin' && (
-                              <Badge variant="secondary" className="flex items-center space-x-1">
-                                <Crown className="w-3 h-3" />
-                                <span>Admin</span>
+                              <Badge variant="secondary" className="flex items-center space-x-1 flex-shrink-0">
+                                <Crown className="w-2 h-2 sm:w-3 sm:h-3" />
+                                <span className="text-xs">Admin</span>
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-slate-600">
+                          <p className="text-xs sm:text-sm text-slate-600 truncate">
                             {member.email} {member.position && `• ${member.position}`}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
+                      {/* Action Buttons - Stacked on mobile */}
+                      <div className="flex items-center gap-2 sm:space-x-2 flex-shrink-0">
                         <Button
                           onClick={() => handleToggleRole(member.id, member.role, getDisplayName(member))}
                           variant="outline"
                           size="sm"
                           disabled={toggleAdminRole.isPending}
+                          className="text-xs sm:text-sm h-8 px-2 sm:px-3 flex-1 sm:flex-initial"
                         >
                           {member.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
                         </Button>
@@ -306,9 +313,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                           variant="outline"
                           size="sm"
                           disabled={removePlayer.isPending}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 h-8 px-2 sm:px-3"
+                          title="Remove Player"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
                     </div>
