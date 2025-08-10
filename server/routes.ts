@@ -643,8 +643,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      // For now, just mark as paid to "delete" it
-      await storage.updateFine(id, { isPaid: true });
+      // For now, just mark as paid to "delete" it with proper timestamp
+      await storage.updateFine(id, { 
+        isPaid: true, 
+        paidAt: new Date(),
+        paymentMethod: "admin_deletion"
+      });
       
       await storage.createAuditLog({
         entityType: 'fine',

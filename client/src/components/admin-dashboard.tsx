@@ -33,7 +33,7 @@ import {
   CheckCircle,
   Crown,
   Calendar,
-  DollarSign,
+  PoundSterling,
   CreditCard
 } from "lucide-react";
 
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                     {statsLoading ? '-' : formatCurrency(parseFloat(stats?.monthlyCollection || '0'))}
                   </p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <PoundSterling className="w-8 h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
