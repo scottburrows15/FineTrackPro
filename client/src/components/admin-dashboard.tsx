@@ -51,6 +51,7 @@ export default function AdminDashboard() {
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
+  const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
     queryKey: ["/api/stats/team"],
@@ -278,70 +279,118 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                  {unpaidFines.map((fine) => (
-                    <div key={fine.id} className="p-2 bg-red-50 border border-red-200 rounded-md">
-                      <div className="flex items-center justify-between gap-2">
-                        {/* Left: Player info and fine details */}
-                        <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-medium text-slate-600">
-                              {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                            </span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-medium text-slate-900 truncate">
-                              {fine.player.firstName} {fine.player.lastName}
+                  {unpaidFines.map((fine) => {
+                    const isExpanded = expandedFineId === fine.id;
+                    return (
+                      <div key={fine.id} className="bg-red-50 border border-red-200 rounded-md overflow-hidden">
+                        {/* Compact row - clickable to expand */}
+                        <div 
+                          className="p-2 cursor-pointer hover:bg-red-100 transition-colors"
+                          onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            {/* Left: Player info and fine details */}
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-medium text-slate-600">
+                                  {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-medium text-slate-900 truncate">
+                                  {fine.player.firstName} {fine.player.lastName}
+                                </div>
+                                <div className="text-xs text-slate-600 truncate">{fine.subcategory.name}</div>
+                              </div>
                             </div>
-                            <div className="text-xs text-slate-600 truncate">{fine.subcategory.name}</div>
-                            {fine.description && (
-                              <div className="text-xs text-slate-500 truncate">{fine.description}</div>
-                            )}
+                            
+                            {/* Center: Amount and status */}
+                            <div className="text-center flex-shrink-0">
+                              <div className="font-semibold text-slate-900 text-xs">
+                                {formatCurrency(parseFloat(fine.amount))}
+                              </div>
+                              <Badge variant="destructive" className="text-xs px-1 py-0">
+                                Unpaid
+                              </Badge>
+                            </div>
+                            
+                            {/* Right: Expand/collapse indicator */}
+                            <div className="flex-shrink-0">
+                              <div className="text-slate-400">
+                                {isExpanded ? '▼' : '▶'}
+                              </div>
+                            </div>
                           </div>
                         </div>
                         
-                        {/* Center: Amount and status */}
-                        <div className="text-center flex-shrink-0">
-                          <div className="font-semibold text-slate-900 text-xs">
-                            {formatCurrency(parseFloat(fine.amount))}
+                        {/* Expanded details */}
+                        {isExpanded && (
+                          <div className="px-2 pb-2 border-t border-red-200 bg-red-25">
+                            <div className="pt-2 space-y-2">
+                              {/* Full details */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="font-medium text-slate-600">Player:</span>
+                                  <div className="text-slate-900">{fine.player.firstName} {fine.player.lastName}</div>
+                                  {fine.player.position && (
+                                    <div className="text-slate-500">Position: {fine.player.position}</div>
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-slate-600">Fine Details:</span>
+                                  <div className="text-slate-900">{fine.subcategory.name}</div>
+                                  <div className="text-slate-900">Amount: {formatCurrency(parseFloat(fine.amount))}</div>
+                                </div>
+                              </div>
+                              
+                              {fine.description && (
+                                <div>
+                                  <span className="font-medium text-slate-600 text-xs">Description:</span>
+                                  <div className="text-xs text-slate-900 mt-1">{fine.description}</div>
+                                </div>
+                              )}
+                              
+                              <div className="flex justify-between items-center pt-2">
+                                <div className="text-xs text-red-600">
+                                  Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
+                                </div>
+                                
+                                {/* Action buttons in expanded view */}
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedFineForPayment(fine);
+                                      setShowManualPaymentModal(true);
+                                    }}
+                                    className="text-green-600 hover:bg-green-50 px-3"
+                                  >
+                                    <CreditCard className="w-4 h-4 mr-1" />
+                                    Record Payment
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteFine.mutate(fine.id);
+                                    }}
+                                    disabled={deleteFine.isPending}
+                                    className="px-3"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete Fine
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <Badge variant="destructive" className="text-xs px-1 py-0">
-                            Unpaid
-                          </Badge>
-                        </div>
-                        
-                        {/* Right: Action buttons */}
-                        <div className="flex gap-1 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedFineForPayment(fine);
-                              setShowManualPaymentModal(true);
-                            }}
-                            className="text-green-600 hover:bg-green-50 px-2 py-1 h-7"
-                            title="Record Payment"
-                          >
-                            <CreditCard className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteFine.mutate(fine.id)}
-                            disabled={deleteFine.isPending}
-                            className="px-2 py-1 h-7"
-                            title="Delete Fine"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        )}
                       </div>
-                      
-                      {/* Issue date on separate line for very compact display */}
-                      <div className="text-xs text-red-600 mt-1 pl-10">
-                        Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
