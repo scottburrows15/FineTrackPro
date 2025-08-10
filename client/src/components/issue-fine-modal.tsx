@@ -171,7 +171,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>Issue New Fine</DialogTitle>
         </DialogHeader>
@@ -232,50 +232,56 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
 
             {/* Quick Actions for Selection */}
             {filteredPlayers.length > 0 && (
-              <div className="flex items-center space-x-2 text-sm">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFormData(prev => {
-                    const currentlySelected = new Set(prev.selectedPlayerIds);
-                    const filteredIds = filteredPlayers.map(m => m.id);
-                    filteredIds.forEach(id => currentlySelected.add(id));
-                    return { ...prev, selectedPlayerIds: Array.from(currentlySelected) };
-                  })}
-                  disabled={filteredPlayers.every(player => formData.selectedPlayerIds.includes(player.id))}
-                >
-                  <UserCheck className="w-4 h-4 mr-1" />
-                  Select All ({filteredPlayers.length})
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFormData(prev => {
-                    if (playerSearchTerm) {
-                      // When searching, only clear filtered players
-                      const filteredIds = new Set(filteredPlayers.map(m => m.id));
-                      return { 
-                        ...prev, 
-                        selectedPlayerIds: prev.selectedPlayerIds.filter(id => !filteredIds.has(id))
-                      };
-                    } else {
-                      // When not searching, clear all
-                      return { ...prev, selectedPlayerIds: [] };
-                    }
-                  })}
-                  disabled={!filteredPlayers.some(player => formData.selectedPlayerIds.includes(player.id))}
-                >
-                  <UserX className="w-4 h-4 mr-1" />
-                  {playerSearchTerm ? 'Clear Filtered' : 'Clear All'}
-                </Button>
-                <span className="text-slate-600">
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => {
+                      const currentlySelected = new Set(prev.selectedPlayerIds);
+                      const filteredIds = filteredPlayers.map(m => m.id);
+                      filteredIds.forEach(id => currentlySelected.add(id));
+                      return { ...prev, selectedPlayerIds: Array.from(currentlySelected) };
+                    })}
+                    disabled={filteredPlayers.every(player => formData.selectedPlayerIds.includes(player.id))}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <UserCheck className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Select All ({filteredPlayers.length})</span>
+                    <span className="sm:hidden">All ({filteredPlayers.length})</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => {
+                      if (playerSearchTerm) {
+                        // When searching, only clear filtered players
+                        const filteredIds = new Set(filteredPlayers.map(m => m.id));
+                        return { 
+                          ...prev, 
+                          selectedPlayerIds: prev.selectedPlayerIds.filter(id => !filteredIds.has(id))
+                        };
+                      } else {
+                        // When not searching, clear all
+                        return { ...prev, selectedPlayerIds: [] };
+                      }
+                    })}
+                    disabled={!filteredPlayers.some(player => formData.selectedPlayerIds.includes(player.id))}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <UserX className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">{playerSearchTerm ? 'Clear Filtered' : 'Clear All'}</span>
+                    <span className="sm:hidden">Clear</span>
+                  </Button>
+                </div>
+                <div className="text-xs text-slate-600 text-center sm:text-left">
                   {playerSearchTerm 
-                    ? `${filteredPlayers.filter(p => formData.selectedPlayerIds.includes(p.id)).length} of ${filteredPlayers.length} filtered players selected`
-                    : `${formData.selectedPlayerIds.length} of ${teamMembers.length} players selected`
+                    ? `${filteredPlayers.filter(p => formData.selectedPlayerIds.includes(p.id)).length} of ${filteredPlayers.length} filtered selected`
+                    : `${formData.selectedPlayerIds.length} of ${teamMembers.length} selected`
                   }
-                </span>
+                </div>
               </div>
             )}
 
@@ -290,7 +296,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
               </div>
             ) : (
               <div className="max-h-60 sm:max-h-80 overflow-y-auto">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 p-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 sm:gap-3 p-1 sm:p-2">
                   {filteredPlayers.map(member => {
                     const isSelected = formData.selectedPlayerIds.includes(member.id);
                     
@@ -466,17 +472,18 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
           </form>
         </div>
         
-        <DialogFooter className="pt-4 border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <DialogFooter className="pt-4 border-t flex-col sm:flex-row gap-2">
+          <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             type="submit" 
             form="issue-fine-form"
             disabled={mutation.isPending || formData.selectedPlayerIds.length === 0}
+            className="w-full sm:w-auto"
           >
             {mutation.isPending ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin w-4 h-4 border-4 border-white border-t-transparent rounded-full" />
                 <span>Issuing...</span>
               </div>
