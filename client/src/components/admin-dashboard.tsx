@@ -39,7 +39,8 @@ import {
   PoundSterling,
   CreditCard,
   Activity,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -605,7 +606,7 @@ export default function AdminDashboard() {
                               <div className="font-semibold text-slate-900 text-sm">
                                 {formatCurrency(parseFloat(fine.amount))}
                               </div>
-                              <Badge variant={fine.isPaid ? "success" : "destructive"} className="text-xs">
+                              <Badge variant={fine.isPaid ? "default" : "destructive"} className={`text-xs ${fine.isPaid ? 'bg-green-100 text-green-800' : ''}`}>
                                 {fine.isPaid ? "Paid" : "Unpaid"}
                               </Badge>
                             </div>
