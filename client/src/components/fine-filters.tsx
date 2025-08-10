@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import BulkActionsBar from "./bulk-actions-bar";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,15 @@ export default function FineFilters({
   const { data: subcategories = [] } = useQuery<FineSubcategory[]>({
     queryKey: ['/api/admin/subcategories'],
   });
+
+  // Calculate category counts for all fines (before filtering)
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    fines.forEach(fine => {
+      counts[fine.subcategoryId] = (counts[fine.subcategoryId] || 0) + 1;
+    });
+    return counts;
+  }, [fines]);
 
   // Apply filters whenever filters or fines change
   useEffect(() => {
@@ -345,24 +354,34 @@ export default function FineFilters({
                 </div>
               )}
 
-              {/* Fine Categories Filter */}
+              {/* Fine Categories Filter with Counts */}
               {subcategories.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                    <Tags className="w-4 h-4" />
                     Fine Types ({filters.selectedSubcategories.length} selected)
                   </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg">
-                    {subcategories.map((subcategory) => (
-                      <Button
-                        key={subcategory.id}
-                        variant={filters.selectedSubcategories.includes(subcategory.id) ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleSubcategorySelection(subcategory.id)}
-                        className="text-xs"
-                      >
-                        {subcategory.name}
-                      </Button>
-                    ))}
+                  <div className="flex flex-wrap gap-2 max-h-40 sm:max-h-32 overflow-y-auto p-2 border rounded-lg">
+                    {subcategories.map((subcategory) => {
+                      const count = categoryCounts[subcategory.id] || 0;
+                      return (
+                        <Button
+                          key={subcategory.id}
+                          variant={filters.selectedSubcategories.includes(subcategory.id) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleSubcategorySelection(subcategory.id)}
+                          className="text-xs flex items-center gap-1 h-auto py-2 px-3"
+                        >
+                          <span className="truncate">{subcategory.name}</span>
+                          <Badge 
+                            variant={filters.selectedSubcategories.includes(subcategory.id) ? "outline" : "secondary"} 
+                            className="text-xs px-1.5 py-0.5 min-w-[1.5rem] justify-center"
+                          >
+                            {count}
+                          </Badge>
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
 import { UK_SPORTS } from "@/lib/sportPositions";
-import { Users, Edit, Trash2, Crown, UserCog, Save, Settings } from "lucide-react";
+import { Users, Edit, Trash2, Crown, UserCog, Save, Settings, UserPlus } from "lucide-react";
 import type { User, Team } from "@shared/schema";
 
 interface ManageTeamModalProps {
@@ -252,10 +252,34 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
           {/* Team Members Section */}
           <Card>
             <CardContent className="p-3 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center space-x-2">
-                <UserCog className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Team Members ({teamMembers.length})</span>
-              </h3>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2">
+                  <UserCog className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Team Members ({teamMembers.length})</span>
+                </h3>
+                <Button
+                  onClick={() => {
+                    // Copy invite code to clipboard
+                    navigator.clipboard.writeText(teamInfo?.inviteCode || '').then(() => {
+                      toast({
+                        title: "Invite Code Copied",
+                        description: "Share this code with players to join your team.",
+                      });
+                    }).catch(() => {
+                      toast({
+                        title: "Copy Failed",
+                        description: `Invite code: ${teamInfo?.inviteCode}`,
+                      });
+                    });
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                  <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Add Player
+                </Button>
+              </div>
 
               {membersLoading ? (
                 <div className="text-center py-8">
@@ -274,7 +298,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                       {/* Member Info - Full width on mobile */}
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
                         <Avatar className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0">
-                          <AvatarImage src={member.profileImageUrl || undefined} />
+                          <AvatarImage 
+                            src={member.profileImageUrl || undefined} 
+                            className="object-cover"
+                          />
                           <AvatarFallback className="text-xs sm:text-sm">
                             {getDisplayName(member).split(' ').map(n => n[0]).join('').toUpperCase()}
                           </AvatarFallback>
