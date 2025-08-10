@@ -623,6 +623,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Migrate existing data to audit log (admin only)
+  app.post('/api/admin/migrate-audit-log', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { migrateExistingFinesToAuditLog } = await import('./migrate-audit-log');
+      await migrateExistingFinesToAuditLog();
+      
+      res.json({ success: true, message: "Audit log migration completed successfully" });
+    } catch (error) {
+      console.error("Error during audit log migration:", error);
+      res.status(500).json({ message: "Failed to migrate audit log" });
+    }
+  });
+
   // Admin routes
   app.get('/api/admin/unpaid-fines', isAuthenticated, async (req: any, res) => {
     try {

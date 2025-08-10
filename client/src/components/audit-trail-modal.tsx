@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,12 @@ import {
   ChevronRight,
   Search,
   Calendar,
-  Filter
+  Filter,
+  RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AuditLogEntry {
   id: string;
@@ -90,10 +93,33 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const limit = 50;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: auditData, isLoading } = useQuery<AuditData>({
     queryKey: ['/api/admin/audit-log', page, limit],
     enabled: isOpen,
+  });
+
+  const migrateMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('POST', '/api/admin/migrate-audit-log');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Migration Complete",
+        description: "Existing fines and user data have been added to audit trail",
+      });
+      // Refresh the audit log data
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/audit-log'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Migration Failed",
+        description: error.message || "Failed to migrate existing data",
+        variant: "destructive",
+      });
+    },
   });
 
   const getActionIcon = (action: string) => {
@@ -160,10 +186,27 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-3 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Audit Trail
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Audit Trail
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => migrateMutation.mutate()}
+                disabled={migrateMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${migrateMutation.isPending ? 'animate-spin' : ''}`} />
+                {migrateMutation.isPending ? 'Migrating...' : 'Add Existing Data'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         {/* Search and Filters */}
