@@ -285,37 +285,37 @@ export default function AdminDashboard() {
                       <div key={fine.id} className="bg-red-50 border border-red-200 rounded-md overflow-hidden">
                         {/* Compact row - clickable to expand */}
                         <div 
-                          className="p-2 cursor-pointer hover:bg-red-100 transition-colors"
+                          className="p-3 cursor-pointer hover:bg-red-100 transition-colors"
                           onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
                         >
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center justify-between gap-3">
                             {/* Left: Player info and fine details */}
-                            <div className="flex items-center space-x-2 flex-1 min-w-0">
-                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-medium text-slate-600">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-medium text-slate-600">
                                   {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
                                 </span>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-medium text-slate-900 truncate">
+                                <div className="text-sm font-medium text-slate-900">
                                   {fine.player.firstName} {fine.player.lastName}
                                 </div>
-                                <div className="text-xs text-slate-600 truncate">{fine.subcategory.name}</div>
+                                <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
                               </div>
                             </div>
                             
                             {/* Center: Amount and status */}
                             <div className="text-center flex-shrink-0">
-                              <div className="font-semibold text-slate-900 text-xs">
+                              <div className="font-semibold text-slate-900 text-sm">
                                 {formatCurrency(parseFloat(fine.amount))}
                               </div>
-                              <Badge variant="destructive" className="text-xs px-1 py-0">
+                              <Badge variant="destructive" className="text-xs px-2 py-1">
                                 Unpaid
                               </Badge>
                             </div>
                             
                             {/* Right: Quick action buttons + expand indicator */}
-                            <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -324,10 +324,10 @@ export default function AdminDashboard() {
                                   setSelectedFineForPayment(fine);
                                   setShowManualPaymentModal(true);
                                 }}
-                                className="text-green-600 hover:bg-green-50 px-2 py-1 h-7"
+                                className="text-green-600 hover:bg-green-50 px-3 py-2"
                                 title="Record Payment"
                               >
-                                <CreditCard className="w-3 h-3" />
+                                <CreditCard className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
@@ -337,48 +337,48 @@ export default function AdminDashboard() {
                                   deleteFine.mutate(fine.id);
                                 }}
                                 disabled={deleteFine.isPending}
-                                className="px-2 py-1 h-7"
+                                className="px-3 py-2"
                                 title="Delete Fine"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
-                              <div className="text-slate-400 ml-1">
+                              <div className="text-slate-400 ml-2 text-sm">
                                 {isExpanded ? '▼' : '▶'}
                               </div>
                             </div>
                           </div>
                         </div>
                         
-                        {/* Expanded details */}
+                        {/* Expanded details - fine-specific information only */}
                         {isExpanded && (
-                          <div className="px-2 pb-2 border-t border-red-200 bg-red-25">
-                            <div className="pt-2 space-y-2">
-                              {/* Full details */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="font-medium text-slate-600">Player:</span>
-                                  <div className="text-slate-900">{fine.player.firstName} {fine.player.lastName}</div>
-                                  {fine.player.position && (
-                                    <div className="text-slate-500">Position: {fine.player.position}</div>
-                                  )}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-slate-600">Fine Details:</span>
-                                  <div className="text-slate-900">{fine.subcategory.name}</div>
-                                  <div className="text-slate-900">Amount: {formatCurrency(parseFloat(fine.amount))}</div>
-                                </div>
+                          <div className="px-3 pb-3 border-t border-red-200 bg-red-25">
+                            <div className="pt-3 space-y-3">
+                              {/* Fine category and subcategory */}
+                              <div>
+                                <span className="font-medium text-slate-600 text-sm">Fine Type:</span>
+                                <div className="text-sm text-slate-900 mt-1">{fine.subcategory.name}</div>
+                                {fine.subcategory.category && (
+                                  <div className="text-xs text-slate-500">Category: {fine.subcategory.category.name}</div>
+                                )}
                               </div>
                               
+                              {/* Full description */}
                               {fine.description && (
                                 <div>
-                                  <span className="font-medium text-slate-600 text-xs">Description:</span>
-                                  <div className="text-xs text-slate-900 mt-1">{fine.description}</div>
+                                  <span className="font-medium text-slate-600 text-sm">Description:</span>
+                                  <div className="text-sm text-slate-900 mt-1 leading-relaxed">{fine.description}</div>
                                 </div>
                               )}
                               
-                              <div className="pt-2">
-                                <div className="text-xs text-red-600">
-                                  Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
+                              {/* Issue details */}
+                              <div className="border-t border-red-200 pt-3">
+                                <div className="text-sm text-red-600">
+                                  Issued on {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString('en-GB', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                  }) : 'Unknown date'}
                                 </div>
                               </div>
                             </div>
