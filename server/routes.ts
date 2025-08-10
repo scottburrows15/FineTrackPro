@@ -1121,7 +1121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Profile image upload endpoint
+  // Profile image upload endpoint for admins
   app.post('/api/admin/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
       console.log("Upload request received:", req.body, req.file);
@@ -1170,6 +1170,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: user.id,
         changes: { profileImageUrl: imageUrl },
       });
+
+      res.json({ success: true, imageUrl });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ 
+        message: "Failed to upload profile image", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Profile image upload endpoint for regular users
+  app.post('/api/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      console.log("User upload request received:", req.body, req.file);
+      
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user) {
+        console.log("User not found");
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!req.file) {
+        console.log("No file in request");
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const playerId = req.body.playerId;
+      if (!playerId || playerId !== user.id) {
+        console.log("Invalid player ID or unauthorized");
+        return res.status(403).json({ message: "Can only update your own profile" });
+      }
+
+      // Check if the file is a valid image
+      console.log("File details:", {
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      });
+
+      const imageUrl = `/uploads/${req.file.filename}`;
+
+      // Update user profile with new image URL
+      const updatedUser = await storage.upsertUser({
+        id: playerId,
+        profileImageUrl: imageUrl,
+        updatedAt: new Date(),
+      } as any);
+
+      console.log("User updated with image URL:", imageUrl);
 
       res.json({ success: true, imageUrl });
     } catch (error) {

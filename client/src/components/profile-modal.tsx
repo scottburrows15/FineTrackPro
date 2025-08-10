@@ -70,6 +70,73 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     },
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File Too Large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('playerId', user!.id);
+      
+      const response = await fetch('/api/upload-profile-image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Upload failed: ${errorData}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setPreviewImage(data.imageUrl);
+      setSelectedFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Image Uploaded",
+        description: "Profile picture has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -83,13 +150,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
 
     updateProfile.mutate(formData);
-  };
-
-  const handleFileUpload = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Profile picture upload will be available soon.",
-    });
   };
 
   if (isLoading) {
@@ -112,13 +172,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <User className="w-5 h-5" />
             <span>Edit Profile</span>
           </DialogTitle>
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </button>
         </DialogHeader>
         <div id="profile-description" className="sr-only">
           Edit your personal profile information
@@ -127,22 +180,65 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Profile Picture Section */}
           <div className="flex flex-col items-center space-y-4">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.profileImageUrl || undefined} />
-              <AvatarFallback className="text-lg">
-                {user ? getDisplayName(user).split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              onClick={handleFileUpload}
-              className="flex items-center space-x-2 w-full sm:w-auto"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Upload Picture</span>
-            </Button>
+            <div className="relative group">
+              <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
+                {previewImage || user?.profileImageUrl ? (
+                  <img
+                    src={previewImage || user?.profileImageUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-medium text-slate-600">
+                    {user ? getDisplayName(user).split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors shadow-lg"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Image Upload Actions */}
+            {selectedFile && (
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200 w-full">
+                <Upload className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-700 flex-1">{selectedFile.name}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => uploadImage.mutate(selectedFile)}
+                  disabled={uploadImage.isPending}
+                  className="text-xs"
+                >
+                  {uploadImage.isPending ? 'Uploading...' : 'Upload'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setPreviewImage(user?.profileImageUrl || "");
+                  }}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
