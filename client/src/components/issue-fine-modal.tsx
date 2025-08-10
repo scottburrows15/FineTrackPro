@@ -233,7 +233,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
             {/* Quick Actions for Selection */}
             {filteredPlayers.length > 0 && (
               <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -245,7 +245,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                       return { ...prev, selectedPlayerIds: Array.from(currentlySelected) };
                     })}
                     disabled={filteredPlayers.every(player => formData.selectedPlayerIds.includes(player.id))}
-                    className="flex-1 sm:flex-none"
+                    className="w-full"
                   >
                     <UserCheck className="w-4 h-4 mr-1" />
                     <span className="hidden sm:inline">Select All ({filteredPlayers.length})</span>
@@ -269,7 +269,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                       }
                     })}
                     disabled={!filteredPlayers.some(player => formData.selectedPlayerIds.includes(player.id))}
-                    className="flex-1 sm:flex-none"
+                    className="w-full"
                   >
                     <UserX className="w-4 h-4 mr-1" />
                     <span className="hidden sm:inline">{playerSearchTerm ? 'Clear Filtered' : 'Clear All'}</span>
