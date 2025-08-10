@@ -57,10 +57,19 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
   // Filter players based on search term
   const filteredPlayers = teamMembers.filter(player => {
     if (!playerSearchTerm) return true;
-    const searchLower = playerSearchTerm.toLowerCase();
-    const fullName = `${player.firstName} ${player.lastName}`.toLowerCase();
+    const searchLower = playerSearchTerm.toLowerCase().trim();
+    const firstName = (player.firstName || '').toLowerCase();
+    const lastName = (player.lastName || '').toLowerCase();
+    const fullName = `${firstName} ${lastName}`;
     const position = (player.position || '').toLowerCase();
-    return fullName.includes(searchLower) || position.includes(searchLower);
+    
+    // Match against first name, last name, full name, or position
+    return firstName.includes(searchLower) || 
+           lastName.includes(searchLower) || 
+           fullName.includes(searchLower) || 
+           position.includes(searchLower) ||
+           // Also match initials (e.g., "JS" matches "John Smith")
+           (firstName[0] + lastName[0]).includes(searchLower);
   });
 
   // Unified fine mutation that works for any number of players
@@ -188,8 +197,23 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                 placeholder="Search players by name or position..."
                 value={playerSearchTerm}
                 onChange={(e) => setPlayerSearchTerm(e.target.value)}
-                className="pl-10"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setPlayerSearchTerm("");
+                  }
+                }}
+                className="pl-10 pr-10"
               />
+              {playerSearchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setPlayerSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 w-4 h-4 flex items-center justify-center"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
             </div>
 
             {/* Quick Actions for Selection */}
@@ -199,11 +223,13 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setFormData(prev => ({ 
-                    ...prev, 
-                    selectedPlayerIds: filteredPlayers.map(m => m.id) 
-                  }))}
-                  disabled={formData.selectedPlayerIds.length === filteredPlayers.length}
+                  onClick={() => setFormData(prev => {
+                    const currentlySelected = new Set(prev.selectedPlayerIds);
+                    const filteredIds = filteredPlayers.map(m => m.id);
+                    filteredIds.forEach(id => currentlySelected.add(id));
+                    return { ...prev, selectedPlayerIds: Array.from(currentlySelected) };
+                  })}
+                  disabled={filteredPlayers.every(player => formData.selectedPlayerIds.includes(player.id))}
                 >
                   <UserCheck className="w-4 h-4 mr-1" />
                   Select All ({filteredPlayers.length})
@@ -212,17 +238,29 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setFormData(prev => ({ 
-                    ...prev, 
-                    selectedPlayerIds: [] 
-                  }))}
-                  disabled={formData.selectedPlayerIds.length === 0}
+                  onClick={() => setFormData(prev => {
+                    if (playerSearchTerm) {
+                      // When searching, only clear filtered players
+                      const filteredIds = new Set(filteredPlayers.map(m => m.id));
+                      return { 
+                        ...prev, 
+                        selectedPlayerIds: prev.selectedPlayerIds.filter(id => !filteredIds.has(id))
+                      };
+                    } else {
+                      // When not searching, clear all
+                      return { ...prev, selectedPlayerIds: [] };
+                    }
+                  })}
+                  disabled={!filteredPlayers.some(player => formData.selectedPlayerIds.includes(player.id))}
                 >
                   <UserX className="w-4 h-4 mr-1" />
-                  Clear All
+                  {playerSearchTerm ? 'Clear Filtered' : 'Clear All'}
                 </Button>
                 <span className="text-slate-600">
-                  {formData.selectedPlayerIds.length} of {teamMembers.length} players selected
+                  {playerSearchTerm 
+                    ? `${filteredPlayers.filter(p => formData.selectedPlayerIds.includes(p.id)).length} of ${filteredPlayers.length} filtered players selected`
+                    : `${formData.selectedPlayerIds.length} of ${teamMembers.length} players selected`
+                  }
                 </span>
               </div>
             )}
