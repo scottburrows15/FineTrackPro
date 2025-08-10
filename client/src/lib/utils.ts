@@ -15,8 +15,10 @@ export function formatCurrency(amount: number | string): string {
 }
 
 // UK date formatting
-export function formatDate(date: Date | string): string {
+export function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return 'N/A';
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!dateObj || isNaN(dateObj.getTime())) return 'N/A';
   return dateObj.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
@@ -24,8 +26,10 @@ export function formatDate(date: Date | string): string {
   });
 }
 
-export function formatDateTime(date: Date | string): string {
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return 'N/A';
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!dateObj || isNaN(dateObj.getTime())) return 'N/A';
   return dateObj.toLocaleString('en-GB', {
     day: '2-digit',
     month: '2-digit',
@@ -36,8 +40,10 @@ export function formatDateTime(date: Date | string): string {
 }
 
 // Calculate days overdue
-export function getDaysOverdue(date: Date | string): number {
+export function getDaysOverdue(date: Date | string | null | undefined): number {
+  if (!date) return 0;
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!dateObj || isNaN(dateObj.getTime())) return 0;
   const now = new Date();
   const diffTime = now.getTime() - dateObj.getTime();
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
