@@ -252,16 +252,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeamFines(teamId: string): Promise<FineWithDetails[]> {
-    // This is a complex query that needs proper joins - simplified for now
     const result = await db
-      .select()
+      .select({
+        fine: fines,
+        player: users,
+        subcategory: fineSubcategories,
+        category: fineCategories,
+        issuedByUser: {
+          id: sql`issued_by_user.id`.as('issued_by_id'),
+          firstName: sql`issued_by_user.first_name`.as('issued_by_first_name'),
+          lastName: sql`issued_by_user.last_name`.as('issued_by_last_name'),
+          email: sql`issued_by_user.email`.as('issued_by_email'),
+        }
+      })
       .from(fines)
       .innerJoin(users, eq(fines.playerId, users.id))
+      .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
+      .innerJoin(fineCategories, eq(fineSubcategories.categoryId, fineCategories.id))
+      .innerJoin(sql`users as issued_by_user`, eq(fines.issuedBy, sql`issued_by_user.id`))
       .where(eq(users.teamId, teamId))
       .orderBy(desc(fines.createdAt));
 
-    // Return simplified result for now
-    return [];
+    return result.map(row => ({
+      ...row.fine,
+      player: row.player,
+      issuedByUser: row.issuedByUser as any,
+      subcategory: {
+        ...row.subcategory,
+        category: row.category,
+      },
+    }));
   }
 
   async createFine(fineData: InsertFine): Promise<Fine> {
