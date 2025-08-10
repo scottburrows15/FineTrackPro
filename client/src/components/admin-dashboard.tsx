@@ -12,6 +12,7 @@ import ProfileModal from "./profile-modal";
 import AnalyticsDashboard from "./analytics-dashboard";
 import ManualPaymentModal from "./manual-payment-modal";
 import EditPlayerModal from "./edit-player-modal";
+import AuditTrailModal from "./audit-trail-modal";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -34,7 +35,8 @@ import {
   Crown,
   Calendar,
   PoundSterling,
-  CreditCard
+  CreditCard,
+  Activity
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -48,6 +50,7 @@ export default function AdminDashboard() {
   const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
+  const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
@@ -181,6 +184,15 @@ export default function AdminDashboard() {
                   >
                     <Settings className="w-6 h-6 text-green-600" />
                     <span className="text-xs font-medium text-center">Team Settings</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-slate-50 hover:border-slate-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowAuditTrailModal(true)}
+                  >
+                    <Activity className="w-6 h-6 text-slate-600" />
+                    <span className="text-xs font-medium text-center">Audit Trail</span>
                   </Button>
                 </div>
               </div>
@@ -602,6 +614,13 @@ export default function AdminDashboard() {
               setSelectedPlayerForEdit(null);
             }}
             player={selectedPlayerForEdit}
+          />
+        )}
+
+        {showAuditTrailModal && (
+          <AuditTrailModal 
+            isOpen={showAuditTrailModal} 
+            onClose={() => setShowAuditTrailModal(false)} 
           />
         )}
       </div>

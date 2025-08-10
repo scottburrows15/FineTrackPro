@@ -604,6 +604,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin audit log
+  app.get('/api/admin/audit-log', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const auditData = await storage.getAuditLog(user.teamId!, page, limit);
+      res.json(auditData);
+    } catch (error) {
+      console.error("Error fetching audit log:", error);
+      res.status(500).json({ message: "Failed to fetch audit log" });
+    }
+  });
+
   // Admin routes
   app.get('/api/admin/unpaid-fines', isAuthenticated, async (req: any, res) => {
     try {

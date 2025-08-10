@@ -396,6 +396,63 @@ export class DatabaseStorage implements IStorage {
     await db.insert(auditLog).values(logData);
   }
 
+  async getAuditLog(teamId: string, page = 1, limit = 50): Promise<{
+    logs: Array<{
+      id: string;
+      entityType: string;
+      entityId: string;
+      action: string;
+      userId: string | null;
+      changes: any;
+      createdAt: Date | null;
+      user: {
+        id: string;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+      } | null;
+    }>;
+    total: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    // Get audit logs with user details for the team
+    const logs = await db
+      .select({
+        id: auditLog.id,
+        entityType: auditLog.entityType,
+        entityId: auditLog.entityId,
+        action: auditLog.action,
+        userId: auditLog.userId,
+        changes: auditLog.changes,
+        createdAt: auditLog.createdAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+      })
+      .from(auditLog)
+      .leftJoin(users, eq(auditLog.userId, users.id))
+      .where(eq(users.teamId, teamId))
+      .orderBy(desc(auditLog.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Get total count for pagination
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(auditLog)
+      .leftJoin(users, eq(auditLog.userId, users.id))
+      .where(eq(users.teamId, teamId));
+
+    return {
+      logs,
+      total: Number(count) || 0,
+    };
+  }
+
   // Admin operations
   async getUnpaidFines(teamId: string): Promise<FineWithDetails[]> {
     const result = await db
