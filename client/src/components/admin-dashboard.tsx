@@ -13,6 +13,8 @@ import AnalyticsDashboard from "./analytics-dashboard";
 import ManualPaymentModal from "./manual-payment-modal";
 import EditPlayerModal from "./edit-player-modal";
 import AuditTrailModal from "./audit-trail-modal";
+import BulkFineModal from "./bulk-fine-modal";
+import FineFilters from "./fine-filters";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,10 +53,12 @@ export default function AdminDashboard() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
+  const [showBulkFineModal, setShowBulkFineModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
+  const [filteredFines, setFilteredFines] = useState<FineWithDetails[]>([]);
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
     queryKey: ["/api/stats/team"],
@@ -147,6 +151,15 @@ export default function AdminDashboard() {
                   >
                     <Gavel className="w-6 h-6 text-red-600" />
                     <span className="text-xs font-medium text-center">Issue Fine</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowBulkFineModal(true)}
+                  >
+                    <Users className="w-6 h-6 text-red-600" />
+                    <span className="text-xs font-medium text-center">Bulk Fines</span>
                   </Button>
                   
                   <Button 
@@ -500,47 +513,180 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* All Team Fines with Enhanced Filtering */}
         <Card>
           <div className="px-4 py-3 border-b border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-gray-500" />
+              All Team Fines ({filteredFines.length || 0} / {fines.length || 0})
+            </h3>
           </div>
+
+          {/* Enhanced Fine Filters */}
+          {fines && fines.length > 0 && (
+            <div className="px-4 pt-4">
+              <FineFilters 
+                fines={fines} 
+                onFilteredFinesChange={setFilteredFines} 
+              />
+            </div>
+          )}
+
           <CardContent className="p-4">
             {finesLoading ? (
-              <div className="text-center py-6">
-                <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                <p className="text-sm text-slate-600 mt-2">Loading...</p>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                ))}
               </div>
             ) : fines.length === 0 ? (
-              <div className="text-center py-6">
-                <Gavel className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                <p className="text-slate-600">No fines issued yet</p>
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No Fines Yet</h3>
+                <p className="text-slate-600 mb-4">No fines have been issued to the team yet.</p>
+              </div>
+            ) : filteredFines.length === 0 ? (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No Matching Fines</h3>
+                <p className="text-slate-600">No fines match your current filter criteria.</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                {fines.slice(0, 10).map((fine) => (
-                  <div key={fine.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-slate-600">
-                          {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                        </span>
+              <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                {filteredFines.map((fine) => {
+                  const isExpanded = expandedFineId === fine.id;
+                  return (
+                    <div key={fine.id} className={`border rounded-md overflow-hidden ${
+                      fine.isPaid ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      {/* Compact row - clickable to expand */}
+                      <div 
+                        className={`p-2.5 cursor-pointer transition-colors ${
+                          fine.isPaid ? 'hover:bg-green-100' : 'hover:bg-slate-100'
+                        }`}
+                        onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          {/* Player info row */}
+                          <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {fine.player.profileImageUrl ? (
+                                <img 
+                                  src={fine.player.profileImageUrl} 
+                                  alt={`${fine.player.firstName} ${fine.player.lastName}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<span class="text-xs font-medium text-slate-600">${fine.player.firstName?.[0] || ''}${fine.player.lastName?.[0] || ''}</span>`;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs font-medium text-slate-600">
+                                  {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-slate-900">
+                                {fine.player.firstName} {fine.player.lastName}
+                              </div>
+                              <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Amount and status - vertically aligned */}
+                          <div className="flex items-center justify-between sm:justify-end gap-2">
+                            <div className="text-center sm:text-right">
+                              <div className="font-semibold text-slate-900 text-sm">
+                                {formatCurrency(parseFloat(fine.amount))}
+                              </div>
+                              <Badge variant={fine.isPaid ? "success" : "destructive"} className="text-xs">
+                                {fine.isPaid ? "Paid" : "Unpaid"}
+                              </Badge>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1">
+                              {!fine.isPaid && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedFineForPayment(fine);
+                                    setShowManualPaymentModal(true);
+                                  }}
+                                  className="text-green-600 hover:bg-green-50 px-2 py-1 h-8"
+                                  title="Record Payment"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteFine.mutate(fine.id);
+                                }}
+                                disabled={deleteFine.isPending}
+                                className="px-2 py-1 h-8"
+                                title="Delete Fine"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                              <div className="text-slate-400 ml-1 text-sm">
+                                {isExpanded ? '▼' : '▶'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900 truncate">
-                          {fine.player.firstName} {fine.player.lastName}
-                        </p>
-                        <p className="text-sm text-slate-600 truncate">{fine.subcategory.name}</p>
-                      </div>
+                      
+                      {/* Expanded details */}
+                      {isExpanded && (
+                        <div className={`px-2.5 pb-2.5 border-t ${
+                          fine.isPaid ? 'border-green-200 bg-green-25' : 'border-slate-200 bg-slate-25'
+                        }`}>
+                          <div className="pt-2 space-y-2">
+                            {/* Full description */}
+                            {fine.description && (
+                              <div>
+                                <span className="font-medium text-slate-600 text-xs">Description:</span>
+                                <div className="text-xs text-slate-900 mt-1 leading-relaxed">{fine.description}</div>
+                              </div>
+                            )}
+                            
+                            {/* Issue details */}
+                            <div className="text-xs text-slate-600">
+                              Issued on {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString('en-GB', { 
+                                weekday: 'short', 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : 'Unknown date'}
+                              {fine.isPaid && fine.paidAt && (
+                                <span className="block text-green-600">
+                                  Paid on {new Date(fine.paidAt).toLocaleDateString('en-GB', { 
+                                    weekday: 'short', 
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                  {fine.paymentMethod && ` via ${fine.paymentMethod.charAt(0).toUpperCase() + fine.paymentMethod.slice(1)}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-semibold text-slate-900">{formatCurrency(parseFloat(fine.amount))}</p>
-                      <Badge variant={fine.isPaid ? 'default' : 'secondary'} className="text-xs">
-                        {fine.isPaid ? 'Paid' : 'Unpaid'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -621,6 +767,13 @@ export default function AdminDashboard() {
           <AuditTrailModal 
             isOpen={showAuditTrailModal} 
             onClose={() => setShowAuditTrailModal(false)} 
+          />
+        )}
+
+        {showBulkFineModal && (
+          <BulkFineModal 
+            isOpen={showBulkFineModal} 
+            onClose={() => setShowBulkFineModal(false)} 
           />
         )}
       </div>

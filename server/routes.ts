@@ -641,6 +641,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk issue fines endpoint
+  app.post('/api/admin/bulk-issue-fines', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { playerIds, subcategoryId, description } = req.body;
+      
+      if (!Array.isArray(playerIds) || playerIds.length === 0) {
+        return res.status(400).json({ message: "At least one player must be selected" });
+      }
+      
+      if (!subcategoryId) {
+        return res.status(400).json({ message: "Subcategory is required" });
+      }
+
+      const results = await Promise.all(
+        playerIds.map(async (playerId: string) => {
+          try {
+            return await storage.createFine({
+              playerId,
+              subcategoryId,
+              description: description || null,
+              issuedBy: user.id,
+            });
+          } catch (error) {
+            console.error(`Failed to create fine for player ${playerId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      const successfulFines = results.filter(Boolean);
+      
+      res.json({ 
+        success: true, 
+        count: successfulFines.length,
+        message: `Successfully issued ${successfulFines.length} fines` 
+      });
+    } catch (error) {
+      console.error("Error creating bulk fines:", error);
+      res.status(500).json({ message: "Failed to create bulk fines" });
+    }
+  });
+
+  // Bulk delete fines endpoint
+  app.post('/api/admin/bulk-delete-fines', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { fineIds } = req.body;
+      
+      if (!Array.isArray(fineIds) || fineIds.length === 0) {
+        return res.status(400).json({ message: "At least one fine ID must be provided" });
+      }
+
+      const results = await Promise.all(
+        fineIds.map(async (fineId: string) => {
+          try {
+            await storage.deleteFine(fineId);
+            return fineId;
+          } catch (error) {
+            console.error(`Failed to delete fine ${fineId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      const successfulDeletes = results.filter(Boolean);
+      
+      res.json({ 
+        success: true, 
+        count: successfulDeletes.length,
+        message: `Successfully deleted ${successfulDeletes.length} fines` 
+      });
+    } catch (error) {
+      console.error("Error deleting bulk fines:", error);
+      res.status(500).json({ message: "Failed to delete bulk fines" });
+    }
+  });
+
   // Admin routes
   app.get('/api/admin/unpaid-fines', isAuthenticated, async (req: any, res) => {
     try {
