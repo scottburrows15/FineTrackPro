@@ -25,7 +25,7 @@ import {
   type PlayerStats,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -319,11 +319,36 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(fines.playerId, users.id))
       .where(and(eq(users.teamId, teamId), eq(fines.isPaid, false)));
 
+    // Get monthly collection (paid fines from current month)
+    const currentMonth = new Date();
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const [monthlyResult] = await db
+      .select({ total: sum(fines.amount) })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(and(
+        eq(users.teamId, teamId), 
+        eq(fines.isPaid, true),
+        gte(fines.paidAt, startOfMonth)
+      ));
+
+    // Get weekly fines count (fines issued in last 7 days)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const [weeklyResult] = await db
+      .select({ count: count() })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(and(
+        eq(users.teamId, teamId),
+        gte(fines.createdAt, oneWeekAgo)
+      ));
+
     return {
       totalPlayers: Number(memberCount.count) || 0,
       outstandingFines: (outstandingResult.total || "0.00").toString(),
-      monthlyCollection: "425.00", // Simplified
-      weeklyFines: 12, // Simplified
+      monthlyCollection: (monthlyResult.total || "0.00").toString(),
+      weeklyFines: Number(weeklyResult.count) || 0,
     };
   }
 
@@ -517,7 +542,7 @@ export class DatabaseStorage implements IStorage {
       type: row.type,
       description: row.description,
       amount: Number(row.amount),
-      timestamp: row.timestamp.toISOString(),
+      timestamp: row.timestamp ? row.timestamp.toISOString() : new Date().toISOString(),
     }));
 
     return {
