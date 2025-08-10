@@ -12,9 +12,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
-import { Gavel, Bell, ChevronDown, LogOut, User, Settings, Users, AlertTriangle, Tags, Download, CheckCircle, Clock } from "lucide-react";
+import { Gavel, Bell, ChevronDown, LogOut, User, Settings, Users, AlertTriangle, Tags, Download, CheckCircle, Clock, Edit, Share2 } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 import ProfileModal from "@/components/profile-modal";
+import ManageTeamModal from "@/components/manage-team-modal";
+import AddPlayerModal from "@/components/add-player-modal";
 import { getDisplayName, getFullName } from "@/lib/userUtils";
 
 interface NavigationProps {
@@ -26,6 +28,8 @@ interface NavigationProps {
 
 export default function Navigation({ user, currentView, onViewChange, canSwitchView }: NavigationProps) {
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showTeamSettingsModal, setShowTeamSettingsModal] = useState(false);
+  const [showInvitePlayersModal, setShowInvitePlayersModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -127,6 +131,11 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
           title: "Coming Soon", 
           description: "Data export feature will be available soon.",
         });
+        break;
+      case 'team-profile':
+        setShowTeamSettingsModal(true);
+        break;
+      default:
         break;
     }
   };
@@ -238,7 +247,7 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                                 {notification.message}
                               </p>
                               <p className="text-xs text-slate-400 mt-1">
-                                {formatNotificationTime(notification.createdAt)}
+                                {formatNotificationTime(notification.createdAt?.toString() || null)}
                               </p>
                             </div>
                           </div>
@@ -391,6 +400,35 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
                         <Download className="w-4 h-4 mr-3 text-green-500" />
                         <span>Export Data</span>
                       </DropdownMenuItem>
+
+                      {/* Team Settings Section */}
+                      <DropdownMenuSeparator className="my-2" />
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                          Team Settings
+                        </p>
+                      </div>
+                      <DropdownMenuItem 
+                        onClick={() => setShowTeamSettingsModal(true)}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Settings className="w-4 h-4 mr-3 text-indigo-500" />
+                        <span>Team Settings</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setShowInvitePlayersModal(true)}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Share2 className="w-4 h-4 mr-3 text-orange-500" />
+                        <span>Invite Players</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleAdminAction('team-profile')}
+                        className="cursor-pointer hover:bg-slate-100 rounded-md transition-colors"
+                      >
+                        <Edit className="w-4 h-4 mr-3 text-cyan-500" />
+                        <span>Edit Team Profile</span>
+                      </DropdownMenuItem>
                     </>
                   )}
                   
@@ -445,6 +483,22 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
         <ProfileModal
           isOpen={showProfileModal}
           onClose={() => setShowProfileModal(false)}
+        />
+      )}
+
+      {/* Team Settings Modal */}
+      {showTeamSettingsModal && (
+        <ManageTeamModal
+          isOpen={showTeamSettingsModal}
+          onClose={() => setShowTeamSettingsModal(false)}
+        />
+      )}
+
+      {/* Invite Players Modal */}
+      {showInvitePlayersModal && (
+        <AddPlayerModal
+          isOpen={showInvitePlayersModal}
+          onClose={() => setShowInvitePlayersModal(false)}
         />
       )}
     </>
