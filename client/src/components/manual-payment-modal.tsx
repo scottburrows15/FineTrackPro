@@ -42,12 +42,15 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
         title: "Payment Recorded",
         description: `Payment of ${formatCurrency(parseFloat(formData.amount))} has been recorded for ${getDisplayName(fine?.player)}.`,
       });
+      // Comprehensive cache invalidation to ensure monthly collection updates immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
       queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/unpaid-fines"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/player"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       onClose();
       resetForm();
     },
