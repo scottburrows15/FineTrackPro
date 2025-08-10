@@ -38,7 +38,8 @@ import {
   Calendar,
   PoundSterling,
   CreditCard,
-  Activity
+  Activity,
+  FileText
 } from "lucide-react";
 
 export default function AdminDashboard() {
