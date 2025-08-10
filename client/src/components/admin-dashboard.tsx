@@ -277,67 +277,68 @@ export default function AdminDashboard() {
                   <p className="text-slate-600">No unpaid fines at the moment.</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                   {unpaidFines.map((fine) => (
-                    <div key={fine.id} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      {/* Mobile-first responsive layout */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        {/* Player info section */}
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-medium text-slate-600">
+                    <div key={fine.id} className="p-2 bg-red-50 border border-red-200 rounded-md">
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Left: Player info and fine details */}
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium text-slate-600">
                               {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
                             </span>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-slate-900">
+                            <div className="text-xs font-medium text-slate-900 truncate">
                               {fine.player.firstName} {fine.player.lastName}
                             </div>
-                            <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
+                            <div className="text-xs text-slate-600 truncate">{fine.subcategory.name}</div>
                             {fine.description && (
-                              <div className="text-xs text-slate-500 line-clamp-2 sm:truncate">{fine.description}</div>
+                              <div className="text-xs text-slate-500 truncate">{fine.description}</div>
                             )}
-                            <div className="text-xs text-red-600 mt-1">
-                              Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
-                            </div>
                           </div>
                         </div>
                         
-                        {/* Amount and actions section */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-                          <div className="text-left sm:text-right">
-                            <div className="font-semibold text-slate-900 text-sm">
-                              {formatCurrency(parseFloat(fine.amount))}
-                            </div>
-                            <Badge variant="destructive" className="text-xs">
-                              Unpaid
-                            </Badge>
+                        {/* Center: Amount and status */}
+                        <div className="text-center flex-shrink-0">
+                          <div className="font-semibold text-slate-900 text-xs">
+                            {formatCurrency(parseFloat(fine.amount))}
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedFineForPayment(fine);
-                                setShowManualPaymentModal(true);
-                              }}
-                              className="text-green-600 hover:bg-green-50 px-3"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                              <span className="hidden sm:inline ml-1">Pay</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteFine.mutate(fine.id)}
-                              disabled={deleteFine.isPending}
-                              className="px-3"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span className="hidden sm:inline ml-1">Delete</span>
-                            </Button>
-                          </div>
+                          <Badge variant="destructive" className="text-xs px-1 py-0">
+                            Unpaid
+                          </Badge>
                         </div>
+                        
+                        {/* Right: Action buttons */}
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedFineForPayment(fine);
+                              setShowManualPaymentModal(true);
+                            }}
+                            className="text-green-600 hover:bg-green-50 px-2 py-1 h-7"
+                            title="Record Payment"
+                          >
+                            <CreditCard className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteFine.mutate(fine.id)}
+                            disabled={deleteFine.isPending}
+                            className="px-2 py-1 h-7"
+                            title="Delete Fine"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Issue date on separate line for very compact display */}
+                      <div className="text-xs text-red-600 mt-1 pl-10">
+                        Issued {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : ''}
                       </div>
                     </div>
                   ))}
