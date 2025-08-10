@@ -288,62 +288,64 @@ export default function AdminDashboard() {
                           className="p-2.5 cursor-pointer hover:bg-red-100 transition-colors"
                           onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
                         >
-                          <div className="flex items-center gap-3">
-                            {/* Avatar */}
-                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-medium text-slate-600">
-                                {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
-                              </span>
-                            </div>
-                            
-                            {/* Player and fine info - aligned vertically */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                            {/* Player info row */}
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-medium text-slate-600">
+                                  {fine.player.firstName?.[0]}{fine.player.lastName?.[0]}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
                                 <div className="text-sm font-medium text-slate-900">
                                   {fine.player.firstName} {fine.player.lastName}
                                 </div>
+                                <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
+                              </div>
+                            </div>
+                            
+                            {/* Amount and status - vertically aligned */}
+                            <div className="flex items-center justify-between sm:justify-end gap-2">
+                              <div className="text-center sm:text-right">
                                 <div className="font-semibold text-slate-900 text-sm">
                                   {formatCurrency(parseFloat(fine.amount))}
                                 </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="text-xs text-slate-600">{fine.subcategory.name}</div>
                                 <Badge variant="destructive" className="text-xs">
                                   Unpaid
                                 </Badge>
                               </div>
-                            </div>
-                            
-                            {/* Action buttons */}
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedFineForPayment(fine);
-                                  setShowManualPaymentModal(true);
-                                }}
-                                className="text-green-600 hover:bg-green-50 px-2 py-1 h-8"
-                                title="Record Payment"
-                              >
-                                <CreditCard className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteFine.mutate(fine.id);
-                                }}
-                                disabled={deleteFine.isPending}
-                                className="px-2 py-1 h-8"
-                                title="Delete Fine"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                              <div className="text-slate-400 ml-1 text-sm">
-                                {isExpanded ? '▼' : '▶'}
+                              
+                              {/* Action buttons */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedFineForPayment(fine);
+                                    setShowManualPaymentModal(true);
+                                  }}
+                                  className="text-green-600 hover:bg-green-50 px-2 py-1 h-8"
+                                  title="Record Payment"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteFine.mutate(fine.id);
+                                  }}
+                                  disabled={deleteFine.isPending}
+                                  className="px-2 py-1 h-8"
+                                  title="Delete Fine"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                                <div className="text-slate-400 ml-1 text-sm">
+                                  {isExpanded ? '▼' : '▶'}
+                                </div>
                               </div>
                             </div>
                           </div>
