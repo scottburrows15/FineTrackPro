@@ -176,6 +176,9 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
           <DialogTitle>Issue New Fine</DialogTitle>
         </DialogHeader>
         
+        {/* Hidden focusable element to prevent search input auto-focus */}
+        <div tabIndex={0} className="sr-only" aria-hidden="true" />
+        
         <div className="overflow-y-auto flex-1 pr-2 -mr-2">
           <form id="issue-fine-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Player Selection */}
@@ -202,8 +205,18 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
                     setPlayerSearchTerm("");
                   }
                 }}
+                onFocus={(e) => {
+                  // Allow focus only when clicked, not when modal opens
+                  if (!e.currentTarget.dataset.allowFocus) {
+                    e.currentTarget.blur();
+                  }
+                }}
+                onClick={(e) => {
+                  // Enable focus when user actually clicks
+                  e.currentTarget.dataset.allowFocus = 'true';
+                  e.currentTarget.focus();
+                }}
                 className="pl-10 pr-10"
-                autoFocus={false}
               />
               {playerSearchTerm && (
                 <button
