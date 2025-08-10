@@ -33,7 +33,11 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
       });
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/unpaid-fines"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/player"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/team"] });
       
       // Redirect to home after a delay
       setTimeout(() => {

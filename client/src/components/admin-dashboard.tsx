@@ -79,8 +79,11 @@ export default function AdminDashboard() {
         description: "The fine has been successfully deleted.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/unpaid-fines"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/player"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/team"] });
     },
     onError: (error) => {
       toast({

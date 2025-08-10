@@ -81,8 +81,11 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
         description: `Successfully issued ${playerCount > 1 ? `${playerCount} fines` : 'fine'}.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/unpaid-fines"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/player"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/team"] });
       onClose();
       resetForm();
     },
