@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Gavel, Bell, ChevronDown, LogOut, User, Settings, Users, AlertTriangle, Tags, Download, CheckCircle, Clock, Edit } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { User as UserType } from "@shared/schema";
 import ProfileModal from "@/components/profile-modal";
 import ManageTeamModal from "@/components/manage-team-modal";
@@ -178,6 +179,9 @@ export default function Navigation({ user, currentView, onViewChange, canSwitchV
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
               {/* Interactive Notifications Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

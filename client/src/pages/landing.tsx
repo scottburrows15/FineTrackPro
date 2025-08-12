@@ -14,94 +14,105 @@ import {
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Gavel className="w-6 h-6 text-white" />
+    <div className="min-h-screen gradient-hero animate-fade-in">
+      {/* Enhanced Header */}
+      <header className="glass sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-soft">
+                <Gavel className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">TeamFines Pro</span>
             </div>
-            <span className="text-2xl font-bold text-slate-900">TeamFines Pro</span>
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = '/api/login'}
+                className="btn-enhanced"
+              >
+                Sign In
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/api/login'}
-            className="bg-primary hover:bg-blue-700"
-          >
-            Sign In
-          </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <Badge variant="secondary" className="mb-6 bg-blue-100 text-blue-700 hover:bg-blue-200">
+      {/* Enhanced Hero Section */}
+      <section className="container mx-auto px-4 py-20 text-center animate-slide-up">
+        <Badge variant="secondary" className="mb-8 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
           🇬🇧 Built for UK Sports Teams
         </Badge>
         
-        <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6">
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-8 leading-tight">
           Professional Fine Management
-          <span className="block text-primary">for Sports Teams</span>
+          <span className="block bg-gradient-primary bg-clip-text text-transparent">for Sports Teams</span>
         </h1>
         
-        <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
-          Streamline your team's fine system with automated payments, real-time notifications, 
-          and comprehensive admin controls. Say goodbye to spreadsheets and chasing payments.
+        <p className="text-xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed">
+          Transform your team's fine system with automated payments, real-time notifications, 
+          and comprehensive admin controls. Say goodbye to spreadsheets and chasing payments forever.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <Button 
             size="lg" 
             onClick={() => window.location.href = '/api/login'}
-            className="bg-primary hover:bg-blue-700 text-lg px-8 py-4"
+            className="btn-enhanced bg-primary hover:bg-primary/90 text-white text-lg px-10 py-4 rounded-xl shadow-elegant"
           >
             Get Started Free
           </Button>
           <Button 
             size="lg" 
             variant="outline"
-            className="text-lg px-8 py-4 border-2"
+            className="btn-enhanced text-lg px-10 py-4 rounded-xl border-2 border-border hover:bg-muted"
           >
             Watch Demo
           </Button>
         </div>
 
-        {/* Hero Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">£2.3M+</div>
-            <div className="text-sm text-slate-600">Fines Processed</div>
+        {/* Enhanced Hero Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="text-center glass-card rounded-2xl p-6 animate-scale-in">
+            <div className="text-4xl font-bold text-primary mb-2">£2.3M+</div>
+            <div className="text-sm text-muted-foreground font-medium">Fines Processed</div>
+            <div className="status-online mx-auto mt-3"></div>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-success">500+</div>
-            <div className="text-sm text-slate-600">Teams Using</div>
+          <div className="text-center glass-card rounded-2xl p-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+            <div className="text-4xl font-bold text-success mb-2">500+</div>
+            <div className="text-sm text-muted-foreground font-medium">Teams Using</div>
+            <div className="status-online mx-auto mt-3"></div>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-warning">99.9%</div>
-            <div className="text-sm text-slate-600">Payment Success</div>
+          <div className="text-center glass-card rounded-2xl p-6 animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="text-4xl font-bold text-warning mb-2">99.9%</div>
+            <div className="text-sm text-muted-foreground font-medium">Payment Success</div>
+            <div className="status-online mx-auto mt-3"></div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+      {/* Enhanced Features Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-20 animate-fade-in">
+          <Badge variant="outline" className="mb-4 px-4 py-2 text-primary border-primary/20">
+            Complete Feature Set
+          </Badge>
+          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
             Everything You Need to Manage Team Fines
           </h2>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Purpose-built for UK sports teams with all the features you need and none you don't.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Card className="border-2 hover:shadow-lg transition-all duration-200">
-            <CardHeader>
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                <CreditCard className="w-6 h-6 text-primary" />
+          <Card className="card-enhanced group hover:border-primary/30 transition-all duration-300 h-full">
+            <CardHeader className="pb-4">
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                <CreditCard className="w-7 h-7 text-primary" />
               </div>
-              <CardTitle>Instant Payments</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl mb-3">Instant Payments</CardTitle>
+              <CardDescription className="text-base leading-relaxed">
                 Secure Stripe integration for instant fine payments. Players can settle up with a single click.
               </CardDescription>
             </CardHeader>

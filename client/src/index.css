@@ -1,68 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* Enhanced color palette with better contrast ratios */
   --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
-  --card: hsl(180 6.6667% 97.0588%);
-  --card-foreground: hsl(210 25% 7.8431%);
+  --foreground: hsl(210 25% 8%);
+  --card: hsl(210 12% 98%);
+  --card-foreground: hsl(210 25% 8%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(215.58 100% 37.06%);
+  --popover-foreground: hsl(210 25% 8%);
+  --primary: hsl(217 91% 48%); /* Enhanced primary blue */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(159.78 100% 36.08%);
+  --secondary: hsl(157 55% 47%); /* Refined green */
   --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(220 4% 90%);
-  --muted-foreground: hsl(210 25% 7.8431%);
-  --accent: hsl(215.58 100% 37.06%);
+  --muted: hsl(210 20% 95%);
+  --muted-foreground: hsl(210 12% 45%);
+  --accent: hsl(217 91% 48%);
   --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 68% 58%);
+  --destructive: hsl(0 72% 51%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(220 13% 91%);
-  --input: hsl(220 13% 91%);
-  --ring: hsl(215.58 100% 37.06%);
-  --success: hsl(141.96 74.86% 52.35%);
+  --border: hsl(210 20% 90%);
+  --input: hsl(210 20% 94%);
+  --ring: hsl(217 91% 48%);
+  --success: hsl(142 76% 47%);
   --success-foreground: hsl(0 0% 100%);
-  --warning: hsl(41.31 89.47% 51.37%);
+  --warning: hsl(38 92% 50%);
   --warning-foreground: hsl(0 0% 100%);
-  --danger: hsl(0 68% 58%);
+  --danger: hsl(0 72% 51%);
   --danger-foreground: hsl(0 0% 100%);
-  --chart-1: hsl(215.58 100% 37.06%);
-  --chart-2: hsl(159.78 100% 36.08%);
-  --chart-3: hsl(41.31 89.47% 51.37%);
-  --chart-4: hsl(141.96 74.86% 52.35%);
-  --chart-5: hsl(343.36 100% 60.39%);
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --info: hsl(217 91% 48%);
+  --info-foreground: hsl(0 0% 100%);
+  
+  /* Enhanced chart colors for better accessibility */
+  --chart-1: hsl(217 91% 48%);
+  --chart-2: hsl(157 55% 47%);
+  --chart-3: hsl(38 92% 50%);
+  --chart-4: hsl(285 85% 55%);
+  --chart-5: hsl(13 88% 58%);
+  
+  /* Typography system */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-serif: 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+  
+  /* Enhanced spacing and radius system */
   --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+  /* Shadows for depth */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 .dark {
-  --background: hsl(220 9% 5%);
-  --foreground: hsl(0 0% 90%);
-  --card: hsl(220 9% 8%);
-  --card-foreground: hsl(0 0% 90%);
-  --popover: hsl(220 9% 8%);
-  --popover-foreground: hsl(0 0% 90%);
-  --primary: hsl(215.58 100% 37.06%);
+  /* Enhanced dark mode with better contrast and reduced eye strain */
+  --background: hsl(222 15% 6%);
+  --foreground: hsl(210 15% 92%);
+  --card: hsl(222 15% 9%);
+  --card-foreground: hsl(210 15% 92%);
+  --popover: hsl(222 15% 9%);
+  --popover-foreground: hsl(210 15% 92%);
+  --primary: hsl(217 85% 55%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(159.78 100% 36.08%);
+  --secondary: hsl(157 45% 52%);
   --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(220 9% 15%);
-  --muted-foreground: hsl(0 0% 60%);
-  --accent: hsl(215.58 100% 37.06%);
+  --muted: hsl(222 15% 15%);
+  --muted-foreground: hsl(210 10% 65%);
+  --accent: hsl(217 85% 55%);
   --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 68% 58%);
+  --destructive: hsl(0 65% 58%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(220 9% 15%);
-  --input: hsl(220 9% 15%);
-  --ring: hsl(215.58 100% 37.06%);
-  --success: hsl(141.96 74.86% 52.35%);
-  --warning: hsl(41.31 89.47% 51.37%);
-  --danger: hsl(0 68% 58%);
+  --border: hsl(222 15% 18%);
+  --input: hsl(222 15% 15%);
+  --ring: hsl(217 85% 55%);
+  --success: hsl(142 70% 52%);
+  --warning: hsl(38 88% 55%);
+  --danger: hsl(0 65% 58%);
+  --info: hsl(217 85% 55%);
+  
+  /* Dark mode shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
 }
 
 @layer base {
@@ -70,12 +98,63 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-slate-50 dark:bg-slate-900 font-sans antialiased text-foreground;
+  html {
+    scroll-behavior: smooth;
+    @apply scroll-pt-20; /* Account for sticky header */
   }
 
+  body {
+    @apply bg-background font-sans antialiased text-foreground transition-colors duration-300;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Enhanced typography hierarchy */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold;
+    @apply font-semibold tracking-tight;
+    text-wrap: balance;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl lg:text-5xl leading-[1.1];
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl leading-[1.2];
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl leading-[1.3];
+  }
+
+  h4 {
+    @apply text-lg sm:text-xl leading-[1.4];
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Improved button focus */
+  button:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
@@ -89,59 +168,101 @@
 }
 
 @layer components {
+  /* Enhanced gradient system */
   .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  }
+
+  .gradient-success {
     background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(var(--secondary)) 100%);
   }
 
-  .text-success {
-    color: hsl(var(--success));
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--primary)/0.05) 100%);
   }
 
-  .text-warning {
-    color: hsl(var(--warning));
+  /* Enhanced status color utilities */
+  .text-success { color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .text-danger { color: hsl(var(--danger)); }
+  .text-info { color: hsl(var(--info)); }
+
+  .bg-success { background-color: hsl(var(--success)); }
+  .bg-warning { background-color: hsl(var(--warning)); }
+  .bg-danger { background-color: hsl(var(--danger)); }
+  .bg-info { background-color: hsl(var(--info)); }
+
+  /* Alpha variants for subtle backgrounds */
+  .bg-success\/10 { background-color: hsl(var(--success) / 0.1); }
+  .bg-warning\/10 { background-color: hsl(var(--warning) / 0.1); }
+  .bg-danger\/10 { background-color: hsl(var(--danger) / 0.1); }
+  .bg-info\/10 { background-color: hsl(var(--info) / 0.1); }
+
+  /* Enhanced hover states */
+  .hover\:bg-success:hover { background-color: hsl(var(--success)); }
+  .hover\:bg-warning:hover { background-color: hsl(var(--warning)); }
+  .hover\:bg-danger:hover { background-color: hsl(var(--danger)); }
+
+  /* Glass morphism effect */
+  .glass {
+    background-color: hsl(var(--background) / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
-  .text-danger {
-    color: hsl(var(--danger));
+  .glass-card {
+    background-color: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: var(--shadow-lg);
   }
 
-  .bg-success {
-    background-color: hsl(var(--success));
+  /* Enhanced shadow utilities */
+  .shadow-elegant {
+    box-shadow: var(--shadow-lg);
   }
 
-  .bg-warning {
-    background-color: hsl(var(--warning));
+  .shadow-soft {
+    box-shadow: var(--shadow);
   }
 
-  .bg-danger {
-    background-color: hsl(var(--danger));
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out forwards;
   }
 
-  .bg-success\/10 {
-    background-color: hsl(var(--success) / 0.1);
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
   }
 
-  .bg-warning\/10 {
-    background-color: hsl(var(--warning) / 0.1);
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
   }
 
-  .bg-danger\/10 {
-    background-color: hsl(var(--danger) / 0.1);
+  /* Interactive states */
+  .interactive {
+    @apply transition-all duration-200 ease-in-out;
   }
 
-  .hover\:bg-success:hover {
-    background-color: hsl(var(--success));
+  .interactive:hover {
+    @apply scale-[1.02] shadow-elegant;
   }
 
-  .hover\:bg-warning:hover {
-    background-color: hsl(var(--warning));
+  .interactive:active {
+    @apply scale-[0.98];
   }
 
-  .hover\:bg-danger:hover {
-    background-color: hsl(var(--danger));
+  /* Card enhancements */
+  .card-enhanced {
+    @apply bg-card border border-border rounded-lg p-6 shadow-soft interactive;
   }
 
-  /* Hide scrollbars for horizontal carousel */
+  .card-enhanced:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: hsl(var(--border) / 0.6);
+  }
+
+  /* Hide scrollbars for carousels */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -149,5 +270,59 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Status indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full animate-pulse;
+  }
+
+  .status-online {
+    @apply status-dot bg-success;
+  }
+
+  .status-warning {
+    @apply status-dot bg-warning;
+  }
+
+  .status-error {
+    @apply status-dot bg-danger;
+  }
+
+  /* Button enhancement */
+  .btn-enhanced {
+    @apply transition-all duration-200 ease-in-out active:scale-95 hover:shadow-md;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
