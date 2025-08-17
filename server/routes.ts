@@ -1359,6 +1359,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount payment system routes
+  try {
+    const paymentRoutes = await import('./paymentRoutes');
+    app.use('/api', paymentRoutes.default);
+    console.log('✅ Payment routes mounted successfully');
+  } catch (error) {
+    console.warn('⚠️ Payment routes not available:', error.message);
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

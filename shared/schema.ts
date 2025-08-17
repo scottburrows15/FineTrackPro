@@ -47,6 +47,15 @@ export const teams = pgTable("teams", {
   name: varchar("name").notNull(),
   sport: varchar("sport").notNull().default("Football"), // e.g., "Football", "Rugby", "Netball", "Hockey"
   inviteCode: varchar("invite_code").unique().notNull(),
+  currency: varchar("currency", { length: 3 }).default("GBP"),
+  obProvider: varchar("ob_provider", { length: 50 }),
+  obAccountId: varchar("ob_account_id", { length: 255 }),
+  obConsentId: varchar("ob_consent_id", { length: 255 }),
+  bankAccountName: varchar("bank_account_name", { length: 255 }),
+  bankSortCode: varchar("bank_sort_code", { length: 10 }),
+  bankAccountNumber: varchar("bank_account_number", { length: 20 }),
+  bankIban: varchar("bank_iban", { length: 50 }),
+  referencePrefix: varchar("reference_prefix", { length: 10 }).default("FINE"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -84,7 +93,8 @@ export const fines = pgTable("fines", {
   isPaid: boolean("is_paid").notNull().default(false),
   paidAt: timestamp("paid_at"),
   paymentIntentId: varchar("payment_intent_id"),
-  paymentMethod: varchar("payment_method"), // For manual payments
+  paymentMethod: varchar("payment_method").default("manual"), // For manual payments
+  paymentReference: varchar("payment_reference", { length: 50 }),
   transactionId: varchar("transaction_id"), // Bank ref, PayPal ID, etc.
   paymentNotes: text("payment_notes"), // Admin notes about payment
   createdAt: timestamp("created_at").defaultNow(),
@@ -259,3 +269,82 @@ export type PlayerStats = {
   monthlyFines: number;
   leaguePosition: number;
 };
+
+// Payment system tables for Open Banking integration
+export const paymentIntents = pgTable("payment_intents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  playerId: varchar("player_id").references(() => users.id).notNull(),
+  totalMinor: integer("total_minor").notNull(),
+  currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+  reference: varchar("reference", { length: 50 }).unique().notNull(),
+  status: varchar("status", { length: 30 }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  bankDetailsSnapshot: jsonb("bank_details_snapshot"),
+  matchedTransactionId: varchar("matched_transaction_id"),
+});
+
+export const paymentIntentFines = pgTable("payment_intent_fines", {
+  paymentIntentId: varchar("payment_intent_id").references(() => paymentIntents.id).notNull(),
+  fineId: varchar("fine_id").references(() => fines.id).notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.paymentIntentId, table.fineId] }),
+}));
+
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  providerTxnId: varchar("provider_txn_id", { length: 255 }).notNull(),
+  amountMinor: integer("amount_minor").notNull(),
+  currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+  direction: varchar("direction", { length: 10 }).default("credit").notNull(),
+  bookingDate: text("booking_date").notNull(),
+  valueDate: text("value_date"),
+  narrative: text("narrative"),
+  payerName: varchar("payer_name", { length: 255 }),
+  payerAccountIdentifier: varchar("payer_account_identifier", { length: 100 }),
+  rawData: jsonb("raw_data"),
+  indexedTerms: text("indexed_terms").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const reconciliationMatches = pgTable("reconciliation_matches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id").references(() => transactions.id).notNull(),
+  paymentIntentId: varchar("payment_intent_id").references(() => paymentIntents.id).notNull(),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }).notNull(),
+  matchReason: varchar("match_reason", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const obTokens = pgTable("ob_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  provider: varchar("provider", { length: 50 }).notNull(),
+  accessTokenEncrypted: text("access_token_encrypted").notNull(),
+  refreshTokenEncrypted: text("refresh_token_encrypted"),
+  expiresAt: timestamp("expires_at"),
+  scope: text("scope"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Payment system insert schemas
+export const insertPaymentIntentSchema = createInsertSchema(paymentIntents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Payment system types
+export type PaymentIntent = typeof paymentIntents.$inferSelect;
+export type InsertPaymentIntent = z.infer<typeof insertPaymentIntentSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type ReconciliationMatch = typeof reconciliationMatches.$inferSelect;
+export type OBToken = typeof obTokens.$inferSelect;
