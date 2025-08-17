@@ -1,0 +1,72 @@
+Got it 👍 — you want me to turn the whole design (automatic bank-transfer verification, fines → payment intents → reconciliation via Open Banking) into a **clear Replit AI prompt** that you can drop straight into your Replit project so the AI can scaffold the code.
+
+Here’s a tailored **Replit AI prompt** you can paste:
+
+---
+
+## Replit AI Prompt
+
+I am building a fines management app for a rugby club. I want you to implement an **automatic bank transfer verification system** using Open Banking. Please generate working code in **Node.js with Express and PostgreSQL**.
+
+### Requirements
+
+1. **Data model (Postgres tables)**
+
+   * `teams` (id, name, currency, ob\_provider, ob\_account\_id, ob\_consent\_id, bank details, reference prefix)
+   * `players` (id, team\_id, full\_name, nickname, email, status)
+   * `fines` (id, team\_id, player\_id, amount\_minor, currency, status, created\_at, paid\_at, payment\_method, payment\_reference, notes, deleted\_at)
+   * `payment_intents` (id, team\_id, player\_id, total\_minor, currency, reference, status, created\_at, expires\_at, bank\_details\_snapshot, matched\_transaction\_id)
+   * `payment_intent_fines` (payment\_intent\_id, fine\_id)
+   * `transactions` (id, team\_id, provider\_txn\_id, amount\_minor, currency, direction, booking\_date, value\_date, narrative, payer\_name, iban\_or\_sortcode\_acct, raw JSON, indexed\_terms)
+   * `reconciliation_matches` (id, transaction\_id, payment\_intent\_id, confidence, match\_reason, created\_at)
+   * `audit_log` (id, actor\_id, team\_id, action, entity\_type, entity\_id, metadata, created\_at)
+
+2. **Endpoints**
+
+   * `POST /api/payment-intents` → create intent for one or more fines; generate unique reference; snapshot bank details.
+   * `GET /api/payment-intents/:id` → view details.
+   * `POST /api/ob/consent/create` → start bank connection via Open Banking (TrueLayer/Yapily/Plaid sandbox).
+   * `GET /api/ob/consent/callback` → handle OAuth callback; store tokens.
+   * `POST /api/ob/sync` → poll provider for new transactions; reconcile against payment intents.
+   * `GET /api/transactions` → list matched/unmatched.
+   * `POST /api/reconcile/manual` → admin links a transaction to an intent if auto-match fails.
+
+3. **Reconciliation logic**
+
+   * Normalise references (uppercase, strip spaces).
+   * Match priority:
+
+     1. **Exact reference match**
+     2. **Prefix + amount**
+     3. **Fuzzy match** (e.g. Levenshtein)
+   * If matched:
+
+     * Mark `payment_intent` as settled.
+     * Update linked `fines` → status = paid, set `paid_at`, `payment_method=bank_transfer`.
+     * Write `audit_log`.
+   * If multiple possible matches → mark as `pending_verification`.
+
+4. **Security**
+
+   * Store provider tokens encrypted.
+   * Idempotent upsert of transactions by `provider_txn_id`.
+   * Use parameterised SQL queries.
+
+5. **Extra**
+
+   * Add SQL migrations to create these tables.
+   * Use a cron or worker (e.g. `node-cron`) to poll `/api/ob/sync`.
+   * Include comments in the code so I can follow the flow.
+
+---
+
+Generate the following for me in the Replit project:
+
+* SQL migrations for all tables with indexes (especially on `payment_intents.reference` and `transactions.provider_txn_id`).
+* Express route handlers for the endpoints listed.
+* A background worker (`node-cron`) that polls the OB API and runs reconciliation.
+* Basic reconciliation pseudocode or helper functions.
+
+---
+
+Would you like me to **make this even more compact and copy-paste friendly** (like a one-paragraph "build me X" style prompt), or keep it as this detailed checklist for Replit AI?
