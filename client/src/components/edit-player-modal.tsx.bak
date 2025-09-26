@@ -177,7 +177,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-800 border-border" aria-describedby="edit-player-description">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="edit-player-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <UserCog className="w-5 h-5 text-blue-600" />

@@ -118,7 +118,7 @@ export default function ManualPaymentModal({ isOpen, onClose, fine }: ManualPaym
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-800 border-border" aria-describedby="payment-description">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="payment-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <CheckCircle className="w-5 h-5 text-green-600" />

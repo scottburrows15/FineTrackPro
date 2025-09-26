@@ -155,7 +155,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 bg-white dark:bg-slate-800 border-border">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6">
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
           </div>
@@ -166,7 +166,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-800 border-border" aria-describedby="profile-description">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto" aria-describedby="profile-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
             <User className="w-5 h-5" />

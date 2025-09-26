@@ -147,7 +147,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center space-x-2 text-base sm:text-lg">
             <Users className="w-4 h-4 sm:w-5 sm:h-5" />

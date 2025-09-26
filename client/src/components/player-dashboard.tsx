@@ -85,7 +85,7 @@ export default function PlayerDashboard() {
         <button 
           onClick={handleSettleUp}
           disabled={unpaidFines.length === 0}
-          className="bg-gradient-to-r from-success to-secondary text-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed border-2 border-emerald-400"
         >
           <div className="flex items-center justify-between mb-2">
             <CreditCard className="text-lg" />
