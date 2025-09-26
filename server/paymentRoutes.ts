@@ -2,6 +2,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from './db';
+import { isAuthenticated } from './replitAuth';
 import { 
   paymentIntents, 
   paymentIntentFines,
@@ -10,9 +11,10 @@ import {
   obTokens,
   teams,
   fines,
+  users,
   auditLog 
 } from '../shared/schema';
-import { eq, and, desc, inArray, isNull } from 'drizzle-orm';
+import { eq, and, desc, inArray, isNull, sql } from 'drizzle-orm';
 import { 
   generatePaymentReference,
   extractSearchTerms,
@@ -37,9 +39,9 @@ const manualReconcileSchema = z.object({
 });
 
 // POST /api/payment-intents - Create payment intent for one or more fines
-router.post('/payment-intents', async (req: Request, res: Response) => {
+router.post('/payment-intents', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -159,9 +161,9 @@ router.post('/payment-intents', async (req: Request, res: Response) => {
 });
 
 // GET /api/payment-intents/:id - View payment intent details
-router.get('/payment-intents/:id', async (req: Request, res: Response) => {
+router.get('/payment-intents/:id', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -233,6 +235,62 @@ router.get('/payment-intents/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching payment intent:', error);
     res.status(500).json({ error: 'Failed to fetch payment intent' });
+  }
+});
+
+// GET /api/payment-intents - List user's payment intents
+router.get('/payment-intents', isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    // Get user ID from req.user.claims.sub (same pattern as /api/auth/user)
+    const userId = (req.user as any)?.claims?.sub;
+    if (!userId) {
+      console.error('No user ID found in req.user.claims.sub:', {
+        user: req.user,
+        claims: (req.user as any)?.claims,
+        isAuthenticated: req.isAuthenticated()
+      });
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get user's team
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: { team: true }
+    });
+
+    if (!user?.team) {
+      return res.status(400).json({ error: 'User must belong to a team' });
+    }
+
+    // Get payment intents for this user
+    const intents = await db
+      .select({
+        id: paymentIntents.id,
+        reference: paymentIntents.reference,
+        totalMinor: paymentIntents.totalMinor,
+        currency: paymentIntents.currency,
+        status: paymentIntents.status,
+        createdAt: paymentIntents.createdAt,
+        expiresAt: paymentIntents.expiresAt,
+        bankDetails: paymentIntents.bankDetailsSnapshot,
+        fineCount: sql<number>`(
+          SELECT COUNT(*)::int 
+          FROM payment_intent_fines 
+          WHERE payment_intent_id = ${paymentIntents.id}
+        )`
+      })
+      .from(paymentIntents)
+      .where(and(
+        eq(paymentIntents.playerId, userId),
+        eq(paymentIntents.teamId, user.team.id)
+      ))
+      .orderBy(desc(paymentIntents.createdAt));
+
+    res.json(intents);
+
+  } catch (error) {
+    console.error('Error fetching payment intents:', error);
+    res.status(500).json({ error: 'Failed to fetch payment intents' });
   }
 });
 
