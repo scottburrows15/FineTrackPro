@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -53,6 +54,7 @@ interface TeamAnalytics {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function AnalyticsDashboard() {
+  const isMobile = useIsMobile();
   const { data: analytics, isLoading, error } = useQuery<TeamAnalytics>({
     queryKey: ["/api/analytics/team"],
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
@@ -60,15 +62,33 @@ export default function AnalyticsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-4 sm:space-y-6 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="h-6 sm:h-8 bg-slate-200 rounded w-48 mb-2" />
+            <div className="h-4 bg-slate-200 rounded w-64" />
+          </div>
+          <div className="h-6 bg-slate-200 rounded w-20" />
+        </div>
+        
+        {/* Metrics cards skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-32 bg-slate-200 rounded-lg" />
+            <div key={i} className="h-28 sm:h-32 bg-slate-200 rounded-lg" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80 bg-slate-200 rounded-lg" />
-          <div className="h-80 bg-slate-200 rounded-lg" />
+        
+        {/* Charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="h-72 sm:h-80 bg-slate-200 rounded-lg" />
+          <div className="h-72 sm:h-80 bg-slate-200 rounded-lg" />
+        </div>
+        
+        {/* Bottom row skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="h-72 sm:h-80 bg-slate-200 rounded-lg" />
+          <div className="h-72 sm:h-80 bg-slate-200 rounded-lg" />
         </div>
       </div>
     );
@@ -99,16 +119,16 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 px-0 sm:px-0">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Team Analytics</h2>
-          <p className="text-slate-600">Real-time insights into your team's fine management</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Team Analytics</h2>
+          <p className="text-sm sm:text-base text-slate-600">Real-time insights into your team's fine management</p>
         </div>
-        <Badge variant="outline" className="px-3 py-1">
+        <Badge variant="outline" className="px-3 py-1 self-start sm:self-auto">
           <Clock className="w-3 h-3 mr-1" />
-          Live Data
+          <span className="text-xs sm:text-sm">Live Data</span>
         </Badge>
       </div>
 
@@ -181,7 +201,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Monthly Trends Chart */}
         <Card>
           <CardHeader>
@@ -189,17 +209,41 @@ export default function AnalyticsDashboard() {
             <CardDescription>Fine count and revenue over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.monthlyTrends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
+            <div className="h-[220px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={analytics.monthlyTrends}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="month" 
+                  fontSize={12}
+                  className="sm:text-sm"
+                />
+                <YAxis 
+                  yAxisId="left" 
+                  fontSize={12}
+                  className="sm:text-sm"
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  fontSize={12}
+                  className="sm:text-sm"
+                />
+                <Tooltip 
+                  contentStyle={{
+                    fontSize: '14px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                />
                 <Bar yAxisId="left" dataKey="fines" fill="#8884d8" name="Fine Count" />
-                <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name="Revenue (£)" />
+                <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name="Revenue (£)" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -210,15 +254,20 @@ export default function AnalyticsDashboard() {
             <CardDescription>Breakdown by category</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <div className="h-[220px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
                 <Pie
                   data={analytics.categoryBreakdown}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
+                  label={({name, percent}) => 
+                    !isMobile 
+                      ? `${name} ${(percent * 100).toFixed(0)}%` 
+                      : `${(percent * 100).toFixed(0)}%`
+                  }
+                  outerRadius={isMobile ? 60 : 80}
                   fill="#8884d8"
                   dataKey="count"
                 >
@@ -226,15 +275,25 @@ export default function AnalyticsDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{
+                    fontSize: '14px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Bottom Row - Top Offenders and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Top Offenders with Medal System */}
         <Card>
           <CardHeader>
@@ -305,34 +364,50 @@ export default function AnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - Mobile Optimized */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest team fine activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {analytics.recentActivity.slice(0, 6).map((activity) => (
-                <div key={activity.id} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            <div className="space-y-2 sm:space-y-3">
+              {analytics.recentActivity.slice(0, isMobile ? 4 : 6).map((activity) => (
+                <div 
+                  key={activity.id} 
+                  className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors duration-200"
+                >
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                     activity.type === 'payment_made' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                   }`}>
                     {activity.type === 'payment_made' ? (
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                     ) : (
-                      <AlertTriangle className="w-4 h-4" />
+                      <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{activity.description}</div>
-                    <div className="text-xs text-slate-600">{new Date(activity.timestamp).toLocaleString()}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-medium truncate">{activity.description}</div>
+                    <div className="text-xs text-slate-600">
+                      {isMobile 
+                        ? new Date(activity.timestamp).toLocaleDateString()
+                        : new Date(activity.timestamp).toLocaleString()
+                      }
+                    </div>
                   </div>
-                  <div className="text-sm font-medium">
+                  <div className="text-xs sm:text-sm font-medium text-right flex-shrink-0">
                     £{activity.amount.toFixed(2)}
                   </div>
                 </div>
               ))}
+              
+              {analytics.recentActivity.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <Clock className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-sm">No recent activity</p>
+                  <p className="text-xs text-slate-400">Activity will appear as fines are issued and paid</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
