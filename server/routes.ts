@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not in a team" });
       }
 
-      const categories = await storage.getTeamCategories(user.teamId);
+      const categories = await storage.getTeamCategoriesWithCounts(user.teamId);
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);

@@ -37,8 +37,7 @@ interface ManageCategoriesModalProps {
 }
 
 interface SortableCategoryCardProps {
-  category: FineCategory;
-  subcategories: FineSubcategory[];
+  category: FineCategory & { subcategoryCount: number };
   isSelected: boolean;
   onSelect: () => void;
   onEdit: () => void;
@@ -47,7 +46,6 @@ interface SortableCategoryCardProps {
 
 function SortableCategoryCard({ 
   category, 
-  subcategories, 
   isSelected, 
   onSelect, 
   onEdit, 
@@ -94,7 +92,7 @@ function SortableCategoryCard({
             <div className="flex-1">
               <h4 className="font-medium text-slate-900">{category.name}</h4>
               <p className="text-xs text-slate-600">
-                {subcategories.length} subcategories
+                {category.subcategoryCount} subcategories
               </p>
             </div>
           </div>
@@ -230,7 +228,7 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
   });
 
   // Fetch categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<FineCategory[]>({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<(FineCategory & { subcategoryCount: number })[]>({
     queryKey: ["/api/categories"],
     enabled: isOpen,
   });
@@ -642,7 +640,6 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                       <SortableCategoryCard
                         key={category.id}
                         category={category}
-                        subcategories={subcategories.filter(sub => sub.categoryId === category.id)}
                         isSelected={selectedCategoryId === category.id}
                         onSelect={() => setSelectedCategoryId(category.id)}
                         onEdit={() => handleEditCategory(category)}

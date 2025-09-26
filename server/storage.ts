@@ -41,6 +41,7 @@ export interface IStorage {
   
   // Fine category operations
   getTeamCategories(teamId: string): Promise<FineCategory[]>;
+  getTeamCategoriesWithCounts(teamId: string): Promise<(FineCategory & { subcategoryCount: number })[]>;
   createFineCategory(category: InsertFineCategory): Promise<FineCategory>;
   updateCategory(id: string, updates: Partial<FineCategory>): Promise<FineCategory>;
   deleteCategory(id: string): Promise<void>;
@@ -148,6 +149,29 @@ export class DatabaseStorage implements IStorage {
       .from(fineCategories)
       .where(eq(fineCategories.teamId, teamId))
       .orderBy(fineCategories.sortOrder);
+  }
+
+  async getTeamCategoriesWithCounts(teamId: string): Promise<(FineCategory & { subcategoryCount: number })[]> {
+    const result = await db
+      .select({
+        id: fineCategories.id,
+        name: fineCategories.name,
+        color: fineCategories.color,
+        teamId: fineCategories.teamId,
+        sortOrder: fineCategories.sortOrder,
+        createdAt: fineCategories.createdAt,
+        subcategoryCount: count(fineSubcategories.id),
+      })
+      .from(fineCategories)
+      .leftJoin(fineSubcategories, eq(fineCategories.id, fineSubcategories.categoryId))
+      .where(eq(fineCategories.teamId, teamId))
+      .groupBy(fineCategories.id, fineCategories.name, fineCategories.color, fineCategories.teamId, fineCategories.sortOrder, fineCategories.createdAt)
+      .orderBy(fineCategories.sortOrder);
+
+    return result.map(row => ({
+      ...row,
+      subcategoryCount: Number(row.subcategoryCount) || 0,
+    }));
   }
 
   async createFineCategory(categoryData: InsertFineCategory): Promise<FineCategory> {
