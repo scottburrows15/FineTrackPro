@@ -1375,6 +1375,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn('⚠️ Payment routes not available:', error instanceof Error ? error.message : 'Unknown error');
   }
 
+  // Mount subscription management routes
+  try {
+    const subscriptionRoutes = await import('./subscriptionRoutes');
+    app.use('/api/subscriptions', subscriptionRoutes.default);
+    console.log('✅ Subscription routes mounted successfully');
+  } catch (error) {
+    console.warn('⚠️ Subscription routes not available:', error instanceof Error ? error.message : 'Unknown error');
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

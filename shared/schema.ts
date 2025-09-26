@@ -56,6 +56,10 @@ export const teams = pgTable("teams", {
   bankAccountNumber: varchar("bank_account_number", { length: 20 }),
   bankIban: varchar("bank_iban", { length: 50 }),
   referencePrefix: varchar("reference_prefix", { length: 10 }).default("FINE"),
+  // Subscription fields
+  currentSubscriptionId: varchar("current_subscription_id"),
+  isTrialActive: boolean("is_trial_active").default(false),
+  trialEndsAt: timestamp("trial_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -139,6 +143,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 export const teamsRelations = relations(teams, ({ many }) => ({
   members: many(users),
   categories: many(fineCategories),
+  subscriptions: many(subscriptions),
 }));
 
 export const fineCategoriesRelations = relations(fineCategories, ({ one, many }) => ({
@@ -187,6 +192,7 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -330,6 +336,57 @@ export const obTokens = pgTable("ob_tokens", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Subscription management tables
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // 'starter', 'club', 'pro', 'enterprise'
+  displayName: varchar("display_name").notNull(), // 'Starter', 'Club', 'Pro', 'Enterprise'
+  description: text("description"),
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
+  maxTeamMembers: integer("max_team_members"), // null = unlimited
+  maxCategories: integer("max_categories"), // null = unlimited
+  features: jsonb("features").notNull(), // Array of feature flags
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  planId: varchar("plan_id").references(() => subscriptionPlans.id).notNull(),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  status: varchar("status").notNull().default("active"), // 'active', 'canceled', 'past_due', 'unpaid'
+  billingInterval: varchar("billing_interval").notNull().default("monthly"), // 'monthly', 'yearly'
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription relations
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  team: one(teams, {
+    fields: [subscriptions.teamId],
+    references: [teams.id],
+  }),
+  plan: one(subscriptionPlans, {
+    fields: [subscriptions.planId],
+    references: [subscriptionPlans.id],
+  }),
+}));
+
+export const subscriptionPlansRelations = relations(subscriptionPlans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
 // Payment system insert schemas
 export const insertPaymentIntentSchema = createInsertSchema(paymentIntents).omit({
   id: true,
@@ -341,6 +398,18 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 });
 
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Payment system types
 export type PaymentIntent = typeof paymentIntents.$inferSelect;
 export type InsertPaymentIntent = z.infer<typeof insertPaymentIntentSchema>;
@@ -348,3 +417,9 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type ReconciliationMatch = typeof reconciliationMatches.$inferSelect;
 export type OBToken = typeof obTokens.$inferSelect;
+
+// Subscription types
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;

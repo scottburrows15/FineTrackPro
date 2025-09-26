@@ -14,6 +14,7 @@ import ManualPaymentModal from "./manual-payment-modal";
 import EditPlayerModal from "./edit-player-modal";
 import AuditTrailModal from "./audit-trail-modal";
 import BulkFineModal from "./bulk-fine-modal";
+import SubscriptionManagementModal from "./subscription-management-modal";
 import FineFilters from "./fine-filters";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
   const [showBulkFineModal, setShowBulkFineModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
@@ -199,6 +201,16 @@ export default function AdminDashboard() {
                   >
                     <Settings className="w-6 h-6 text-green-600" />
                     <span className="text-xs font-medium text-center">Team Settings</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-yellow-50 hover:border-yellow-200 min-w-[100px] flex-shrink-0"
+                    onClick={() => setShowSubscriptionModal(true)}
+                    data-testid="button-subscription"
+                  >
+                    <Crown className="w-6 h-6 text-yellow-600" />
+                    <span className="text-xs font-medium text-center">Subscription</span>
                   </Button>
                   
                   <Button 
@@ -776,6 +788,13 @@ export default function AdminDashboard() {
           <BulkFineModal 
             isOpen={showBulkFineModal} 
             onClose={() => setShowBulkFineModal(false)} 
+          />
+        )}
+
+        {showSubscriptionModal && (
+          <SubscriptionManagementModal 
+            isOpen={showSubscriptionModal} 
+            onClose={() => setShowSubscriptionModal(false)} 
           />
         )}
       </div>

@@ -65,9 +65,8 @@ router.post('/payment-intents', isAuthenticated, async (req: Request, res: Respo
       .from(fines)
       .where(and(
         inArray(fines.id, fineIds),
-        eq(fines.userId, userId),
-        eq(fines.status, 'unpaid'),
-        isNull(fines.deletedAt)
+        eq(fines.playerId, userId),
+        eq(fines.isPaid, false)
       ));
 
     if (userFines.length !== fineIds.length) {
@@ -76,8 +75,8 @@ router.post('/payment-intents', isAuthenticated, async (req: Request, res: Respo
       });
     }
 
-    // Calculate total amount
-    const totalMinor = userFines.reduce((sum, fine) => sum + fine.amountMinor, 0);
+    // Calculate total amount (convert to minor units for payment intent)
+    const totalMinor = userFines.reduce((sum, fine) => sum + Math.round(parseFloat(fine.amount) * 100), 0);
 
     if (totalMinor <= 0) {
       return res.status(400).json({ error: 'Total amount must be greater than zero' });
@@ -223,7 +222,7 @@ router.get('/payment-intents/:id', isAuthenticated, async (req: Request, res: Re
       fines: intent.fines.map(link => ({
         id: link.fine.id,
         description: link.fine.description,
-        amountMinor: link.fine.amountMinor,
+        amountMinor: Math.round(parseFloat(link.fine.amount) * 100), // Convert to minor units
         createdAt: link.fine.createdAt
       })),
       matchedTransaction: intent.matchedTransactionId ? 
@@ -295,9 +294,9 @@ router.get('/payment-intents', isAuthenticated, async (req: Request, res: Respon
 });
 
 // POST /api/ob/consent/create - Start Open Banking connection
-router.post('/ob/consent/create', async (req: Request, res: Response) => {
+router.post('/ob/consent/create', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -359,7 +358,7 @@ router.post('/ob/consent/create', async (req: Request, res: Response) => {
 });
 
 // GET /api/ob/consent/callback - Handle OAuth callback
-router.get('/ob/consent/callback', async (req: Request, res: Response) => {
+router.get('/ob/consent/callback', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { code, state, consent_id } = req.query;
 
@@ -446,9 +445,9 @@ router.get('/ob/consent/callback', async (req: Request, res: Response) => {
 });
 
 // POST /api/ob/sync - Poll provider for new transactions and reconcile
-router.post('/ob/sync', async (req: Request, res: Response) => {
+router.post('/ob/sync', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -512,7 +511,7 @@ router.post('/ob/sync', async (req: Request, res: Response) => {
       const [newTx] = await db.insert(transactions).values({
         teamId: team.id,
         providerTxnId: txData.transactionId,
-        amountMinor: txData.amount,
+        amountMinor: Math.round(txData.amount * 100), // Convert to minor units
         currency: txData.currency,
         direction: txData.direction,
         bookingDate: new Date(txData.bookingDate),
@@ -563,9 +562,9 @@ router.post('/ob/sync', async (req: Request, res: Response) => {
 });
 
 // GET /api/transactions - List transactions with match status
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get('/transactions', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -625,7 +624,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
     res.json({
       transactions: transactions.map(tx => ({
         id: tx.id,
-        amount: tx.amountMinor,
+        amount: Math.round(tx.amountMinor / 100), // Convert from minor units to major units
         currency: tx.currency,
         direction: tx.direction,
         bookingDate: tx.bookingDate,
@@ -649,9 +648,9 @@ router.get('/transactions', async (req: Request, res: Response) => {
 });
 
 // POST /api/reconcile/manual - Manually link transaction to payment intent
-router.post('/reconcile/manual', async (req: Request, res: Response) => {
+router.post('/reconcile/manual', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.session?.passport?.user?.id;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
