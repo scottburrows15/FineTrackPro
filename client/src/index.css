@@ -5,40 +5,40 @@
 
 :root {
   /* Enhanced color palette with better contrast ratios */
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 8%);
-  --card: hsl(210 12% 98%);
-  --card-foreground: hsl(210 25% 8%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 8%);
-  --primary: hsl(217 91% 48%); /* Enhanced primary blue */
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(157 55% 47%); /* Refined green */
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(210 20% 95%);
-  --muted-foreground: hsl(210 12% 45%);
-  --accent: hsl(217 91% 48%);
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 72% 51%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(210 20% 90%);
-  --input: hsl(210 20% 94%);
-  --ring: hsl(217 91% 48%);
-  --success: hsl(142 76% 47%);
-  --success-foreground: hsl(0 0% 100%);
-  --warning: hsl(38 92% 50%);
-  --warning-foreground: hsl(0 0% 100%);
-  --danger: hsl(0 72% 51%);
-  --danger-foreground: hsl(0 0% 100%);
-  --info: hsl(217 91% 48%);
-  --info-foreground: hsl(0 0% 100%);
+  --background: 0 0% 100%;
+  --foreground: 210 25% 8%;
+  --card: 210 12% 98%;
+  --card-foreground: 210 25% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 25% 8%;
+  --primary: 217 91% 48%; /* Enhanced primary blue */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 157 55% 47%; /* Refined green */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 210 12% 45%;
+  --accent: 217 91% 48%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 20% 90%;
+  --input: 210 20% 94%;
+  --ring: 217 91% 48%;
+  --success: 142 76% 47%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --danger: 0 72% 51%;
+  --danger-foreground: 0 0% 100%;
+  --info: 217 91% 48%;
+  --info-foreground: 0 0% 100%;
   
   /* Enhanced chart colors for better accessibility */
-  --chart-1: hsl(217 91% 48%);
-  --chart-2: hsl(157 55% 47%);
-  --chart-3: hsl(38 92% 50%);
-  --chart-4: hsl(285 85% 55%);
-  --chart-5: hsl(13 88% 58%);
+  --chart-1: 217 91% 48%;
+  --chart-2: 157 55% 47%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 285 85% 55%;
+  --chart-5: 13 88% 58%;
   
   /* Typography system */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -61,36 +61,97 @@
 
 .dark {
   /* Enhanced dark mode with better contrast and reduced eye strain */
-  --background: hsl(222 15% 6%);
-  --foreground: hsl(210 15% 92%);
-  --card: hsl(222 15% 9%);
-  --card-foreground: hsl(210 15% 92%);
-  --popover: hsl(222 15% 9%);
-  --popover-foreground: hsl(210 15% 92%);
-  --primary: hsl(217 85% 55%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(157 45% 52%);
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(222 15% 15%);
-  --muted-foreground: hsl(210 10% 65%);
-  --accent: hsl(217 85% 55%);
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 65% 58%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(222 15% 18%);
-  --input: hsl(222 15% 15%);
-  --ring: hsl(217 85% 55%);
-  --success: hsl(142 70% 52%);
-  --warning: hsl(38 88% 55%);
-  --danger: hsl(0 65% 58%);
-  --info: hsl(217 85% 55%);
+  --background: 222 15% 4%; /* Deeper background for better contrast */
+  --foreground: 210 15% 95%; /* Higher contrast text */
+  --card: 222 15% 8%; /* Improved card contrast */
+  --card-foreground: 210 15% 95%;
+  --popover: 222 15% 8%;
+  --popover-foreground: 210 15% 95%;
+  --primary: 217 85% 60%; /* Brighter primary for better visibility */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 157 50% 55%; /* Enhanced secondary color */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 222 15% 12%; /* Better muted background */
+  --muted-foreground: 210 10% 70%; /* Improved muted text contrast */
+  --accent: 217 85% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 70% 65%; /* Better destructive color visibility */
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 15% 20%; /* More visible borders */
+  --input: 222 15% 10%; /* Better input contrast */
+  --ring: 217 85% 60%;
+  --success: 142 75% 55%; /* Enhanced success color */
+  --success-foreground: 0 0% 100%;
+  --warning: 38 90% 60%; /* Better warning visibility */
+  --warning-foreground: 0 0% 100%;
+  --danger: 0 70% 65%;
+  --danger-foreground: 0 0% 100%;
+  --info: 217 85% 60%;
+  --info-foreground: 0 0% 100%;
   
-  /* Dark mode shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  /* Enhanced chart colors for better dark mode visibility */
+  --chart-1: 217 85% 65%;
+  --chart-2: 157 55% 60%;
+  --chart-3: 38 90% 65%;
+  --chart-4: 285 85% 65%;
+  --chart-5: 13 88% 65%;
+  
+  /* Dark mode shadows with better depth */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+}
+
+/* High contrast mode support for enhanced accessibility */
+@media (prefers-contrast: high) {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --border: 0 0% 0%;
+    --input: 0 0% 100%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 0%;
+    --ring: 0 0% 0%;
+  }
+  
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+    --input: 0 0% 0%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 100%;
+    --ring: 0 0% 100%;
+  }
+}
+
+/* Reduced motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable parallax and auto-playing media */
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none !important;
+  }
 }
 
 @layer base {
@@ -130,14 +191,25 @@
     @apply text-lg sm:text-xl leading-[1.4];
   }
 
-  /* Focus styles for accessibility */
+  /* Enhanced focus styles for accessibility */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    transition: box-shadow 0.15s ease-in-out;
   }
 
-  /* Improved button focus */
+  /* Improved button focus with better visibility */
   button:focus-visible {
     @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+    box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--ring) / 0.3);
+  }
+
+  /* Enhanced focus for interactive elements */
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+    box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--ring) / 0.2);
   }
 
   /* Custom scrollbar */
@@ -289,9 +361,45 @@
     @apply status-dot bg-danger;
   }
 
-  /* Button enhancement */
+  /* Enhanced button styles for better dark mode support */
   .btn-enhanced {
     @apply transition-all duration-200 ease-in-out active:scale-95 hover:shadow-md;
+  }
+
+  /* Dark mode specific enhancements */
+  .dark .btn-enhanced:hover {
+    box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--border));
+  }
+
+  /* Enhanced interactive states for dark mode */
+  .dark .interactive:hover {
+    background-color: hsl(var(--card) / 0.8);
+    border-color: hsl(var(--border) / 0.8);
+    box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--primary) / 0.2);
+  }
+
+  /* Better link styling in dark mode */
+  .dark a:not(.btn):not(.button) {
+    color: hsl(var(--primary));
+    text-decoration-color: hsl(var(--primary) / 0.3);
+  }
+
+  .dark a:not(.btn):not(.button):hover {
+    color: hsl(var(--primary) / 0.8);
+    text-decoration-color: hsl(var(--primary) / 0.6);
+  }
+
+  /* Enhanced status indicators for dark mode */
+  .dark .status-online {
+    box-shadow: 0 0 4px hsl(var(--success) / 0.5);
+  }
+
+  .dark .status-warning {
+    box-shadow: 0 0 4px hsl(var(--warning) / 0.5);
+  }
+
+  .dark .status-error {
+    box-shadow: 0 0 4px hsl(var(--danger) / 0.5);
   }
 }
 

@@ -1,5 +1,5 @@
 // Accessibility utilities and hooks
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 // Screen reader announcements
 export function announceToScreenReader(message: string, priority: 'polite' | 'assertive' = 'polite') {
@@ -201,13 +201,13 @@ export function getAriaAttributes(props: {
 
 // Skip link component
 export function SkipLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a 
-      href={href}
-      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
-    >
-      {children}
-    </a>
+  return React.createElement(
+    'a',
+    {
+      href,
+      className: "sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
+    },
+    children
   );
 }
 
@@ -221,14 +221,14 @@ export function LiveRegion({
   level?: 'polite' | 'assertive' | 'off';
   atomic?: boolean;
 }) {
-  return (
-    <div 
-      aria-live={level}
-      aria-atomic={atomic}
-      className="sr-only"
-    >
-      {children}
-    </div>
+  return React.createElement(
+    'div',
+    {
+      'aria-live': level,
+      'aria-atomic': atomic,
+      className: "sr-only"
+    },
+    children
   );
 }
 
