@@ -455,6 +455,18 @@ export class DatabaseStorage implements IStorage {
     const offset = (page - 1) * limit;
 
     // Get audit logs with user details for the team
+    // First, get all user IDs from the team to filter audit logs
+    const teamUserIds = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.teamId, teamId));
+    
+    const teamUserIdList = teamUserIds.map(u => u.id);
+    
+    if (teamUserIdList.length === 0) {
+      return { logs: [], total: 0 };
+    }
+
     const logs = await db
       .select({
         id: auditLog.id,
@@ -473,7 +485,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(auditLog)
       .leftJoin(users, eq(auditLog.userId, users.id))
-      .where(eq(users.teamId, teamId))
+      .where(sql`${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL`)
       .orderBy(desc(auditLog.createdAt))
       .limit(limit)
       .offset(offset);
@@ -482,8 +494,7 @@ export class DatabaseStorage implements IStorage {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(auditLog)
-      .leftJoin(users, eq(auditLog.userId, users.id))
-      .where(eq(users.teamId, teamId));
+      .where(sql`${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL`);
 
     return {
       logs,

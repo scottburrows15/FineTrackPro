@@ -98,6 +98,14 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
 
   const { data: auditData, isLoading } = useQuery<AuditData>({
     queryKey: ['/api/admin/audit-log', page, limit],
+    queryFn: async () => {
+      const url = `/api/admin/audit-log?page=${page}&limit=${limit}`;
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    },
     enabled: isOpen,
   });
 
@@ -110,8 +118,11 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
         title: "Migration Complete",
         description: "Existing fines and user data have been added to audit trail",
       });
-      // Refresh the audit log data
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/audit-log'] });
+      // Refresh the audit log data - invalidate all audit log queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/admin/audit-log']
+        // By default, partial matching is used, so this will invalidate all queries starting with this key
+      });
     },
     onError: (error: any) => {
       toast({
