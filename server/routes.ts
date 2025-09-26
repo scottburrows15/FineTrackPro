@@ -659,12 +659,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Subcategory is required" });
       }
 
+      // Get subcategory details for the default amount
+      const subcategory = await storage.getSubcategory(subcategoryId);
+      if (!subcategory) {
+        return res.status(404).json({ message: "Subcategory not found" });
+      }
+
       const results = await Promise.all(
         playerIds.map(async (playerId: string) => {
           try {
             return await storage.createFine({
               playerId,
               subcategoryId,
+              amount: subcategory.defaultAmount,
               description: description || null,
               issuedBy: user.id,
             });
@@ -1365,7 +1372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use('/api', paymentRoutes.default);
     console.log('✅ Payment routes mounted successfully');
   } catch (error) {
-    console.warn('⚠️ Payment routes not available:', error.message);
+    console.warn('⚠️ Payment routes not available:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   const httpServer = createServer(app);

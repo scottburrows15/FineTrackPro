@@ -49,6 +49,7 @@ export interface IStorage {
   
   // Fine subcategory operations
   getCategorySubcategories(categoryId: string): Promise<FineSubcategory[]>;
+  getSubcategory(id: string): Promise<FineSubcategory | undefined>;
   createFineSubcategory(subcategory: InsertFineSubcategory): Promise<FineSubcategory>;
   updateSubcategory(id: string, updates: Partial<FineSubcategory>): Promise<FineSubcategory>;
   deleteSubcategory(id: string): Promise<void>;
@@ -59,6 +60,7 @@ export interface IStorage {
   getTeamFines(teamId: string): Promise<FineWithDetails[]>;
   createFine(fine: InsertFine): Promise<Fine>;
   updateFine(id: string, updates: Partial<Fine>): Promise<Fine>;
+  deleteFine(id: string): Promise<void>;
   
   // Statistics
   getPlayerStats(userId: string): Promise<PlayerStats>;
@@ -213,6 +215,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(fineSubcategories.sortOrder);
   }
 
+  async getSubcategory(id: string): Promise<FineSubcategory | undefined> {
+    const [subcategory] = await db
+      .select()
+      .from(fineSubcategories)
+      .where(eq(fineSubcategories.id, id));
+    return subcategory;
+  }
+
   async createFineSubcategory(subcategoryData: InsertFineSubcategory): Promise<FineSubcategory> {
     const [subcategory] = await db.insert(fineSubcategories).values(subcategoryData).returning();
     return subcategory;
@@ -320,6 +330,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(fines.id, id))
       .returning();
     return fine;
+  }
+
+  async deleteFine(id: string): Promise<void> {
+    await db.delete(fines).where(eq(fines.id, id));
   }
 
   async getPlayerStats(userId: string): Promise<PlayerStats> {
