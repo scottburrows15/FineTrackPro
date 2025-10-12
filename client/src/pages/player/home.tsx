@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { DollarSign, TrendingDown, TrendingUp, Award } from "lucide-react";
+import { PoundSterling, TrendingDown, TrendingUp, Award } from "lucide-react";
 import { getDisplayName } from "@/lib/userUtils";
 import AppLayout from "@/components/ui/app-layout";
 
@@ -62,7 +62,7 @@ export default function PlayerHome() {
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           data-testid="button-settle-up"
         >
-          <DollarSign className="mr-2 h-5 w-5" />
+          <PoundSterling className="mr-2 h-5 w-5" />
           Settle Up - Pay £{totalOutstanding.toFixed(2)}
         </Button>
       )}

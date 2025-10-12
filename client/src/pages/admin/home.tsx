@@ -65,27 +65,9 @@ export default function AdminHome() {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-2">Team Announcements</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Welcome to the admin dashboard! Here you can manage your team's fines, view analytics, and track payments.
+              <p className="text-sm text-muted-foreground">
+                Welcome to the admin dashboard! Here you can manage your team's fines, view analytics, and track payments. Use the navigation below to access all features.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setLocation("/admin/fines")}
-                  data-testid="button-issue-fine"
-                >
-                  Issue Fine
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setLocation("/admin/analytics")}
-                  data-testid="button-view-analytics"
-                >
-                  View Analytics
-                </Button>
-              </div>
             </div>
           </div>
         </Card>
@@ -228,37 +210,6 @@ export default function AdminHome() {
             </div>
           )}
         </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Button
-            variant="outline"
-            className="h-24 flex-col gap-2"
-            onClick={() => setLocation("/admin/fines")}
-            data-testid="button-quick-issue-fine"
-          >
-            <AlertTriangle className="h-6 w-6 text-orange-500" />
-            <span className="font-semibold">Issue Fine</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-24 flex-col gap-2"
-            onClick={() => setLocation("/admin/analytics")}
-            data-testid="button-quick-analytics"
-          >
-            <TrendingUp className="h-6 w-6 text-blue-500" />
-            <span className="font-semibold">Analytics</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-24 flex-col gap-2"
-            onClick={() => setLocation("/admin/settings")}
-            data-testid="button-quick-settings"
-          >
-            <Users className="h-6 w-6 text-purple-500" />
-            <span className="font-semibold">Team Settings</span>
-          </Button>
-        </div>
       </div>
     </AppLayout>
   );
