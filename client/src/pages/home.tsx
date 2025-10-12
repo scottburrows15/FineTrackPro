@@ -1,34 +1,26 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import AppLayout from "@/components/ui/app-layout";
-import PlayerDashboard from "@/components/player-dashboard";
-import AdminDashboard from "@/components/admin-dashboard";
+import { useLocation } from "wouter";
 import TeamOnboarding from "@/components/team-onboarding";
-import type { Notification } from "@shared/schema";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
-  const [currentView, setCurrentView] = useState<'player' | 'admin'>('player');
-  const [activeSection, setActiveSection] = useState<string>('home');
+  const [, setLocation] = useLocation();
 
-  // Sync view with user role when user loads
+  // Redirect to appropriate home page based on user role
   useEffect(() => {
-    if (user && user.role === 'admin') {
-      setCurrentView('admin');
+    if (user && user.teamId) {
+      if (user.role === 'admin') {
+        setLocation('/admin/home');
+      } else {
+        setLocation('/player/home');
+      }
     }
-  }, [user]);
-
-  const { data: notifications = [] } = useQuery<Notification[]>({
-    queryKey: ["/api/notifications"],
-    enabled: !!user,
-  });
-
-  const unreadCount = notifications.filter((n: Notification) => !n.isRead).length;
+  }, [user, setLocation]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -38,65 +30,10 @@ export default function Home() {
     return <TeamOnboarding />;
   }
 
-  const canSwitchView = user && user.role === 'admin';
-
-  // Determine page title based on active section and view
-  const getPageTitle = () => {
-    if (currentView === 'player') {
-      switch (activeSection) {
-        case 'fines': return 'My Fines';
-        case 'stats': return 'My Stats';
-        case 'notifications': return 'Notifications';
-        case 'settings': return 'Settings';
-        default: return 'Dashboard';
-      }
-    } else {
-      switch (activeSection) {
-        case 'issue-fines': return 'Issue Fines';
-        case 'analytics': return 'Team Analytics';
-        case 'notifications': return 'Notifications';
-        case 'team-settings': return 'Team Settings';
-        default: return 'Admin Dashboard';
-      }
-    }
-  };
-
-  // Handle navigation from bottom nav
-  const handleNavigation = (section: string) => {
-    setActiveSection(section);
-    
-    // Handle view switching for admins
-    if (canSwitchView) {
-      // Admin-specific sections should switch to admin view
-      if (['issue-fines', 'analytics', 'team-settings'].includes(section)) {
-        setCurrentView('admin');
-      }
-      // Player-specific sections should switch to player view
-      else if (['fines', 'stats'].includes(section)) {
-        setCurrentView('player');
-      }
-    }
-    
-    // Trigger any section-specific actions
-    // These will be handled by the dashboard components based on activeSection prop
-  };
-
+  // Show loading while redirecting
   return (
-    <AppLayout
-      user={user}
-      currentView={currentView}
-      pageTitle={getPageTitle()}
-      unreadNotifications={unreadCount}
-      onNavigate={handleNavigation}
-      onViewChange={setCurrentView}
-      canSwitchView={canSwitchView}
-      activeSection={activeSection}
-    >
-      {currentView === 'player' ? (
-        <PlayerDashboard activeSection={activeSection} />
-      ) : (
-        <AdminDashboard activeSection={activeSection} />
-      )}
-    </AppLayout>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
   );
 }

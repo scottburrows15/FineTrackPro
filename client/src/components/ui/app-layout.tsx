@@ -8,10 +8,8 @@ interface AppLayoutProps {
   currentView: 'player' | 'admin';
   pageTitle: string;
   unreadNotifications: number;
-  onNavigate: (section: string) => void;
   onViewChange: (view: 'player' | 'admin') => void;
   canSwitchView: boolean;
-  activeSection?: string;
   children: ReactNode;
 }
 
@@ -20,10 +18,8 @@ export default function AppLayout({
   currentView,
   pageTitle,
   unreadNotifications,
-  onNavigate,
   onViewChange,
   canSwitchView,
-  activeSection,
   children,
 }: AppLayoutProps) {
   return (
@@ -46,8 +42,6 @@ export default function AppLayout({
       <BottomNav
         currentView={currentView}
         unreadCount={unreadNotifications}
-        onNavigate={onNavigate}
-        activeSection={activeSection}
       />
     </div>
   );

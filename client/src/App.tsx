@@ -12,6 +12,24 @@ import Payment from "@/pages/payment";
 import Payments from "@/pages/payments";
 import NotFound from "@/pages/not-found";
 
+// Player pages
+import PlayerHome from "@/pages/player/home";
+import PlayerFines from "@/pages/player/fines";
+import PlayerStats from "@/pages/player/stats";
+import PlayerNotifications from "@/pages/player/notifications";
+import PlayerSettings from "@/pages/player/settings";
+
+// Admin pages
+import AdminHome from "@/pages/admin/home";
+import AdminFines from "@/pages/admin/fines";
+import AdminAnalytics from "@/pages/admin/analytics";
+import AdminNotifications from "@/pages/admin/notifications";
+import AdminSettings from "@/pages/admin/settings";
+
+// Shared pages
+import Help from "@/pages/help";
+import Profile from "@/pages/profile";
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -24,7 +42,26 @@ function Router() {
         </>
       ) : (
         <>
+          {/* Legacy home route - keep for backward compatibility */}
           <Route path="/" component={Home} />
+          
+          {/* Player routes */}
+          <Route path="/player/home" component={PlayerHome} />
+          <Route path="/player/fines" component={PlayerFines} />
+          <Route path="/player/stats" component={PlayerStats} />
+          <Route path="/player/notifications" component={PlayerNotifications} />
+          <Route path="/player/settings" component={PlayerSettings} />
+          
+          {/* Admin routes */}
+          <Route path="/admin/home" component={AdminHome} />
+          <Route path="/admin/fines" component={AdminFines} />
+          <Route path="/admin/analytics" component={AdminAnalytics} />
+          <Route path="/admin/notifications" component={AdminNotifications} />
+          <Route path="/admin/settings" component={AdminSettings} />
+          
+          {/* Shared routes */}
+          <Route path="/help" component={Help} />
+          <Route path="/profile" component={Profile} />
           <Route path="/payment" component={Payment} />
           <Route path="/payments" component={Payments} />
         </>

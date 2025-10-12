@@ -184,7 +184,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
                 {previewImage || user?.profileImageUrl ? (
                   <img
-                    src={previewImage || user?.profileImageUrl}
+                    src={previewImage || user?.profileImageUrl || ""}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
