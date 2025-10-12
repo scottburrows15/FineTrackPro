@@ -125,14 +125,18 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
               {/* Profile Avatar */}
               <button
                 onClick={() => setLocation('/profile')}
-                className="h-9 w-9 rounded-full hover:ring-2 ring-blue-500 transition-all"
+                className="rounded-full hover:ring-2 ring-blue-500 transition-all"
                 data-testid="button-profile-avatar"
               >
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-12 w-12 shadow-md ring-2 ring-white dark:ring-slate-700">
                   {user?.profileImageUrl && (
-                    <AvatarImage src={user.profileImageUrl} alt={getDisplayName(user)} />
+                    <AvatarImage 
+                      src={user.profileImageUrl} 
+                      alt={getDisplayName(user)}
+                      className="object-cover"
+                    />
                   )}
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
                     {getInitials(user)}
                   </AvatarFallback>
                 </Avatar>
