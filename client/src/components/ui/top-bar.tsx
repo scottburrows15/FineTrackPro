@@ -116,10 +116,10 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 variant="ghost"
                 size="icon"
                 onClick={() => setLocation('/help')}
-                className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-12 w-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 data-testid="button-help"
               >
-                <HelpCircle className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <HelpCircle className="h-7 w-7 text-slate-600 dark:text-slate-400" />
               </Button>
 
               {/* Profile Avatar */}
@@ -128,7 +128,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 className="rounded-full hover:ring-2 ring-blue-500 transition-all"
                 data-testid="button-profile-avatar"
               >
-                <Avatar className="h-9 w-9 shadow-md ring-2 ring-white dark:ring-slate-700">
+                <Avatar className="h-12 w-12 shadow-md ring-2 ring-white dark:ring-slate-700">
                   {user?.profileImageUrl && (
                     <AvatarImage 
                       src={user.profileImageUrl} 
@@ -136,7 +136,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                       className="object-cover"
                     />
                   )}
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                     {getInitials(user)}
                   </AvatarFallback>
                 </Avatar>
@@ -148,10 +148,10 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="h-12 w-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     data-testid="button-hamburger-menu"
                   >
-                    <Menu className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                    <Menu className="h-7 w-7 text-slate-600 dark:text-slate-400" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-slate-800 border-border">
