@@ -116,7 +116,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 variant="ghost"
                 size="icon"
                 onClick={() => setLocation('/help')}
-                className="h-12 w-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 data-testid="button-help"
               >
                 <HelpCircle className="h-7 w-7 text-slate-600 dark:text-slate-400" />
