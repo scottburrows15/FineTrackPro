@@ -1,17 +1,14 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
-import UnifiedFineIssuer from "@/components/unified-fine-issuer";
+import InlineFineIssuer from "@/components/inline-fine-issuer";
 import { Gavel } from "lucide-react";
 
 export default function AdminFines() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [showUnifiedFineIssuer, setShowUnifiedFineIssuer] = useState(true);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -45,26 +42,8 @@ export default function AdminFines() {
           </p>
         </div>
 
-        {/* Unified Fine Issuer Component */}
-        {showUnifiedFineIssuer && (
-          <UnifiedFineIssuer 
-            isOpen={showUnifiedFineIssuer}
-            onClose={() => setShowUnifiedFineIssuer(false)} 
-          />
-        )}
-
-        {!showUnifiedFineIssuer && (
-          <div className="flex justify-center py-8">
-            <Button
-              onClick={() => setShowUnifiedFineIssuer(true)}
-              size="lg"
-              data-testid="button-show-fine-issuer"
-            >
-              <Gavel className="mr-2 h-5 w-5" />
-              Open Fine Issuer
-            </Button>
-          </div>
-        )}
+        {/* Inline Fine Issuer - No More Popups! */}
+        <InlineFineIssuer />
       </div>
     </AppLayout>
   );

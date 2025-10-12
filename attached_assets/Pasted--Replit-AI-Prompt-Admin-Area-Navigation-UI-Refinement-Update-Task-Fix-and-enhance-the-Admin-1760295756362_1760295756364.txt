@@ -1,0 +1,62 @@
+
+⚙️ Replit AI Prompt — Admin Area, Navigation & UI Refinement Update
+Task:
+Fix and enhance the Admin “Issue Fines” functionality, update icon behavior and styling, refine profile image rendering, and clean up redundant dashboard items for a more consistent and professional user experience.
+1. 🧾 Issue Fines Page (Admin View)
+• The Issue Fines navigation option still opens a pop-up window instead of displaying within the main page. 
+• Remove the pop-up behavior completely.
+• Integrate the entire fine-issuing process directly into the Issue Fines screen.
+• The page should display all fine-issuing options by default: 
+• Player selector
+• Fine category selector
+• Description/notes field
+• Amount input
+• “Submit Fine” button
+• Add a “Bulk Fines” tick box at the top of the form. 
+• When selected, the page dynamically updates to include the bulk issue options (multi-select players, apply category to all, optional custom amounts).
+• When unselected, it reverts to the standard single fine form.
+• Ensure all elements are responsive and work seamlessly on both desktop and mobile.
+• Validate the UI flow so admins can issue fines in a single step, without unnecessary modals or reloads.
+2. 👤 Profile Picture (Top Banner)
+• The profile picture currently looks squished or distorted. 
+• Fix the aspect ratio and image rendering so it maintains its original proportions.
+• Recommended dimensions: 40×40px or 48×48px, depending on layout.
+• Apply a circular mask with subtle shadow for a clean modern look.
+• Ensure images load in a consistent resolution across all pages and devices.
+3. 🔔 Notification Icon in Notification Banner
+• The notification icon in the navigation banner behavior should be updated: 
+• Only show a red bubble indicator (similar to Facebook) when there are unread notifications.
+• Do not display a number counter; the red dot alone indicates new notifications.
+• Hide the bubble entirely if there are no unread alerts.
+• Ensure this logic works for both Player and Admin views.
+• Verify responsiveness so the icon and bubble render properly at all screen sizes.
+4. 🎨 Icon Color Consistency
+• Ensure all icons throughout the app (both navigation and contextual icons) use a consistent color scheme that matches their corresponding icons in the bottom navigation bar. 
+• Use the same primary and accent colors already defined for Player and Admin views (e.g., blue for Player, gold for Admin).
+• Verify hover and active states use the same tone intensity or a clear contrast variant.
+5. 💷 “Settle Up” Icon Update
+• The “Settle Up” icon currently uses a dollar ($) symbol. 
+• Change this to a pound (£) symbol to reflect UK currency.
+• Ensure the icon aligns visually with the rest of the navigation and retains consistent padding and sizing.
+6. 🏠 Admin Home Dashboard Cleanup
+• On the Admin Home screen, remove the following redundant buttons: 
+• Issue Fine
+• Analytics
+• Team Settings
+• These are already accessible from the bottom navigation and do not need to be duplicated on the dashboard.
+• The Home screen should focus only on: 
+• Team summary information (e.g., total fines outstanding, recent activity, team updates).
+7. 🔘 Notification Toggles Visibility
+• The notification toggles (for enabling/disabling alerts) are currently not clearly visible. 
+• Improve contrast and visibility—use a clearer color scheme (e.g., white toggle background with colored track).
+• Add clear ON/OFF labels or icon indicators.
+• Ensure the toggles are consistent with the rest of the app’s design system (rounded, modern style).
+8. 🧪 Verification & Testing
+Once changes are implemented:
+• Confirm the Issue Fines screen works fully inline, both single and bulk.
+• Verify the profile image displays crisp and circular on all devices.
+• Test the notification bubble logic in the navigation banner (red dot visible only when needed).
+• Check that all icons match color standards and respond properly to hover/active states.
+• Validate that dashboard clutter is removed and the toggles are legible.
+Execution instructions for Replit AI:
+Implement all UI and logic fixes as described above. Remove remaining pop-up modals, unify color consistency across the app, and ensure responsive, mobile-friendly rendering. Maintain modular React (or chosen framework) components and comment key UI logic updates for future maintainability.
