@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/ui/app-layout";
@@ -11,6 +11,13 @@ export default function Home() {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<'player' | 'admin'>('player');
   const [activeSection, setActiveSection] = useState<string>('home');
+
+  // Sync view with user role when user loads
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      setCurrentView('admin');
+    }
+  }, [user]);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -81,6 +88,8 @@ export default function Home() {
       pageTitle={getPageTitle()}
       unreadNotifications={unreadCount}
       onNavigate={handleNavigation}
+      onViewChange={setCurrentView}
+      canSwitchView={canSwitchView}
       activeSection={activeSection}
     >
       {currentView === 'player' ? (

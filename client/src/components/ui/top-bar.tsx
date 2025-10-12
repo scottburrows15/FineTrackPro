@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, HelpCircle, LogOut, User, Settings } from "lucide-react";
+import { Menu, HelpCircle, LogOut, User, Settings, Shield, UserCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { User as UserType } from "@shared/schema";
 import ProfileModal from "@/components/profile-modal";
@@ -19,9 +19,11 @@ interface TopBarProps {
   user: UserType | null;
   currentView: 'player' | 'admin';
   pageTitle: string;
+  onViewChange?: (view: 'player' | 'admin') => void;
+  canSwitchView?: boolean;
 }
 
-export default function TopBar({ user, currentView, pageTitle }: TopBarProps) {
+export default function TopBar({ user, currentView, pageTitle, onViewChange, canSwitchView }: TopBarProps) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const getInitials = (user: UserType | null) => {
@@ -36,7 +38,13 @@ export default function TopBar({ user, currentView, pageTitle }: TopBarProps) {
   };
 
   const handleLogout = () => {
-    window.location.href = "/api/auth/logout";
+    window.location.href = "/api/logout";
+  };
+
+  const handleViewSwitch = (view: 'player' | 'admin') => {
+    if (onViewChange) {
+      onViewChange(view);
+    }
   };
 
   return (
@@ -101,6 +109,32 @@ export default function TopBar({ user, currentView, pageTitle }: TopBarProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-slate-800 border-border">
+                  {canSwitchView && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        View Mode
+                      </div>
+                      <DropdownMenuItem 
+                        onClick={() => handleViewSwitch('player')}
+                        className={currentView === 'player' ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                        data-testid="menu-switch-player-view"
+                      >
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Player View</span>
+                        {currentView === 'player' && <span className="ml-auto text-blue-600">✓</span>}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleViewSwitch('admin')}
+                        className={currentView === 'admin' ? 'bg-amber-50 dark:bg-amber-900/20' : ''}
+                        data-testid="menu-switch-admin-view"
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Admin View</span>
+                        {currentView === 'admin' && <span className="ml-auto text-amber-600">✓</span>}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem 
                     onClick={() => setShowProfileModal(true)}
                     data-testid="menu-profile-settings"

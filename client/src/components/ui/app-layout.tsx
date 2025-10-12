@@ -9,6 +9,8 @@ interface AppLayoutProps {
   pageTitle: string;
   unreadNotifications: number;
   onNavigate: (section: string) => void;
+  onViewChange: (view: 'player' | 'admin') => void;
+  canSwitchView: boolean;
   activeSection?: string;
   children: ReactNode;
 }
@@ -19,6 +21,8 @@ export default function AppLayout({
   pageTitle,
   unreadNotifications,
   onNavigate,
+  onViewChange,
+  canSwitchView,
   activeSection,
   children,
 }: AppLayoutProps) {
@@ -29,6 +33,8 @@ export default function AppLayout({
         user={user} 
         currentView={currentView} 
         pageTitle={pageTitle}
+        onViewChange={onViewChange}
+        canSwitchView={canSwitchView}
       />
 
       {/* Main Content - With padding for fixed top and bottom bars */}
