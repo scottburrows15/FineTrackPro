@@ -205,30 +205,57 @@ export default function InlineFineIssuer() {
     <Card className="bg-white dark:bg-slate-800 border-border shadow-md">
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Bulk Mode Toggle */}
-          <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-border">
-            <Checkbox
-              id="bulk-mode"
-              checked={isBulkMode}
-              onCheckedChange={(checked) => {
-                setIsBulkMode(!!checked);
-                if (!checked) {
-                  // Reset to single selection when turning off bulk mode
+          {/* Fine Mode Switcher */}
+          <div className="border-b border-border">
+            <div className="flex items-center gap-8 px-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkMode(false);
+                  // Reset to single selection when switching to single mode
                   setFormData(prev => ({
                     ...prev,
                     selectedPlayerIds: prev.selectedPlayerIds.length > 0 ? [prev.selectedPlayerIds[0]] : []
                   }));
-                }
-              }}
-              data-testid="checkbox-bulk-mode"
-            />
-            <Label 
-              htmlFor="bulk-mode" 
-              className="text-base font-semibold cursor-pointer flex items-center gap-2"
-            >
-              {isBulkMode ? <Users className="h-5 w-5 text-orange-500" /> : <Gavel className="h-5 w-5 text-red-500" />}
-              {isBulkMode ? "Bulk Fines Mode (Issue to Multiple Players)" : "Single Fine Mode"}
-            </Label>
+                }}
+                className="relative pb-3 transition-colors"
+                data-testid="switcher-single-fine"
+              >
+                <div className="flex items-center gap-2">
+                  <Gavel className={`h-5 w-5 ${!isBulkMode ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`} />
+                  <span className={`text-base font-semibold ${
+                    !isBulkMode 
+                      ? 'text-red-600 dark:text-red-400' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}>
+                    Single Fine
+                  </span>
+                </div>
+                {!isBulkMode && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 dark:bg-red-400 rounded-t-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBulkMode(true)}
+                className="relative pb-3 transition-colors"
+                data-testid="switcher-bulk-fines"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className={`h-5 w-5 ${isBulkMode ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`} />
+                  <span className={`text-base font-semibold ${
+                    isBulkMode 
+                      ? 'text-orange-600 dark:text-orange-400' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}>
+                    Bulk Fines
+                  </span>
+                </div>
+                {isBulkMode && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-600 dark:bg-orange-400 rounded-t-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Player Selection */}
