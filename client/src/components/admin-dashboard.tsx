@@ -15,6 +15,7 @@ import EditPlayerModal from "./edit-player-modal";
 import AuditTrailModal from "./audit-trail-modal";
 import BulkFineModal from "./bulk-fine-modal";
 import SubscriptionManagementModal from "./subscription-management-modal";
+import UnifiedFineIssuer from "./unified-fine-issuer";
 import FineFilters from "./fine-filters";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +63,7 @@ export default function AdminDashboard({ activeSection = 'home' }: AdminDashboar
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
   const [showBulkFineModal, setShowBulkFineModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showUnifiedFineIssuer, setShowUnifiedFineIssuer] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
@@ -69,8 +71,8 @@ export default function AdminDashboard({ activeSection = 'home' }: AdminDashboar
 
   // Handle activeSection navigation from bottom nav
   if (activeSection === 'issue-fines') {
-    if (!showIssueFineModal && !showBulkFineModal) {
-      setTimeout(() => setShowIssueFineModal(true), 100);
+    if (!showUnifiedFineIssuer) {
+      setTimeout(() => setShowUnifiedFineIssuer(true), 100);
     }
   } else if (activeSection === 'analytics') {
     if (!showAnalyticsModal) {
@@ -715,6 +717,11 @@ export default function AdminDashboard({ activeSection = 'home' }: AdminDashboar
             onClose={() => setShowSubscriptionModal(false)} 
           />
         )}
+
+        <UnifiedFineIssuer
+          isOpen={showUnifiedFineIssuer}
+          onClose={() => setShowUnifiedFineIssuer(false)}
+        />
       </div>
     </div>
   );
