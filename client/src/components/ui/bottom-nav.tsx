@@ -55,9 +55,13 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   />
                   {item.badge && item.badge > 0 && (
                     <div 
-                      className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-900"
+                      className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
                       data-testid={`badge-${item.id}`}
-                    />
+                    >
+                      <span className="text-[10px] font-bold text-white leading-none">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    </div>
                   )}
                 </div>
                 <span 

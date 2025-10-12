@@ -128,7 +128,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 className="rounded-full hover:ring-2 ring-blue-500 transition-all"
                 data-testid="button-profile-avatar"
               >
-                <Avatar className="h-12 w-12 shadow-md ring-2 ring-white dark:ring-slate-700">
+                <Avatar className="h-9 w-9 shadow-md ring-2 ring-white dark:ring-slate-700">
                   {user?.profileImageUrl && (
                     <AvatarImage 
                       src={user.profileImageUrl} 
