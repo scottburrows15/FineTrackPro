@@ -17,9 +17,12 @@ export default function AdminNotifications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+  const { data: allNotifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
   });
+
+  // Filter to only show settled fines (paid/deleted) for admins
+  const notifications = allNotifications.filter(n => n.type === 'fine_paid');
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
@@ -151,7 +154,7 @@ export default function AdminNotifications() {
         {/* Empty State Illustration */}
         {!isLoading && notifications.length === 0 && (
           <div className="mt-8 text-center text-muted-foreground">
-            <p className="text-sm">When team events occur, such as fines issued or payments made, they'll appear here.</p>
+            <p className="text-sm">When fines are settled (paid or deleted), notifications will appear here.</p>
           </div>
         )}
       </div>
