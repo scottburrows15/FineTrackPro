@@ -44,7 +44,11 @@ import {
   Search
 } from "lucide-react";
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  activeSection?: string;
+}
+
+export default function AdminDashboard({ activeSection = 'home' }: AdminDashboardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showIssueFineModal, setShowIssueFineModal] = useState(false);
@@ -60,9 +64,23 @@ export default function AdminDashboard() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
-  const [activeSection, setActiveSection] = useState<'overview' | 'fines' | 'analytics' | 'team' | 'settings'>('overview');
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
   const [filteredFines, setFilteredFines] = useState<FineWithDetails[]>([]);
+
+  // Handle activeSection navigation from bottom nav
+  if (activeSection === 'issue-fines') {
+    if (!showIssueFineModal && !showBulkFineModal) {
+      setTimeout(() => setShowIssueFineModal(true), 100);
+    }
+  } else if (activeSection === 'analytics') {
+    if (!showAnalyticsModal) {
+      setTimeout(() => setShowAnalyticsModal(true), 100);
+    }
+  } else if (activeSection === 'team-settings') {
+    if (!showManageTeamModal) {
+      setTimeout(() => setShowManageTeamModal(true), 100);
+    }
+  }
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
     queryKey: ["/api/stats/team"],
@@ -129,108 +147,8 @@ export default function AdminDashboard() {
 
 
   return (
-    <div className="p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 min-h-screen">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            {teamInfo ? `Managing ${teamInfo.name}` : 'Manage your team and fines'}
-          </p>
-        </div>
-
-        {/* Admin Actions */}
-        <Card>
-          <CardContent className="p-4">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Admin Actions</h2>
-            
-            {/* Horizontal Carousel */}
-            <div className="relative">
-              <div className="overflow-x-auto scrollbar-hide">
-                <div className="flex space-x-3 pb-2" style={{ minWidth: 'max-content' }}>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-red-50 hover:border-red-200 hover:shadow-lg dark:hover:bg-red-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowIssueFineModal(true)}
-                  >
-                    <Gavel className="w-6 h-6 text-red-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Issue Fine</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-orange-50 hover:border-orange-200 hover:shadow-lg dark:hover:bg-orange-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowBulkFineModal(true)}
-                  >
-                    <Users className="w-6 h-6 text-orange-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Bulk Fines</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-blue-50 hover:border-blue-200 hover:shadow-lg dark:hover:bg-blue-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowAddPlayerModal(true)}
-                  >
-                    <UserPlus className="w-6 h-6 text-blue-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Add Player</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-emerald-50 hover:border-emerald-200 hover:shadow-lg dark:hover:bg-emerald-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowAnalyticsModal(true)}
-                  >
-                    <TrendingUp className="w-6 h-6 text-emerald-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Analytics</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-purple-50 hover:border-purple-200 hover:shadow-lg dark:hover:bg-purple-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowManageCategoriesModal(true)}
-                    data-action="manage-categories"
-                  >
-                    <Tags className="w-6 h-6 text-purple-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Fine Types</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-teal-50 hover:border-teal-200 hover:shadow-lg dark:hover:bg-teal-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowManageTeamModal(true)}
-                  >
-                    <Settings className="w-6 h-6 text-teal-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Team Settings</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-slate-800 dark:to-amber-900/20 hover:from-yellow-100 hover:to-amber-100 hover:border-amber-300 hover:shadow-lg dark:hover:from-amber-900/20 dark:hover:to-yellow-900/30 min-w-[100px] flex-shrink-0 border-2 border-amber-200 dark:border-amber-600 transition-all duration-200"
-                    onClick={() => setShowSubscriptionModal(true)}
-                    data-testid="button-subscription"
-                  >
-                    <Crown className="w-6 h-6 text-amber-500 drop-shadow-sm" />
-                    <span className="text-xs font-medium text-center text-foreground">Subscription</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="h-auto p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-800 hover:bg-indigo-50 hover:border-indigo-200 hover:shadow-lg dark:hover:bg-indigo-900/20 min-w-[100px] flex-shrink-0 border-2 transition-all duration-200"
-                    onClick={() => setShowAuditTrailModal(true)}
-                  >
-                    <Activity className="w-6 h-6 text-indigo-500" />
-                    <span className="text-xs font-medium text-center text-foreground">Audit Trail</span>
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Scroll indicators for mobile */}
-              <div className="absolute top-2 right-2 text-xs text-muted-foreground md:hidden">
-                Scroll →
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Team Invitation */}
         <AdminShareLink />

@@ -15,7 +15,11 @@ import {
   Plus
 } from "lucide-react";
 
-export default function PlayerDashboard() {
+interface PlayerDashboardProps {
+  activeSection?: string;
+}
+
+export default function PlayerDashboard({ activeSection = 'home' }: PlayerDashboardProps) {
   const { user } = useAuth();
   
   const { data: fines = [], isLoading: finesLoading } = useQuery<FineWithDetails[]>({
@@ -49,7 +53,7 @@ export default function PlayerDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Player Stats Header */}
       <div className="mb-8">
         <Card className="bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-blue-900/20 border-blue-200 dark:border-blue-700 shadow-lg">
