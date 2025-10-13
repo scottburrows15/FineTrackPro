@@ -45,7 +45,7 @@ export default function AdminHome() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("unpaid");
   const [dateFilter, setDateFilter] = useState("all");
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
