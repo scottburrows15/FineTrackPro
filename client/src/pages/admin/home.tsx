@@ -107,15 +107,16 @@ export default function AdminHome() {
 
   // Mark fine as paid mutation
   const markAsPaidMutation = useMutation({
-    mutationFn: async (fineId: string) => {
-      return apiRequest(`/api/admin/fines/${fineId}/record-payment`, {
-        method: 'POST',
-        body: JSON.stringify({
-          paymentMethod: 'manual',
-          paymentReference: 'Admin Manual Payment',
-          paymentNotes: 'Marked as paid by admin'
-        }),
-      });
+    mutationFn: async (fine: FineWithDetails) => {
+      const payload = {
+        paymentMethod: 'manual',
+        transactionId: 'Admin Manual Payment',
+        notes: 'Marked as paid by admin',
+        amount: parseFloat(fine.amount)
+      };
+      
+      const response = await apiRequest('POST', `/api/admin/fines/${fine.id}/record-payment`, payload);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/fines/team'] });
@@ -423,7 +424,7 @@ export default function AdminHome() {
                           {!fine.isPaid && (
                             <div className="flex gap-2 pt-2">
                               <Button
-                                onClick={() => markAsPaidMutation.mutate(fine.id)}
+                                onClick={() => markAsPaidMutation.mutate(fine)}
                                 disabled={markAsPaidMutation.isPending}
                                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                                 data-testid={`button-mark-paid-${fine.id}`}

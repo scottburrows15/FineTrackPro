@@ -856,7 +856,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const preferences = await storage.getAdminPreferences(user.id);
-      res.json(preferences);
+      // Return default preferences if none exist
+      res.json(preferences || {
+        userId: user.id,
+        emailAlertsEnabled: false,
+        pushNotificationsEnabled: false,
+        summaryNotificationsEnabled: false
+      });
     } catch (error) {
       console.error("Error fetching admin preferences:", error);
       res.status(500).json({ message: "Failed to fetch preferences" });
@@ -1070,7 +1076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         entityType: 'team',
-        entityId: user.teamId!,
+        entityId: updatedTeam.id,
         action: 'update',
         userId: user.id,
         changes: { name, sport },
