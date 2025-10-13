@@ -104,16 +104,18 @@ export default function PlayerFines() {
                   className="p-4 border-l-4 border-l-red-500 hover:shadow-md transition-shadow"
                   data-testid={`card-fine-${fine.id}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="destructive" className="text-xs">Unpaid</Badge>
-                        <span className="font-semibold text-foreground">{fine.subcategory?.name || 'Fine'}</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Badge className="text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700">
+                          Unpaid
+                        </Badge>
+                        <span className="font-semibold text-foreground truncate">{fine.subcategory?.name || 'Fine'}</span>
                       </div>
                       {fine.description && (
-                        <p className="text-sm text-muted-foreground mb-2">{fine.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{fine.description}</p>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {fine.issuedByUser?.firstName || 'Admin'}
@@ -124,8 +126,8 @@ export default function PlayerFines() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid={`text-amount-${fine.id}`}>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 whitespace-nowrap" data-testid={`text-amount-${fine.id}`}>
                         {formatCurrency(parseFloat(fine.amount))}
                       </p>
                     </div>
@@ -147,18 +149,18 @@ export default function PlayerFines() {
                   className="p-4 border-l-4 border-l-emerald-500 opacity-75 hover:opacity-100 transition-opacity"
                   data-testid={`card-fine-paid-${fine.id}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Badge className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700">
                           Paid
                         </Badge>
-                        <span className="font-semibold text-foreground">{fine.subcategory?.name || 'Fine'}</span>
+                        <span className="font-semibold text-foreground truncate">{fine.subcategory?.name || 'Fine'}</span>
                       </div>
                       {fine.description && (
-                        <p className="text-sm text-muted-foreground mb-2">{fine.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{fine.description}</p>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {fine.issuedByUser?.firstName || 'Admin'}
@@ -175,8 +177,8 @@ export default function PlayerFines() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         {formatCurrency(parseFloat(fine.amount))}
                       </p>
                     </div>
