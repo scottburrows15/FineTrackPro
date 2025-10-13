@@ -22,7 +22,7 @@ export default function AdminNotifications() {
   });
 
   // Filter to only show settled fines (paid/deleted) for admins
-  const notifications = allNotifications.filter(n => n.type === 'fine_paid');
+  const notifications = allNotifications.filter(n => n.type === 'fine_paid' || n.type === 'fine_deleted');
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
@@ -41,6 +41,8 @@ export default function AdminNotifications() {
         return '⚠️';
       case 'fine_paid':
         return '✅';
+      case 'fine_deleted':
+        return '🗑️';
       case 'reminder':
         return '🔔';
       case 'team_update':

@@ -458,12 +458,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recordedBy: userId,
       });
 
+      // Get player and admin details for notifications
+      const player = await storage.getUser(fine.playerId);
+      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+
       // Create notification for player
       await storage.createNotification({
         userId: fine.playerId,
         title: "Payment Recorded",
         message: `Your payment of £${amount} has been recorded`,
         type: "payment_confirmed",
+        relatedEntityId: fine.id,
+      });
+
+      // Create notification for admin (fine_paid type for admin notifications)
+      await storage.createNotification({
+        userId: userId, // Admin who marked it as paid
+        title: "Fine Marked as Paid",
+        message: `Fine for ${playerName} (£${amount}) has been settled`,
+        type: "fine_paid",
         relatedEntityId: fine.id,
       });
 
@@ -773,11 +786,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      // For now, just mark as paid to "delete" it with proper timestamp
-      await storage.updateFine(id, { 
-        isPaid: true, 
-        paidAt: new Date(),
-        paymentMethod: "admin_deletion"
+      
+      // Get fine details before deleting for notifications
+      const fineDetails = await storage.getFineById(id);
+      if (!fineDetails) {
+        return res.status(404).json({ message: "Fine not found" });
+      }
+
+      const player = await storage.getUser(fineDetails.playerId);
+      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+      const amount = fineDetails.amount;
+
+      // Actually delete the fine from database
+      await storage.deleteFine(id);
+      
+      // Create notification for player
+      await storage.createNotification({
+        userId: fineDetails.playerId,
+        title: "Fine Removed",
+        message: `A fine of £${amount} has been removed by an admin`,
+        type: "fine_removed",
+        relatedEntityId: id,
+      });
+
+      // Create notification for admin (fine_deleted type for admin notifications)
+      await storage.createNotification({
+        userId: user.id,
+        title: "Fine Deleted",
+        message: `Fine for ${playerName} (£${amount}) has been deleted`,
+        type: "fine_deleted",
+        relatedEntityId: id,
       });
       
       await storage.createAuditLog({
@@ -785,7 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: id,
         action: 'delete',
         userId: user.id,
-        changes: { deleted: true },
+        changes: { deleted: true, amount, playerId: fineDetails.playerId },
       });
 
       res.json({ success: true });
@@ -1305,14 +1343,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const notifications = await storage.getUserNotifications(userId);
       
-      // Player notifications: fine_issued, reminder, team_update, etc.
+      // Player notifications: fine_issued, reminder, team_update, fine_removed, etc.
       const playerNotifications = notifications.filter(n => 
-        n.type === 'fine_issued' || n.type === 'reminder' || n.type === 'team_update'
+        n.type === 'fine_issued' || n.type === 'reminder' || n.type === 'team_update' || n.type === 'fine_removed' || n.type === 'payment_confirmed'
       );
       
-      // Admin notifications: fine_paid (settled fines)
+      // Admin notifications: fine_paid, fine_deleted (settled fines)
       const adminNotifications = notifications.filter(n => 
-        n.type === 'fine_paid'
+        n.type === 'fine_paid' || n.type === 'fine_deleted'
       );
       
       res.json({

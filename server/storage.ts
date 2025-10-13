@@ -343,6 +343,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fines).where(eq(fines.id, id));
   }
 
+  async getFineById(id: string): Promise<Fine | undefined> {
+    const [fine] = await db
+      .select()
+      .from(fines)
+      .where(eq(fines.id, id))
+      .limit(1);
+    return fine;
+  }
+
   async getPlayerStats(userId: string): Promise<PlayerStats> {
     // Get unpaid fines total
     const [unpaidResult] = await db

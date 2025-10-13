@@ -81,15 +81,15 @@ export default function AdminHome() {
     if (dateFilter === "today") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      result = result.filter(f => new Date(f.createdAt) >= today);
+      result = result.filter(f => f.createdAt && new Date(f.createdAt) >= today);
     } else if (dateFilter === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      result = result.filter(f => new Date(f.createdAt) >= weekAgo);
+      result = result.filter(f => f.createdAt && new Date(f.createdAt) >= weekAgo);
     } else if (dateFilter === "month") {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      result = result.filter(f => new Date(f.createdAt) >= monthAgo);
+      result = result.filter(f => f.createdAt && new Date(f.createdAt) >= monthAgo);
     }
     
     // Filter by search query (player name, description)
@@ -139,9 +139,7 @@ export default function AdminHome() {
   // Delete fine mutation
   const deleteFineMutation = useMutation({
     mutationFn: async (fineId: string) => {
-      return apiRequest(`/api/admin/fines/${fineId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/admin/fines/${fineId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/fines/team'] });
@@ -245,11 +243,11 @@ export default function AdminHome() {
           </Card>
         </div>
 
-        {/* Outstanding Fines */}
+        {/* All Fines */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold">Outstanding Fines</h3>
+              <h3 className="text-lg font-semibold">All Fines</h3>
               <p className="text-sm text-muted-foreground">Manage team fines and payments</p>
             </div>
             <Button 
@@ -435,8 +433,8 @@ export default function AdminHome() {
                               <Button
                                 onClick={() => deleteFineMutation.mutate(fine.id)}
                                 disabled={deleteFineMutation.isPending}
-                                variant="destructive"
-                                className="flex-1"
+                                variant="outline"
+                                className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
                                 data-testid={`button-delete-${fine.id}`}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
