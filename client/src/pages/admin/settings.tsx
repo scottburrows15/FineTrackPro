@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { 
   Settings as SettingsIcon, 
@@ -15,7 +17,8 @@ import {
   DollarSign,
   Calendar,
   Edit,
-  LogOut
+  LogOut,
+  Bell
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
@@ -34,6 +37,11 @@ export default function AdminSettings() {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // Admin notification preferences
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
+  const [summaryNotificationsEnabled, setSummaryNotificationsEnabled] = useState(false);
 
   const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
@@ -164,6 +172,72 @@ export default function AdminSettings() {
             <Calendar className="mr-2 h-4 w-4" />
             View Audit Trail
           </Button>
+        </Card>
+
+        {/* Admin Notification Preferences */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+              <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Admin Notification Preferences</h3>
+              <p className="text-sm text-muted-foreground">Manage admin alert settings</p>
+            </div>
+          </div>
+          <Separator className="my-4" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="email-alerts" className="text-base font-medium cursor-pointer">
+                  Email Alerts
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive emails when fines are settled
+                </p>
+              </div>
+              <Switch
+                id="email-alerts"
+                checked={emailAlertsEnabled}
+                onCheckedChange={setEmailAlertsEnabled}
+                data-testid="switch-email-alerts"
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="push-notifications" className="text-base font-medium cursor-pointer">
+                  Push Notifications
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Get instant alerts for paid or deleted fines
+                </p>
+              </div>
+              <Switch
+                id="push-notifications"
+                checked={pushNotificationsEnabled}
+                onCheckedChange={setPushNotificationsEnabled}
+                data-testid="switch-push-notifications"
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="summary-notifications" className="text-base font-medium cursor-pointer">
+                  Summary Notifications
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Daily or weekly digests of team activity
+                </p>
+              </div>
+              <Switch
+                id="summary-notifications"
+                checked={summaryNotificationsEnabled}
+                onCheckedChange={setSummaryNotificationsEnabled}
+                data-testid="switch-summary-notifications"
+              />
+            </div>
+          </div>
         </Card>
 
         {/* Subscription */}
