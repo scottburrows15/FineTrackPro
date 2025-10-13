@@ -847,6 +847,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin preferences routes
+  app.get('/api/admin/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const preferences = await storage.getAdminPreferences(user.id);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching admin preferences:", error);
+      res.status(500).json({ message: "Failed to fetch preferences" });
+    }
+  });
+
+  app.post('/api/admin/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { emailAlertsEnabled, pushNotificationsEnabled, summaryNotificationsEnabled } = req.body;
+      const preferences = await storage.upsertAdminPreferences({
+        userId: user.id,
+        emailAlertsEnabled: emailAlertsEnabled ?? true,
+        pushNotificationsEnabled: pushNotificationsEnabled ?? true,
+        summaryNotificationsEnabled: summaryNotificationsEnabled ?? false,
+      });
+
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error saving admin preferences:", error);
+      res.status(500).json({ message: "Failed to save preferences" });
+    }
+  });
+
   // Reorder categories route (must be before the general category update route)
   app.patch('/api/categories/reorder', isAuthenticated, async (req: any, res) => {
     try {

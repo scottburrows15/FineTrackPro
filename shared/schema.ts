@@ -116,6 +116,17 @@ export const auditLog = pgTable("audit_log", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Admin notification preferences table
+export const adminPreferences = pgTable("admin_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull().unique(),
+  emailAlertsEnabled: boolean("email_alerts_enabled").notNull().default(true),
+  pushNotificationsEnabled: boolean("push_notifications_enabled").notNull().default(true),
+  summaryNotificationsEnabled: boolean("summary_notifications_enabled").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Notifications table
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -233,6 +244,12 @@ export const insertAuditLogSchema = createInsertSchema(auditLog).omit({
   createdAt: true,
 });
 
+export const insertAdminPreferencesSchema = createInsertSchema(adminPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -248,6 +265,8 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AdminPreferences = typeof adminPreferences.$inferSelect;
+export type InsertAdminPreferences = z.infer<typeof insertAdminPreferencesSchema>;
 
 // Extended types with relations
 export type UserWithTeam = User & {

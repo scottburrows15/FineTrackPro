@@ -1,27 +1,44 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLocation } from "wouter";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { FineWithDetails, TeamStats, Notification } from "@shared/schema";
 import { 
   Users, 
   AlertTriangle, 
-  TrendingUp, 
   Megaphone,
   Clock,
   CheckCircle,
   PoundSterling,
-  Calendar
+  Calendar,
+  ChevronDown,
+  Search,
+  Filter,
+  Trash2
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import AdminShareLink from "@/components/admin-share-link";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
     queryKey: ["/api/stats/team"],
@@ -31,14 +48,118 @@ export default function AdminHome() {
     queryKey: ["/api/fines/team"],
   });
 
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["/api/categories"],
+    enabled: !!user && user.role === 'admin',
+  });
+
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const recentFines = fines.slice(0, 5);
   const unpaidCount = fines.filter(f => !f.isPaid).length;
+
+  // Filter fines based on search, status, category, and date
+  const filteredFines = useMemo(() => {
+    let result = [...fines];
+    
+    // Filter by status
+    if (statusFilter === "unpaid") {
+      result = result.filter(f => !f.isPaid);
+    } else if (statusFilter === "paid") {
+      result = result.filter(f => f.isPaid);
+    }
+    
+    // Filter by category
+    if (categoryFilter !== "all") {
+      result = result.filter(f => f.subcategory?.category?.id === categoryFilter);
+    }
+    
+    // Filter by date range
+    if (dateFilter === "today") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      result = result.filter(f => new Date(f.createdAt) >= today);
+    } else if (dateFilter === "week") {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      result = result.filter(f => new Date(f.createdAt) >= weekAgo);
+    } else if (dateFilter === "month") {
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      result = result.filter(f => new Date(f.createdAt) >= monthAgo);
+    }
+    
+    // Filter by search query (player name, description)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(f => {
+        const playerName = `${f.player?.firstName || ''} ${f.player?.lastName || ''}`.toLowerCase();
+        const description = (f.description || '').toLowerCase();
+        return playerName.includes(query) || description.includes(query);
+      });
+    }
+    
+    return result;
+  }, [fines, searchQuery, statusFilter, categoryFilter, dateFilter]);
+
+  // Mark fine as paid mutation
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (fineId: string) => {
+      return apiRequest(`/api/admin/fines/${fineId}/record-payment`, {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentMethod: 'manual',
+          paymentReference: 'Admin Manual Payment',
+          paymentNotes: 'Marked as paid by admin'
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/fines/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      toast({
+        title: "Fine Marked as Paid",
+        description: "The fine has been successfully marked as paid.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark fine as paid. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete fine mutation
+  const deleteFineMutation = useMutation({
+    mutationFn: async (fineId: string) => {
+      return apiRequest(`/api/admin/fines/${fineId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/fines/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      toast({
+        title: "Fine Deleted",
+        description: "The fine has been permanently deleted.",
+      });
+      setExpandedFineId(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete fine. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (!user || user.role !== 'admin') {
     return null;
@@ -123,12 +244,12 @@ export default function AdminHome() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* Outstanding Fines */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold">Recent Activity</h3>
-              <p className="text-sm text-muted-foreground">Latest fines issued to the team</p>
+              <h3 className="text-lg font-semibold">Outstanding Fines</h3>
+              <p className="text-sm text-muted-foreground">Manage team fines and payments</p>
             </div>
             <Button 
               variant="outline" 
@@ -140,73 +261,206 @@ export default function AdminHome() {
             </Button>
           </div>
 
+          {/* Filters */}
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by player name or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-fines"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-category-filter">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-date-filter">
+                  <SelectValue placeholder="Date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Last Week</SelectItem>
+                  <SelectItem value="month">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {finesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
               ))}
             </div>
-          ) : recentFines.length > 0 ? (
+          ) : filteredFines.length > 0 ? (
             <div className="space-y-3">
-              {recentFines.map((fine) => (
-                <div
+              {filteredFines.map((fine) => (
+                <Collapsible
                   key={fine.id}
-                  className={`flex items-center justify-between p-4 rounded-lg border ${
-                    fine.isPaid
-                      ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-700'
-                      : 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-700'
-                  }`}
-                  data-testid={`activity-fine-${fine.id}`}
+                  open={expandedFineId === fine.id}
+                  onOpenChange={(isOpen) => setExpandedFineId(isOpen ? fine.id : null)}
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className={`p-2 rounded-full ${
-                      fine.isPaid 
-                        ? 'bg-emerald-100 dark:bg-emerald-900/30' 
-                        : 'bg-orange-100 dark:bg-orange-900/30'
-                    }`}>
-                      {fine.isPaid ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      ) : (
-                        <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {fine.player?.firstName} {fine.player?.lastName}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{fine.subcategory?.name || 'Fine'}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(fine.createdAt)}
-                        </span>
+                  <div
+                    className={`rounded-lg border ${
+                      fine.isPaid
+                        ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-700'
+                        : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-700'
+                    }`}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className="w-full flex items-center justify-between p-4 hover:opacity-80 transition-opacity"
+                        data-testid={`fine-card-${fine.id}`}
+                      >
+                        <div className="flex items-center gap-3 flex-1 text-left">
+                          <div className={`p-2 rounded-full ${
+                            fine.isPaid 
+                              ? 'bg-emerald-100 dark:bg-emerald-900/30' 
+                              : 'bg-red-100 dark:bg-red-900/30'
+                          }`}>
+                            {fine.isPaid ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {fine.player?.firstName} {fine.player?.lastName}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                              <span>{fine.subcategory?.name || 'Fine'}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDate(fine.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className={`text-lg font-bold ${
+                              fine.isPaid 
+                                ? 'text-emerald-600 dark:text-emerald-400' 
+                                : 'text-red-600 dark:text-red-400'
+                            }`}>
+                              {formatCurrency(parseFloat(fine.amount))}
+                            </p>
+                            <Badge 
+                              className={`text-xs ${
+                                fine.isPaid
+                                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
+                                  : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
+                              }`}
+                            >
+                              {fine.isPaid ? 'Paid' : 'Unpaid'}
+                            </Badge>
+                          </div>
+                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${
+                            expandedFineId === fine.id ? 'rotate-180' : ''
+                          }`} />
+                        </div>
+                      </button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="px-4 pb-4 border-t pt-4">
+                        <div className="space-y-3">
+                          {fine.description && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Description</p>
+                              <p className="text-sm">{fine.description}</p>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Issued By</p>
+                              <p className="text-sm font-medium">
+                                {fine.issuedByUser?.firstName} {fine.issuedByUser?.lastName}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Date/Time Issued</p>
+                              <p className="text-sm font-medium">{formatDate(fine.createdAt)}</p>
+                            </div>
+                          </div>
+                          {fine.paidAt && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Paid On</p>
+                              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                {formatDate(fine.paidAt)}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Action Buttons */}
+                          {!fine.isPaid && (
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                onClick={() => markAsPaidMutation.mutate(fine.id)}
+                                disabled={markAsPaidMutation.isPending}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                                data-testid={`button-mark-paid-${fine.id}`}
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Mark as Paid
+                              </Button>
+                              <Button
+                                onClick={() => deleteFineMutation.mutate(fine.id)}
+                                disabled={deleteFineMutation.isPending}
+                                variant="destructive"
+                                className="flex-1"
+                                data-testid={`button-delete-${fine.id}`}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Fine
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </CollapsibleContent>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${
-                      fine.isPaid 
-                        ? 'text-emerald-600 dark:text-emerald-400' 
-                        : 'text-orange-600 dark:text-orange-400'
-                    }`}>
-                      {formatCurrency(parseFloat(fine.amount))}
-                    </p>
-                    <Badge 
-                      variant={fine.isPaid ? "outline" : "destructive"}
-                      className="text-xs"
-                    >
-                      {fine.isPaid ? 'Paid' : 'Unpaid'}
-                    </Badge>
-                  </div>
-                </div>
+                </Collapsible>
               ))}
+            </div>
+          ) : searchQuery || statusFilter !== "all" || categoryFilter !== "all" || dateFilter !== "all" ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Filter className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>No fines match your filters</p>
+              <p className="text-sm">Try adjusting your search or filter criteria</p>
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>No activity yet</p>
-              <p className="text-sm">Start issuing fines to see activity here</p>
+              <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>No fines yet</p>
+              <p className="text-sm">Start issuing fines to see them here</p>
             </div>
           )}
         </Card>

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { AdminPreferences } from "@shared/schema";
 import { 
   Settings as SettingsIcon, 
   Users, 
@@ -42,6 +44,62 @@ export default function AdminSettings() {
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [summaryNotificationsEnabled, setSummaryNotificationsEnabled] = useState(false);
+
+  // Fetch admin preferences
+  const { data: preferences } = useQuery<AdminPreferences>({
+    queryKey: ["/api/admin/preferences"],
+    enabled: !!user && user.role === 'admin',
+  });
+
+  // Load preferences when fetched
+  useEffect(() => {
+    if (preferences) {
+      setEmailAlertsEnabled(preferences.emailAlertsEnabled);
+      setPushNotificationsEnabled(preferences.pushNotificationsEnabled);
+      setSummaryNotificationsEnabled(preferences.summaryNotificationsEnabled);
+    }
+  }, [preferences]);
+
+  // Save preferences mutation
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (prefs: { emailAlertsEnabled: boolean; pushNotificationsEnabled: boolean; summaryNotificationsEnabled: boolean }) => {
+      return apiRequest("/api/admin/preferences", {
+        method: "POST",
+        body: JSON.stringify(prefs),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/preferences"] });
+    },
+  });
+
+  // Helper functions to update preferences
+  const updateEmailAlerts = (value: boolean) => {
+    setEmailAlertsEnabled(value);
+    savePreferencesMutation.mutate({
+      emailAlertsEnabled: value,
+      pushNotificationsEnabled,
+      summaryNotificationsEnabled,
+    });
+  };
+
+  const updatePushNotifications = (value: boolean) => {
+    setPushNotificationsEnabled(value);
+    savePreferencesMutation.mutate({
+      emailAlertsEnabled,
+      pushNotificationsEnabled: value,
+      summaryNotificationsEnabled,
+    });
+  };
+
+  const updateSummaryNotifications = (value: boolean) => {
+    setSummaryNotificationsEnabled(value);
+    savePreferencesMutation.mutate({
+      emailAlertsEnabled,
+      pushNotificationsEnabled,
+      summaryNotificationsEnabled: value,
+    });
+  };
 
   const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
@@ -199,7 +257,7 @@ export default function AdminSettings() {
               <Switch
                 id="email-alerts"
                 checked={emailAlertsEnabled}
-                onCheckedChange={setEmailAlertsEnabled}
+                onCheckedChange={updateEmailAlerts}
                 data-testid="switch-email-alerts"
               />
             </div>
@@ -216,7 +274,7 @@ export default function AdminSettings() {
               <Switch
                 id="push-notifications"
                 checked={pushNotificationsEnabled}
-                onCheckedChange={setPushNotificationsEnabled}
+                onCheckedChange={updatePushNotifications}
                 data-testid="switch-push-notifications"
               />
             </div>
@@ -233,7 +291,7 @@ export default function AdminSettings() {
               <Switch
                 id="summary-notifications"
                 checked={summaryNotificationsEnabled}
-                onCheckedChange={setSummaryNotificationsEnabled}
+                onCheckedChange={updateSummaryNotifications}
                 data-testid="switch-summary-notifications"
               />
             </div>

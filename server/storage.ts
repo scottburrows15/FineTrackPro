@@ -6,6 +6,7 @@ import {
   fines,
   notifications,
   auditLog,
+  adminPreferences,
   type User,
   type UpsertUser,
   type Team,
@@ -20,6 +21,8 @@ import {
   type Notification,
   type InsertNotification,
   type InsertAuditLog,
+  type AdminPreferences,
+  type InsertAdminPreferences,
   type UserWithTeam,
   type TeamStats,
   type PlayerStats,
@@ -83,6 +86,10 @@ export interface IStorage {
   getTeamMembers(teamId: string): Promise<User[]>;
   addPlayerToTeam(userId: string, teamId: string): Promise<User>;
   updateTeam(id: string, updates: Partial<Team>): Promise<Team>;
+  
+  // Admin preferences
+  getAdminPreferences(userId: string): Promise<AdminPreferences | undefined>;
+  upsertAdminPreferences(preferences: InsertAdminPreferences): Promise<AdminPreferences>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -560,6 +567,29 @@ export class DatabaseStorage implements IStorage {
       .where(eq(teams.id, id))
       .returning();
     return team;
+  }
+
+  async getAdminPreferences(userId: string): Promise<AdminPreferences | undefined> {
+    const [prefs] = await db
+      .select()
+      .from(adminPreferences)
+      .where(eq(adminPreferences.userId, userId));
+    return prefs;
+  }
+
+  async upsertAdminPreferences(preferencesData: InsertAdminPreferences): Promise<AdminPreferences> {
+    const [prefs] = await db
+      .insert(adminPreferences)
+      .values(preferencesData)
+      .onConflictDoUpdate({
+        target: adminPreferences.userId,
+        set: {
+          ...preferencesData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return prefs;
   }
 
   async getTeamAnalytics(teamId: string): Promise<any> {

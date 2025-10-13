@@ -1,0 +1,72 @@
+
+⚙️ Replit AI Prompt — Outstanding Fines Integration & Admin Notification Refinements
+Task:
+Rework the Admin Home Dashboard to replace the Recent Activity section with a filterable Outstanding Fines view, improve notification handling, and ensure the new fine management flow integrates smoothly with Stripe’s test environment for payment verification.
+1. 🔔 Admin Notification Badge & Behavior
+• The Admin Notification Badge on the bottom navigation bar should visually match the Player Notification Badge in size, position, and color scheme. 
+• Use the same red circular badge over the top-right of the bell icon.
+• If there are unread admin notifications, display the red badge with the count.
+• If there are no unread notifications, the badge should not appear.
+• The badge must track admin-only notifications (fines paid, fines deleted, team alerts) and not overlap with player notifications.
+• Switching between Admin View and Player View should toggle the correct badge and notification data set.
+2. 🏷️ Replace “Recent Activity” with “Outstanding Fines” (Admin Home)
+• On the Admin Home Dashboard, remove the Recent Activity section.
+• Replace it with a section titled Outstanding Fines.
+• This section should: 
+• Display a list of all current outstanding fines for players.
+• Include quick filters or dropdowns to sort or search fines by: 
+• Player name
+• Fine category
+• Status (Unpaid / Paid / Deleted)
+• Date issued
+• Each fine should appear as a compact card or list row showing: 
+• Player name
+• Fine description
+• Amount
+• Date issued
+• Status (e.g., “Unpaid” in red)
+• When a fine is clicked, it should expand (accordion-style or modal) to show: 
+• Full description
+• Issued by (admin name)
+• Date/time issued
+• Payment status
+• Two buttons: 
+• ✅ Mark as Paid (updates fine status and sends notifications)
+• ❌ Mark as Deleted (removes fine, logs to audit trail, sends notifications)
+3. 💳 Stripe Dummy Payment Integration (Player “Settle Up”)
+• Ensure the Settle Up feature is fully functional with Stripe’s test mode.
+• When a player selects “Settle Up”: 
+• All fines should be shown and auto-selected by default.
+• The player can deselect any fines not being paid.
+• The total payable amount should update dynamically.
+• Clicking Proceed to Payment should trigger a dummy payment flow in Stripe test mode.
+• After the test transaction succeeds: 
+• Update those fines’ statuses to “Paid”.
+• Trigger Player and Admin notifications accordingly.
+• Display a confirmation message (e.g., “Payment successful — fines settled”).
+4. ⚙️ Admin Notification Preferences (Per-Admin)
+• Refactor Admin Notification Preferences so they apply per admin account, not globally.
+• Store preferences in a table linked to the admin’s user ID.
+• Options (toggles) to include: 
+• Receive notification when fines are settled
+• Receive notification when fines are deleted
+• Receive summary reports (daily/weekly)
+• Preferences should persist across sessions and affect only the logged-in admin.
+5. 🎨 UX & Styling Adjustments
+• Ensure all notification and badge icons across the app maintain a consistent size, color, and padding relative to the bottom navigation bar.
+• When viewing Outstanding Fines, maintain responsive design so content fits neatly across screen sizes.
+• For fine statuses: 
+• Paid = light green background, dark green text.
+• Unpaid = light red background, dark red text.
+• If space is limited on smaller screens, clicking a fine should open a detail view or overlay instead of displaying all fields inline.
+• Help and hamburger menu icons in the top banner should be larger and balanced relative to the profile picture.
+6. 🧪 Testing & Verification
+After implementation, verify the following:
+• The admin badge updates independently of the player badge.
+• Outstanding Fines list replaces Recent Activity and displays correctly.
+• Admins can mark fines as Paid/Deleted, triggering appropriate notifications.
+• Dummy Stripe test payments correctly update fine statuses and trigger notifications.
+• Admin notification preferences are stored per admin and persist on reload.
+• The interface remains visually balanced and responsive across desktop and mobile.
+Execution for Replit AI:
+Implement the above functionality and design updates. Ensure the Outstanding Fines section replaces Recent Activity, fine management occurs in-line with filters and expandable detail views, and Stripe operates in sandbox mode. Keep the UI visually consistent with the existing app theme and responsive on all devices.
