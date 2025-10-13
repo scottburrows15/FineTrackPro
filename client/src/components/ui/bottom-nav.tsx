@@ -53,7 +53,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                       ${isActive ? item.color : 'text-slate-600 dark:text-slate-400'}
                     `}
                   />
-                  {item.badge && item.badge > 0 && (
+                {item.id === 'notifications' && item.badge > 0 && (
                     <div 
                       className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
                       data-testid={`badge-${item.id}`}
