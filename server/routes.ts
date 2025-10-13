@@ -1255,6 +1255,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get notification counts by view (player vs admin)
+  app.get('/api/notifications/counts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getUserNotifications(userId);
+      
+      // Player notifications: fine_issued, reminder, team_update, etc.
+      const playerNotifications = notifications.filter(n => 
+        n.type === 'fine_issued' || n.type === 'reminder' || n.type === 'team_update'
+      );
+      
+      // Admin notifications: fine_paid (settled fines)
+      const adminNotifications = notifications.filter(n => 
+        n.type === 'fine_paid'
+      );
+      
+      res.json({
+        player: {
+          total: playerNotifications.length,
+          unread: playerNotifications.filter(n => !n.isRead).length
+        },
+        admin: {
+          total: adminNotifications.length,
+          unread: adminNotifications.filter(n => !n.isRead).length
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching notification counts:", error);
+      res.status(500).json({ message: "Failed to fetch notification counts" });
+    }
+  });
+
   // Profile image upload endpoint for admins
   app.post('/api/admin/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {

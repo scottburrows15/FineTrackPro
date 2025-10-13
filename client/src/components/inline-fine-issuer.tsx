@@ -207,7 +207,7 @@ export default function InlineFineIssuer() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Fine Mode Switcher */}
           <div className="border-b border-border">
-            <div className="flex items-center gap-8 px-2">
+            <div className="flex items-center gap-10 px-2">
               <button
                 type="button"
                 onClick={() => {
@@ -221,8 +221,8 @@ export default function InlineFineIssuer() {
                 className="relative pb-3 transition-colors"
                 data-testid="switcher-single-fine"
               >
-                <div className="flex items-center gap-2">
-                  <Gavel className={`h-5 w-5 ${!isBulkMode ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`} />
+                <div className="flex items-center gap-0">
+                  <Gavel className={`h-8 w-8 ${!isBulkMode ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`} />
                   <span className={`text-base font-semibold ${
                     !isBulkMode 
                       ? 'text-red-600 dark:text-red-400' 
@@ -241,18 +241,18 @@ export default function InlineFineIssuer() {
                 className="relative pb-3 transition-colors"
                 data-testid="switcher-bulk-fines"
               >
-                <div className="flex items-center gap-2">
-                  <Users className={`h-5 w-5 ${isBulkMode ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`} />
+                <div className="flex items-center gap-0">
+                  <Users className={`h-8 w-8 ${isBulkMode ? 'text-yellow-500 dark:text-yellow-400' : 'text-slate-400'}`} />
                   <span className={`text-base font-semibold ${
                     isBulkMode 
-                      ? 'text-orange-600 dark:text-orange-400' 
+                      ? 'text-yellow-500 dark:text-yellow-400' 
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   }`}>
                     Bulk Fines
                   </span>
                 </div>
                 {isBulkMode && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-600 dark:bg-orange-400 rounded-t-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-yellow-400 dark:bg-yellow-400 rounded-t-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
                 )}
               </button>
             </div>
@@ -301,7 +301,7 @@ export default function InlineFineIssuer() {
                   data-testid="button-clear-selection"
                 >
                   <Square className="h-4 w-4 mr-2" />
-                  Clear Selection
+              Clear All
                 </Button>
                 {formData.selectedPlayerIds.length > 0 && (
                   <Badge variant="secondary" className="ml-auto">

@@ -110,13 +110,13 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
             </div>
 
             {/* Right Section: Help, Profile, Menu */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {/* Help Icon */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setLocation('/help')}
-                className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-4 w-4 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 data-testid="button-help"
               >
                 <HelpCircle className="h-7 w-7 text-slate-600 dark:text-slate-400" />
@@ -128,7 +128,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 className="rounded-full hover:ring-2 ring-blue-500 transition-all"
                 data-testid="button-profile-avatar"
               >
-                <Avatar className="h-12 w-12 shadow-md ring-2 ring-white dark:ring-slate-700">
+                <Avatar className="h-8 w-8 shadow-md ring-2 ring-white dark:ring-slate-700">
                   {user?.profileImageUrl && (
                     <AvatarImage 
                       src={user.profileImageUrl} 
@@ -148,7 +148,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-12 w-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="h-4 w-4 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     data-testid="button-hamburger-menu"
                   >
                     <Menu className="h-7 w-7 text-slate-600 dark:text-slate-400" />
