@@ -12,26 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useLocation } from "wouter";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { FineWithDetails, TeamStats, Notification } from "@shared/schema";
 import {
   Users,
+  Users2,
   AlertTriangle,
   Megaphone,
-  Clock,
   CheckCircle,
   PoundSterling,
   Calendar,
-  ChevronDown,
   Search,
   Filter,
-  Trash2,
+  PlusCircle,
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import AdminShareLink from "@/components/admin-share-link";
@@ -44,8 +38,7 @@ export default function AdminHome() {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("unpaid");
+  const [statusFilter, setStatusFilter] = useState("unpaid");
   const [dateFilter, setDateFilter] = useState("all");
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
@@ -57,11 +50,6 @@ export default function AdminHome() {
     queryKey: ["/api/fines/team"],
   });
 
-  const { data: categories = [] } = useQuery<any[]>({
-    queryKey: ["/api/categories"],
-    enabled: !!user && user.role === "admin",
-  });
-
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
@@ -69,16 +57,11 @@ export default function AdminHome() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const unpaidCount = fines.filter((f) => !f.isPaid).length;
 
-  // Filtering logic
+  // Filter fines
   const filteredFines = useMemo(() => {
     let result = [...fines];
-
     if (statusFilter === "unpaid") result = result.filter((f) => !f.isPaid);
     else if (statusFilter === "paid") result = result.filter((f) => f.isPaid);
-
-    if (categoryFilter !== "all") {
-      result = result.filter((f) => f.subcategory?.category?.id === categoryFilter);
-    }
 
     if (dateFilter === "today") {
       const today = new Date();
@@ -102,11 +85,10 @@ export default function AdminHome() {
         return playerName.includes(query) || description.includes(query);
       });
     }
-
     return result;
-  }, [fines, searchQuery, statusFilter, categoryFilter, dateFilter]);
+  }, [fines, searchQuery, statusFilter, dateFilter]);
 
-  // Mark fine as paid
+  // Mutations
   const markAsPaidMutation = useMutation({
     mutationFn: async (fine: FineWithDetails) => {
       const payload = {
@@ -120,41 +102,17 @@ export default function AdminHome() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      toast({
-        title: "Fine Marked as Paid",
-        description: "The fine has been successfully marked as paid.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to mark fine as paid. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Fine Marked as Paid", description: "Fine updated successfully." });
     },
   });
 
-  // Delete fine
   const deleteFineMutation = useMutation({
     mutationFn: async (fineId: string) => apiRequest("DELETE", `/api/admin/fines/${fineId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      toast({
-        title: "Fine Deleted",
-        description: "The fine has been permanently deleted.",
-      });
+      toast({ title: "Fine Deleted", description: "Fine has been removed." });
       setExpandedFineId(null);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete fine. Please try again.",
-        variant: "destructive",
-      });
     },
   });
 
@@ -171,239 +129,154 @@ export default function AdminHome() {
       }
       canSwitchView={true}
     >
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Team Share Link */}
-        <AdminShareLink />
+      <div className="max-w-5xl mx-auto px-4 py-4 space-y-5">
 
-        {/* Announcements */}
-        <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Megaphone className="h-5 w-5 text-white" />
+        {/* Compact Greeting */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold">Welcome back, {user.firstName}!</h2>
+          <p className="text-sm opacity-90">
+            Manage fines, track payments, and stay up to date with team activity.
+          </p>
+        </div>
+
+        {/* Team Share Link - Condensed */}
+        <Card className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm">
+                <Users2 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Invite Players</h3>
+                <p className="text-xs text-muted-foreground">Share your team code or link</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-2">Team Announcements</h3>
-              <p className="text-sm text-muted-foreground">
-                Welcome to the admin dashboard! Manage fines, view analytics, and track payments below.
-              </p>
-            </div>
+            <AdminShareLink />
           </div>
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 border-blue-200 dark:border-blue-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Total Players</p>
-                <p className="text-3xl font-bold text-blue-800 dark:text-blue-200">
-                  {statsLoading ? "-" : stats?.totalPlayers || 0}
-                </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { title: "Total Players", value: statsLoading ? "-" : stats?.totalPlayers || 0, icon: <Users className="w-6 h-6 text-blue-500" />, color: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40" },
+            { title: "Outstanding Fines", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.outstandingFines || "0")), icon: <AlertTriangle className="w-6 h-6 text-orange-500" />, color: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/40" },
+            { title: "This Month", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.monthlyCollection || "0")), icon: <PoundSterling className="w-6 h-6 text-green-500" />, color: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/40" },
+            { title: "Unpaid Fines", value: finesLoading ? "-" : unpaidCount, icon: <Calendar className="w-6 h-6 text-purple-500" />, color: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/40" },
+          ].map((item, i) => (
+            <Card key={i} className={`p-4 bg-gradient-to-br ${item.color} border border-slate-200 dark:border-slate-700`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">{item.title}</p>
+                  <p className="text-2xl font-bold mt-1">{item.value}</p>
+                </div>
+                {item.icon}
               </div>
-              <Users className="w-8 h-8 text-blue-500" />
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-900/30 border-orange-200 dark:border-orange-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 dark:text-orange-400">Outstanding</p>
-                <p className="text-2xl font-bold text-red-800 dark:text-red-200">
-                  {statsLoading ? "-" : formatCurrency(parseFloat(stats?.outstandingFines || "0"))}
-                </p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-500" />
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-900/30 border-emerald-200 dark:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-emerald-600 dark:text-emerald-400">This Month</p>
-                <p className="text-2xl font-bold text-green-800 dark:text-green-200">
-                  {statsLoading ? "-" : formatCurrency(parseFloat(stats?.monthlyCollection || "0"))}
-                </p>
-              </div>
-              <PoundSterling className="w-8 h-8 text-emerald-500" />
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-900/30 border-purple-200 dark:border-purple-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400">Unpaid Fines</p>
-                <p className="text-3xl font-bold text-purple-800 dark:text-purple-200">
-                  {finesLoading ? "-" : unpaidCount}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-purple-500" />
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
         {/* All Fines Section */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+        <Card className="p-5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">All Fines</h3>
-              <p className="text-sm text-muted-foreground">Manage team fines and payments</p>
+              <p className="text-xs text-muted-foreground">Search, filter, and manage team fines</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/fines")}>
-              View All
+            <Button
+              onClick={() => setLocation("/admin/fines")}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center gap-1"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Issue Fine
             </Button>
           </div>
 
-          {/* Fines list */}
-          {finesLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
-              ))}
+          {/* Filters inside All Fines */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search fines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder="Date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">Last Week</SelectItem>
+                <SelectItem value="month">Last Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fines List */}
+          {finesLoading ? (
+            <p className="text-center py-6 text-muted-foreground">Loading fines...</p>
           ) : filteredFines.length > 0 ? (
             <div className="space-y-3">
               {filteredFines.map((fine) => (
-                <Collapsible
+                <Card
                   key={fine.id}
-                  open={expandedFineId === fine.id}
-                  onOpenChange={(isOpen) => setExpandedFineId(isOpen ? fine.id : null)}
+                  className={`p-4 border ${fine.isPaid ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
                 >
-                  <div
-                    className={`rounded-lg border ${
-                      fine.isPaid
-                        ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-700"
-                        : "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-700"
-                    }`}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <button className="w-full flex items-center justify-between p-4 hover:opacity-80 transition-opacity">
-                        <div className="flex items-center gap-3 flex-1 text-left">
-                          <div
-                            className={`p-2 rounded-full ${
-                              fine.isPaid
-                                ? "bg-emerald-100 dark:bg-emerald-900/30"
-                                : "bg-red-100 dark:bg-red-900/30"
-                            }`}
-                          >
-                            {fine.isPaid ? (
-                              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                            ) : (
-                              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {fine.player?.firstName} {fine.player?.lastName}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                              <span>{fine.subcategory?.name || "Fine"}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatDate(fine.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p
-                              className={`text-lg font-bold ${
-                                fine.isPaid
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : "text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              {formatCurrency(parseFloat(fine.amount))}
-                            </p>
-                            <Badge
-                              className={`text-xs ${
-                                fine.isPaid
-                                  ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700"
-                                  : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
-                              }`}
-                            >
-                              {fine.isPaid ? "Paid" : "Unpaid"}
-                            </Badge>
-                          </div>
-                          <ChevronDown
-                            className={`h-5 w-5 text-muted-foreground transition-transform ${
-                              expandedFineId === fine.id ? "rotate-180" : ""
-                            }`}
-                          />
-                        </div>
-                      </button>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent>
-                      <div className="px-4 pb-4 border-t pt-4">
-                        <div className="space-y-3">
-                          {fine.description && (
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Description</p>
-                              <p className="text-sm">{fine.description}</p>
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Issued By</p>
-                              <p className="text-sm font-medium">
-                                {fine.issuedByUser?.firstName} {fine.issuedByUser?.lastName}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Date/Time Issued</p>
-                              <p className="text-sm font-medium">{formatDate(fine.createdAt)}</p>
-                            </div>
-                          </div>
-
-                          {fine.paidAt && (
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Paid On</p>
-                              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                {formatDate(fine.paidAt)}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* --- FIXED BUTTONS (Mobile Safe) --- */}
-                          {!fine.isPaid && (
-                            <div className="flex flex-col sm:flex-row gap-2 pt-3 w-full">
-                              <Button
-                                onClick={() => markAsPaidMutation.mutate(fine)}
-                                disabled={markAsPaidMutation.isPending}
-                                className="w-full sm:flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
-                                data-testid={`button-mark-paid-${fine.id}`}
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Mark as Paid
-                              </Button>
-
-                              <Button
-                                onClick={() => deleteFineMutation.mutate(fine.id)}
-                                disabled={deleteFineMutation.isPending}
-                                variant="outline"
-                                className="w-full sm:flex-1 h-11 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                                data-testid={`button-delete-${fine.id}`}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Fine
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CollapsibleContent>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{fine.player?.firstName} {fine.player?.lastName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fine.subcategory?.name || "Fine"} • {formatDate(fine.createdAt)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{formatCurrency(parseFloat(fine.amount))}</p>
+                      <Badge className={`text-xs ${fine.isPaid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {fine.isPaid ? "Paid" : "Unpaid"}
+                      </Badge>
+                    </div>
                   </div>
-                </Collapsible>
+
+                  {fine.description && (
+                    <p className="text-sm text-muted-foreground mt-2">{fine.description}</p>
+                  )}
+
+                  {!fine.isPaid && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        onClick={() => markAsPaidMutation.mutate(fine)}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Mark as Paid
+                      </Button>
+                      <Button
+                        onClick={() => deleteFineMutation.mutate(fine.id)}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Filter className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <div className="text-center py-6 text-muted-foreground">
+              <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>No fines found</p>
-              <p className="text-sm">Try adjusting your filters or issue a new fine</p>
             </div>
           )}
         </Card>

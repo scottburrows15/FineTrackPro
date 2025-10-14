@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Tags, Edit, Trash2, PoundSterling, Edit2, GripVertical } from "lucide-react";
+import { Plus, Tags, Edit2, Trash2, PoundSterling, GripVertical } from "lucide-react";
 import type { FineCategory, FineSubcategory } from "@shared/schema";
 import {
   DndContext,
@@ -26,9 +26,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  useSortable,
-} from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 interface ManageCategoriesModalProps {
@@ -37,85 +35,67 @@ interface ManageCategoriesModalProps {
 }
 
 interface SortableCategoryCardProps {
-  category: FineCategory & { subcategoryCount: number };
+  category: FineCategory & { subcategoryCount?: number };
   isSelected: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function SortableCategoryCard({ 
-  category, 
-  isSelected, 
-  onSelect, 
-  onEdit, 
-  onDelete 
-}: SortableCategoryCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: category.id });
-
+function SortableCategoryCard({ category, isSelected, onSelect, onEdit, onDelete }: SortableCategoryCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.6 : 1,
   };
 
   return (
-    <Card 
+    <Card
       ref={setNodeRef}
       style={style}
-      className={`cursor-pointer transition-all hover:shadow-md ${
-        isSelected ? 'ring-2 ring-primary' : ''
-      } ${isDragging ? 'z-50' : ''}`}
+      className={`cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''} ${isDragging ? 'z-50' : ''}`}
       onClick={onSelect}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 flex-1">
-            <div 
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
-            >
-              <GripVertical className="w-4 h-4 text-gray-400" />
+      <CardContent className="p-3">
+        <div className="flex items-center gap-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 rounded"
+            aria-hidden
+          >
+            <GripVertical className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: category.color }}>
+              <Tags className="w-4 h-4 text-white" />
             </div>
-            <div 
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: category.color }}
-            />
-            <div className="flex-1">
-              <h4 className="font-medium text-slate-900">{category.name}</h4>
-              <p className="text-xs text-slate-600">
-                {category.subcategoryCount} subcategories
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">{category.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {category.subcategoryCount ?? 0} subcategor{(category.subcategoryCount ?? 0) !== 1 ? 'ies' : 'y'}
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <Button 
-              size="sm" 
+
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
               variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              aria-label={`Edit ${category.name}`}
             >
               <Edit2 className="w-4 h-4" />
             </Button>
-            <Button 
-              size="sm" 
+
+            <Button
+              size="sm"
               variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
               className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+              aria-label={`Delete ${category.name}`}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -132,60 +112,30 @@ interface SortableSubcategoryCardProps {
   onDelete: () => void;
 }
 
-function SortableSubcategoryCard({ 
-  subcategory, 
-  onEdit, 
-  onDelete 
-}: SortableSubcategoryCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: subcategory.id });
-
+function SortableSubcategoryCard({ subcategory, onEdit, onDelete }: SortableSubcategoryCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subcategory.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.6 : 1,
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 flex-1">
-            <div 
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
-            >
-              <GripVertical className="w-4 h-4 text-gray-400" />
-            </div>
-            <div>
-              <h4 className="font-medium text-slate-900">{subcategory.name}</h4>
-              <p className="text-sm text-slate-600">
-                Default: £{parseFloat(subcategory.defaultAmount).toFixed(2)}
-              </p>
-            </div>
+    <Card ref={setNodeRef} style={style} className={`${isDragging ? 'z-50' : ''}`}>
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 rounded" aria-hidden>
+            <GripVertical className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="flex space-x-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={onEdit}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            >
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{subcategory.name}</p>
+            <p className="text-xs text-muted-foreground">Default: £{parseFloat(subcategory.defaultAmount || "0").toFixed(2)}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={onEdit} className="h-8 w-8 p-0">
               <Edit2 className="w-4 h-4" />
             </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
+            <Button size="sm" variant="outline" onClick={onDelete} className="h-8 w-8 p-0 text-red-600">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -198,537 +148,270 @@ function SortableSubcategoryCard({
 export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-  
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [showAddSubcategory, setShowAddSubcategory] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showSubcategoryForm, setShowSubcategoryForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<FineCategory | null>(null);
   const [editingSubcategory, setEditingSubcategory] = useState<FineSubcategory | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: 'category' | 'subcategory';
-    item: FineCategory | FineSubcategory;
-  } | null>(null);
-  
-  const [categoryForm, setCategoryForm] = useState({
-    name: "",
-    color: "#1E40AF",
-  });
-  
-  const [subcategoryForm, setSubcategoryForm] = useState({
-    name: "",
-    defaultAmount: "",
-    icon: "fas fa-gavel",
-  });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'category' | 'subcategory'; id: string; name?: string } | null>(null);
 
-  // Fetch categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<(FineCategory & { subcategoryCount: number })[]>({
+  // Forms
+  const [categoryForm, setCategoryForm] = useState({ name: "", color: "#1E40AF" });
+  const [subcategoryForm, setSubcategoryForm] = useState({ name: "", defaultAmount: "0.00" });
+
+  // Data
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<(FineCategory & { subcategoryCount?: number })[]>({
     queryKey: ["/api/categories"],
     enabled: isOpen,
+    keepPreviousData: true,
   });
 
-  // Fetch subcategories for selected category
-  const { data: subcategories = [] } = useQuery<FineSubcategory[]>({
+  const { data: subcategories = [], isLoading: subcategoriesLoading } = useQuery<FineSubcategory[]>({
     queryKey: ["/api/categories", selectedCategoryId, "subcategories"],
     enabled: isOpen && !!selectedCategoryId,
+    keepPreviousData: true,
   });
 
-  // Create category mutation
+  // Mutations
   const createCategory = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/categories", data);
-    },
+    mutationFn: (payload: any) => apiRequest("POST", "/api/categories", payload),
     onSuccess: () => {
-      toast({
-        title: "Category Created",
-        description: "New fine category has been created successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      setShowAddCategory(false);
+      toast({ title: "Category Created", description: "Category successfully created." });
+      setShowCategoryForm(false);
       setCategoryForm({ name: "", color: "#1E40AF" });
+      setEditingCategory(null);
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create category",
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create category", variant: "destructive" });
     },
   });
 
-  // Create subcategory mutation
-  const createSubcategory = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("POST", `/api/categories/${selectedCategoryId}/subcategories`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Subcategory Created",
-        description: "New fine subcategory has been created successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-      setShowAddSubcategory(false);
-      setSubcategoryForm({ name: "", defaultAmount: "", icon: "fas fa-gavel" });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create subcategory",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update category mutation
   const updateCategory = useMutation({
-    mutationFn: async (data: { id: string; name: string; color: string }) => {
-      return await apiRequest("PATCH", `/api/categories/${data.id}`, {
-        name: data.name,
-        color: data.color,
-      });
-    },
+    mutationFn: (payload: { id: string; name: string; color: string }) => apiRequest("PATCH", `/api/categories/${payload.id}`, { name: payload.name, color: payload.color }),
     onSuccess: () => {
-      toast({
-        title: "Category Updated",
-        description: "Category has been updated successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category Updated", description: "Category updated." });
+      setShowCategoryForm(false);
       setEditingCategory(null);
       setCategoryForm({ name: "", color: "#1E40AF" });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update category",
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update category", variant: "destructive" });
     },
   });
 
-  // Update subcategory mutation
-  const updateSubcategory = useMutation({
-    mutationFn: async (data: { id: string; name: string; defaultAmount: string; icon: string }) => {
-      return await apiRequest("PATCH", `/api/subcategories/${data.id}`, {
-        name: data.name,
-        defaultAmount: data.defaultAmount,
-        icon: data.icon,
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Subcategory Updated",
-        description: "Subcategory has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-      setEditingSubcategory(null);
-      setSubcategoryForm({ name: "", defaultAmount: "", icon: "fas fa-gavel" });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update subcategory",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete category mutation
   const deleteCategory = useMutation({
-    mutationFn: async (categoryId: string) => {
-      return await apiRequest("DELETE", `/api/categories/${categoryId}`);
-    },
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/categories/${id}`),
     onSuccess: () => {
-      toast({
-        title: "Category Deleted",
-        description: "Fine category has been deleted successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category Deleted", description: "Category removed." });
       setDeleteConfirm(null);
-      setSelectedCategoryId("");
+      setSelectedCategoryId(null);
     },
-    onError: (error) => {
-      toast({
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to delete category",
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to delete category", variant: "destructive" });
     },
   });
 
-  // Delete subcategory mutation
+  const createSubcategory = useMutation({
+    mutationFn: (payload: any) => apiRequest("POST", `/api/categories/${selectedCategoryId}/subcategories`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      toast({ title: "Subcategory Created", description: "Subcategory added." });
+      setShowSubcategoryForm(false);
+      setSubcategoryForm({ name: "", defaultAmount: "0.00" });
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create subcategory", variant: "destructive" });
+    },
+  });
+
+  const updateSubcategory = useMutation({
+    mutationFn: (payload: { id: string; name: string; defaultAmount: string }) => apiRequest("PATCH", `/api/subcategories/${payload.id}`, { name: payload.name, defaultAmount: payload.defaultAmount }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      toast({ title: "Subcategory Updated", description: "Subcategory updated." });
+      setShowSubcategoryForm(false);
+      setEditingSubcategory(null);
+      setSubcategoryForm({ name: "", defaultAmount: "0.00" });
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update subcategory", variant: "destructive" });
+    },
+  });
+
   const deleteSubcategory = useMutation({
-    mutationFn: async (subcategoryId: string) => {
-      return await apiRequest("DELETE", `/api/subcategories/${subcategoryId}`);
-    },
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/subcategories/${id}`),
     onSuccess: () => {
-      toast({
-        title: "Subcategory Deleted",
-        description: "Fine subcategory has been deleted successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      toast({ title: "Subcategory Deleted", description: "Subcategory removed." });
       setDeleteConfirm(null);
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete subcategory", 
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to delete subcategory", variant: "destructive" });
     },
   });
 
-  // Reorder categories mutation
   const reorderCategories = useMutation({
-    mutationFn: async (reorderedIds: string[]) => {
-      return apiRequest("PATCH", "/api/categories/reorder", { categoryIds: reorderedIds });
-    },
+    mutationFn: (ids: string[]) => apiRequest("PATCH", "/api/categories/reorder", { categoryIds: ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
     },
-    onError: (error) => {
-      console.error("Error reordering categories:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reorder categories",
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: "Failed to reorder categories", variant: "destructive" });
     },
   });
 
-  // Reorder subcategories mutation
   const reorderSubcategories = useMutation({
-    mutationFn: async (reorderedIds: string[]) => {
-      return apiRequest("PATCH", `/api/categories/${selectedCategoryId}/subcategories/reorder`, { subcategoryIds: reorderedIds });
-    },
+    mutationFn: (ids: string[]) => apiRequest("PATCH", `/api/categories/${selectedCategoryId}/subcategories/reorder`, { subcategoryIds: ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
     },
-    onError: (error) => {
-      console.error("Error reordering subcategories:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reorder subcategories",
-        variant: "destructive",
-      });
+    onError: (err) => {
+      toast({ title: "Error", description: "Failed to reorder subcategories", variant: "destructive" });
     },
   });
 
-  // Drag handlers
+  // drag handlers
   const handleCategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
-    if (active.id !== over?.id) {
-      const oldIndex = categories.findIndex((item) => item.id === active.id);
-      const newIndex = categories.findIndex((item) => item.id === over?.id);
-      
+    if (!over) return;
+    if (active.id !== over.id) {
+      const oldIndex = categories.findIndex(c => c.id === active.id);
+      const newIndex = categories.findIndex(c => c.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
       const newOrder = arrayMove(categories, oldIndex, newIndex);
-      const reorderedIds = newOrder.map(item => item.id);
-      
-      reorderCategories.mutate(reorderedIds);
+      reorderCategories.mutate(newOrder.map(c => c.id));
     }
   };
 
   const handleSubcategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
-    if (active.id !== over?.id) {
-      const oldIndex = subcategories.findIndex((item) => item.id === active.id);
-      const newIndex = subcategories.findIndex((item) => item.id === over?.id);
-      
+    if (!over) return;
+    if (active.id !== over.id) {
+      const oldIndex = subcategories.findIndex(s => s.id === active.id);
+      const newIndex = subcategories.findIndex(s => s.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
       const newOrder = arrayMove(subcategories, oldIndex, newIndex);
-      const reorderedIds = newOrder.map(item => item.id);
-      
-      reorderSubcategories.mutate(reorderedIds);
+      reorderSubcategories.mutate(newOrder.map(s => s.id));
     }
   };
 
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault();
+  // helpers
+  useEffect(() => {
+    if (!selectedCategoryId && categories.length > 0) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId]);
+
+  const startEditCategory = (category: FineCategory) => {
+    setEditingCategory(category);
+    setCategoryForm({ name: category.name, color: category.color || "#1E40AF" });
+    setShowCategoryForm(true);
+  };
+
+  const startEditSubcategory = (subcategory: FineSubcategory) => {
+    setEditingSubcategory(subcategory);
+    setSubcategoryForm({ name: subcategory.name, defaultAmount: subcategory.defaultAmount || "0.00" });
+    setShowSubcategoryForm(true);
+  };
+
+  // submit handlers
+  const submitCategory = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!categoryForm.name.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a category name.",
-        variant: "destructive",
-      });
+      toast({ title: "Missing", description: "Category name required", variant: "destructive" });
       return;
     }
-    
     if (editingCategory) {
-      updateCategory.mutate({
-        id: editingCategory.id,
-        ...categoryForm,
-      });
+      updateCategory.mutate({ id: editingCategory.id, name: categoryForm.name, color: categoryForm.color });
     } else {
       createCategory.mutate(categoryForm);
     }
   };
 
-  const handleCreateSubcategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subcategoryForm.name.trim() || !subcategoryForm.defaultAmount.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide subcategory name and default amount.",
-        variant: "destructive",
-      });
+  const submitSubcategory = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!selectedCategoryId) {
+      toast({ title: "Select category", description: "Please select a category first", variant: "destructive" });
       return;
     }
-    
-    if (editingSubcategory) {
-      updateSubcategory.mutate({
-        id: editingSubcategory.id,
-        ...subcategoryForm,
-      });
-    } else {
-      createSubcategory.mutate(subcategoryForm);
+    if (!subcategoryForm.name.trim()) {
+      toast({ title: "Missing", description: "Subcategory name required", variant: "destructive" });
+      return;
     }
-  };
-
-  // Handler functions
-  const handleEditCategory = (category: FineCategory) => {
-    setEditingCategory(category);
-    setCategoryForm({
-      name: category.name,
-      color: category.color || "#1E40AF",
-    });
-    setShowAddCategory(true);
-  };
-
-  const handleEditSubcategory = (subcategory: FineSubcategory) => {
-    setEditingSubcategory(subcategory);
-    setSubcategoryForm({
-      name: subcategory.name,
-      defaultAmount: subcategory.defaultAmount || "",
-      icon: subcategory.icon || "fas fa-gavel",
-    });
-    setShowAddSubcategory(true);
-  };
-
-  const handleDeleteCategory = (category: FineCategory) => {
-    setDeleteConfirm({
-      type: 'category',
-      item: category,
-    });
-  };
-
-  const handleDeleteSubcategory = (subcategory: FineSubcategory) => {
-    setDeleteConfirm({
-      type: 'subcategory',
-      item: subcategory,
-    });
+    if (!/^\d+(\.\d{1,2})?$/.test(subcategoryForm.defaultAmount)) {
+      toast({ title: "Invalid amount", description: "Default amount must be a number (max 2 decimals)", variant: "destructive" });
+      return;
+    }
+    if (editingSubcategory) {
+      updateSubcategory.mutate({ id: editingSubcategory.id, name: subcategoryForm.name, defaultAmount: subcategoryForm.defaultAmount });
+    } else {
+      createSubcategory.mutate({ name: subcategoryForm.name, defaultAmount: subcategoryForm.defaultAmount });
+    }
   };
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    
-    if (deleteConfirm.type === 'category') {
-      deleteCategory.mutate(deleteConfirm.item.id);
-    } else {
-      deleteSubcategory.mutate(deleteConfirm.item.id);
-    }
+    if (deleteConfirm.type === 'category') deleteCategory.mutate(deleteConfirm.id);
+    else deleteSubcategory.mutate(deleteConfirm.id);
   };
 
-  const formatCurrency = (amount: string) => {
-    const num = parseFloat(amount);
-    return `£${num.toFixed(2)}`;
+  // small UI currency helper
+  const formatCurrencyUI = (amt: string) => {
+    const n = parseFloat(amt || "0");
+    if (isNaN(n)) return "£0.00";
+    return `£${n.toFixed(2)}`;
   };
 
+  // Render
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6 bg-white dark:bg-slate-800 border-border">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Tags className="w-5 h-5" />
             <span>Fine Types</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2 space-y-4 sm:space-y-6">
-          {/* Categories Section */}
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h3 className="text-lg font-semibold">Categories</h3>
-              <Button 
-                onClick={() => setShowAddCategory(!showAddCategory)}
-                size="sm"
-                className="flex items-center space-x-2 w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Category</span>
-              </Button>
-            </div>
-
-            {showAddCategory && (
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <form onSubmit={handleCreateCategory} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="sm:col-span-2">
-                        <Label htmlFor="categoryName">Category Name</Label>
-                        <Input
-                          id="categoryName"
-                          value={categoryForm.name}
-                          onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="e.g., Training, Match Day, Social"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="categoryColor">Color</Label>
-                        <Input
-                          id="categoryColor"
-                          type="color"
-                          value={categoryForm.color}
-                          onChange={(e) => setCategoryForm(prev => ({ ...prev, color: e.target.value }))}
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit" size="sm" disabled={createCategory.isPending || updateCategory.isPending}>
-                        {createCategory.isPending || updateCategory.isPending 
-                          ? (editingCategory ? 'Updating...' : 'Creating...') 
-                          : (editingCategory ? 'Update Category' : 'Create Category')
-                        }
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setShowAddCategory(false);
-                          setEditingCategory(null);
-                          setCategoryForm({ name: "", color: "#1E40AF" });
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoriesLoading ? (
-                <div className="col-span-full text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                  <p className="text-sm text-slate-600 mt-2">Loading categories...</p>
-                </div>
-              ) : categories.length === 0 ? (
-                <div className="col-span-full text-center py-8">
-                  <Tags className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600">No categories yet. Create your first category above.</p>
-                </div>
-              ) : (
-                <DndContext 
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleCategoryDragEnd}
-                >
-                  <SortableContext 
-                    items={categories.map(cat => cat.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {categories.map((category) => (
-                      <SortableCategoryCard
-                        key={category.id}
-                        category={category}
-                        isSelected={selectedCategoryId === category.id}
-                        onSelect={() => setSelectedCategoryId(category.id)}
-                        onEdit={() => handleEditCategory(category)}
-                        onDelete={() => handleDeleteCategory(category)}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-          </div>
-
-          {/* Subcategories Section */}
-          {selectedCategoryId && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold">
-                    Subcategories for {categories.find(c => c.id === selectedCategoryId)?.name}
-                  </h3>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      const category = categories.find(c => c.id === selectedCategoryId);
-                      if (category) handleDeleteCategory(category);
-                    }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Delete Category
-                  </Button>
-                </div>
-                <Button 
-                  onClick={() => setShowAddSubcategory(!showAddSubcategory)}
-                  size="sm"
-                  className="flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Subcategory</span>
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Left column: categories */}
+            <div className="lg:col-span-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Categories</h3>
+                <Button onClick={() => { setShowCategoryForm(true); setEditingCategory(null); }} size="sm" className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> <span>Add</span>
                 </Button>
               </div>
 
-              {showAddSubcategory && (
-                <Card className="mb-4">
-                  <CardContent className="p-4">
-                    <form onSubmit={handleCreateSubcategory} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="subcategoryName">Subcategory Name</Label>
-                          <Input
-                            id="subcategoryName"
-                            value={subcategoryForm.name}
-                            onChange={(e) => setSubcategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="e.g., Late Arrival, Red Card"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="defaultAmount">Default Amount (£)</Label>
-                          <Input
-                            id="defaultAmount"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={subcategoryForm.defaultAmount}
-                            onChange={(e) => setSubcategoryForm(prev => ({ ...prev, defaultAmount: e.target.value }))}
-                            placeholder="5.00"
-                            required
-                          />
-                        </div>
+              {/* Category form (collapsible) */}
+              {showCategoryForm && (
+                <Card className="mb-3">
+                  <CardContent className="p-3">
+                    <form onSubmit={submitCategory} className="space-y-3">
+                      <div>
+                        <Label htmlFor="catName">Name</Label>
+                        <Input id="catName" value={categoryForm.name} onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Training" />
                       </div>
-                      <div className="flex space-x-2">
-                        <Button type="submit" size="sm" disabled={createSubcategory.isPending || updateSubcategory.isPending}>
-                          {createSubcategory.isPending || updateSubcategory.isPending 
-                            ? (editingSubcategory ? 'Updating...' : 'Creating...') 
-                            : (editingSubcategory ? 'Update Subcategory' : 'Create Subcategory')
-                          }
+                      <div>
+                        <Label htmlFor="catColor">Colour</Label>
+                        <Input id="catColor" type="color" value={categoryForm.color} onChange={(e) => setCategoryForm(prev => ({ ...prev, color: e.target.value }))} className="h-9 w-20 p-0" />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}>
+                          {editingCategory ? (updateCategory.isPending ? "Updating..." : "Update") : (createCategory.isPending ? "Creating..." : "Create")}
                         </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setShowAddSubcategory(false);
-                            setEditingSubcategory(null);
-                            setSubcategoryForm({ name: "", defaultAmount: "", icon: "fas fa-gavel" });
-                          }}
-                        >
+                        <Button variant="outline" onClick={() => { setShowCategoryForm(false); setEditingCategory(null); setCategoryForm({ name: "", color: "#1E40AF" }); }}>
                           Cancel
                         </Button>
                       </div>
@@ -737,62 +420,140 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
                 </Card>
               )}
 
-              <div className="space-y-2">
-                {subcategories.length === 0 ? (
-                  <div className="text-center py-8">
-                    <PoundSterling className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600">No subcategories yet. Create your first subcategory above.</p>
+              {/* Categories list */}
+              <div className="space-y-3">
+                {categoriesLoading ? (
+                  <div className="text-center py-6">
+                    <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                    <p className="text-sm text-muted-foreground mt-2">Loading...</p>
+                  </div>
+                ) : categories.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p>No categories yet. Add one to get started.</p>
                   </div>
                 ) : (
-                  <DndContext 
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleSubcategoryDragEnd}
-                  >
-                    <SortableContext 
-                      items={subcategories.map(sub => sub.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {subcategories.map((subcategory) => (
-                        <SortableSubcategoryCard
-                          key={subcategory.id}
-                          subcategory={subcategory}
-                          onEdit={() => handleEditSubcategory(subcategory)}
-                          onDelete={() => handleDeleteSubcategory(subcategory)}
-                        />
-                      ))}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+                    <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {categories.map((cat) => (
+                          <SortableCategoryCard
+                            key={cat.id}
+                            category={cat}
+                            isSelected={selectedCategoryId === cat.id}
+                            onSelect={() => setSelectedCategoryId(cat.id)}
+                            onEdit={() => startEditCategory(cat)}
+                            onDelete={() => setDeleteConfirm({ type: 'category', id: cat.id, name: cat.name })}
+                          />
+                        ))}
+                      </div>
                     </SortableContext>
                   </DndContext>
                 )}
               </div>
             </div>
-          )}
+
+            {/* Right column: subcategories */}
+            <div className="lg:col-span-7">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    Subcategories{selectedCategoryId ? ` — ${categories.find(c => c.id === selectedCategoryId)?.name}` : ''}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Click a category on the left to manage its subcategories.</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { if (selectedCategoryId) setShowSubcategoryForm(true); else toast({ title: "No category selected", description: "Please select a category first", variant: "destructive" }); }}>
+                    <Plus className="w-4 h-4" /> <span>Add Subcategory</span>
+                  </Button>
+                  {selectedCategoryId && (
+                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: 'category', id: selectedCategoryId, name: categories.find(c => c.id === selectedCategoryId)?.name })} className="text-red-600">
+                      <Trash2 className="w-4 h-4" /> <span className="sr-only">Delete category</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subcategory form */}
+              {showSubcategoryForm && (
+                <Card className="mb-3">
+                  <CardContent className="p-3">
+                    <form onSubmit={submitSubcategory} className="space-y-3">
+                      <div>
+                        <Label htmlFor="subName">Name</Label>
+                        <Input id="subName" value={subcategoryForm.name} onChange={(e) => setSubcategoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Late Arrival" />
+                      </div>
+                      <div>
+                        <Label htmlFor="subAmount">Default Amount (£)</Label>
+                        <Input id="subAmount" type="number" min="0" step="0.01" value={subcategoryForm.defaultAmount} onChange={(e) => setSubcategoryForm(prev => ({ ...prev, defaultAmount: e.target.value }))} />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={createSubcategory.isPending || updateSubcategory.isPending}>
+                          {editingSubcategory ? (updateSubcategory.isPending ? "Updating..." : "Update") : (createSubcategory.isPending ? "Creating..." : "Create")}
+                        </Button>
+                        <Button variant="outline" onClick={() => { setShowSubcategoryForm(false); setEditingSubcategory(null); setSubcategoryForm({ name: "", defaultAmount: "0.00" }); }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Subcategories list */}
+              <div className="space-y-2">
+                {selectedCategoryId && subcategoriesLoading ? (
+                  <div className="text-center py-6">
+                    <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                    <p className="text-sm text-muted-foreground mt-2">Loading subcategories...</p>
+                  </div>
+                ) : selectedCategoryId && subcategories.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <PoundSterling className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                    <p>No subcategories for this category yet.</p>
+                  </div>
+                ) : selectedCategoryId ? (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubcategoryDragEnd}>
+                    <SortableContext items={subcategories.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {subcategories.map((sub) => (
+                          <SortableSubcategoryCard
+                            key={sub.id}
+                            subcategory={sub}
+                            onEdit={() => startEditSubcategory(sub)}
+                            onDelete={() => setDeleteConfirm({ type: 'subcategory', id: sub.id, name: sub.name })}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p>Select a category to view subcategories.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {deleteConfirm?.type === 'category' ? 'Category' : 'Subcategory'}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{deleteConfirm?.name}"? {deleteConfirm?.type === 'category' && 'This will also delete all subcategories within it.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteConfirm?.type === 'category' ? 'Category' : 'Subcategory'}</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deleteConfirm?.item?.name}"?
-              {deleteConfirm?.type === 'category' && 
-                ' This will also delete all subcategories within it.'
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 }
