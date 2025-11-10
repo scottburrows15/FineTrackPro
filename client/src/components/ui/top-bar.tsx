@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
 import { getDisplayName } from "@/lib/userUtils";
+import logoUrl from "@assets/Foul-Pay-Logo_1762790615614.png";
 
 interface TopBarProps {
   user: UserType | null;
@@ -51,12 +52,19 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
     <>
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="px-4 py-3">
-          {/* Page Title and View Switcher */}
+          {/* FoulPay Logo and Page Title with View Switcher */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                {pageTitle}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <img 
+                  src={logoUrl} 
+                  alt="FoulPay Logo" 
+                  className="h-6 w-auto sm:h-7 object-contain"
+                />
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  {pageTitle}
+                </h1>
+              </div>
               {/* View Switcher - only show if user can switch views */}
               {canSwitchView ? (
                 <div className="flex items-center gap-4 mt-2">
