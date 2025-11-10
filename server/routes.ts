@@ -1555,8 +1555,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       const notifications = await storage.getUserNotifications(userId);
-      res.json(notifications);
+      
+      // Filter notifications based on user role
+      // Players only see their own notifications (fine_issued, payment_confirmed, reminder, etc.)
+      // Admins see team-wide notifications (fine_paid by others, fine_deleted, etc.)
+      const filteredNotifications = user?.role === 'admin' 
+        ? notifications // Admins see all notifications
+        : notifications.filter(n => 
+            n.type === 'fine_issued' || 
+            n.type === 'reminder' || 
+            n.type === 'team_update' || 
+            n.type === 'fine_removed' || 
+            n.type === 'payment_confirmed'
+          ); // Players only see player-specific notification types
+      
+      res.json(filteredNotifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
       res.status(500).json({ message: "Failed to fetch notifications" });

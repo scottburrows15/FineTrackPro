@@ -1,0 +1,67 @@
+You are updating the FoulPay app (React + Tailwind + Shadcn + Stripe).
+
+Fix and enhance the following four areas of the app:
+
+---
+
+### 1. Fine Editing – Category & Subcategory Fix
+Problem:
+When editing a fine, the existing category and subcategory fields do not display the current values.
+
+Requirements:
+- In the fine editing modal (Admin → All Fines → Edit Fine), ensure that both `category` and `subcategory` dropdowns are **pre-populated** with the current fine’s values.
+- When the user selects a different category, update the subcategory dropdown options dynamically.
+- Use controlled React form inputs via `react-hook-form` so existing data is shown correctly when the modal opens.
+- Ensure that when submitting the form, the updated category and subcategory are sent in the PUT request to `/api/admin/fines/:id`.
+- Show a success toast: “Fine updated successfully” and close the modal.
+
+---
+
+### 2. Player Notifications – Filter Only Player-Specific Updates
+Problem:
+Players currently see notifications about other players’ payments.
+
+Requirements:
+- Modify the notifications fetching logic for non-admin users so only notifications relevant to their account are shown.
+- For players: only show notifications where `recipientId === currentUser.id`.
+- For admins: continue to show all notifications (e.g. “Player X settled a fine”).
+- Apply filtering either server-side (preferred) or client-side within the `/api/notifications` response handling.
+- Ensure toast notifications triggered by WebSocket or polling also follow this filtering logic.
+
+---
+
+### 3. League Position – Link and Accuracy Fix
+Problem:
+League position on the player home screen is not linked and does not accurately reflect the player’s position in the Hall of Shame leaderboard.
+
+Requirements:
+- Update the player home screen so the **League Position** label or stat card is clickable.
+- When clicked, navigate to `/player/hall-of-shame`.
+- The value shown should be dynamically pulled from the same data source as the Hall of Shame leaderboard.
+  Example: if the player is ranked 4th in total unpaid fines, the card should display “4th” (use ordinal formatting).
+- Add a hover state animation (scale or subtle glow) for visual feedback.
+- Ensure data updates when the leaderboard updates (e.g., new fines or payments).
+
+---
+
+### 4. Payment Options – Add Google Pay and Apple Pay
+Problem:
+Stripe modal currently supports only card payments.
+
+Requirements:
+- Integrate Google Pay and Apple Pay as additional payment options within the Stripe Checkout modal for players.
+- Use Stripe’s Payment Request Button integration (`<PaymentRequestButtonElement />`).
+- Display the button within the existing payment modal under the “Pay Now” button.
+- Automatically detect device compatibility (e.g., Apple Pay on Safari, Google Pay on Chrome/Android).
+- Use the same payment flow: create a PaymentIntent → confirm → mark fines as paid.
+- Keep styling consistent with FoulPay UI (rounded, spacing, blue accent for Stripe buttons).
+- Add fallback text if Apple/Google Pay is not available: “Apple/Google Pay not supported on this device.”
+
+---
+
+### General Notes
+- Keep all styling consistent with the FoulPay design system (Shadcn components, blue-accent color theme, rounded-xl cards, consistent padding and spacing).
+- Test all changes on both mobile and desktop layouts.
+- Do not break existing Stripe or fine management logic.
+- Once complete, commit with the message:
+  feat: fixed fine editing fields, improved notification filtering, linked league position, and added Apple/Google Pay support for FoulPay.

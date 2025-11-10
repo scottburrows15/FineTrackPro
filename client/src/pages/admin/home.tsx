@@ -54,7 +54,7 @@ import { z } from "zod";
 const editFineSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Must be a positive number"),
   description: z.string().optional(),
-  subcategoryId: z.string().min(1, "Category is required"),
+  subcategoryId: z.string().min(1, "Subcategory is required"),
 });
 
 type EditFineFormData = z.infer<typeof editFineSchema>;
@@ -161,7 +161,12 @@ export default function AdminHome() {
     },
   });
 
-  // Fetch subcategories for edit modal
+  // Fetch categories and subcategories for edit modal
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["/api/categories"],
+    enabled: !!editingFine,
+  });
+
   const { data: subcategories = [] } = useQuery<FineSubcategory[]>({
     queryKey: ["/api/subcategories"],
     enabled: !!editingFine,
@@ -354,6 +359,7 @@ export default function AdminHome() {
             editFineMutation.mutate({ fineId: editingFine.id, data });
           }
         }}
+        categories={categories}
         subcategories={subcategories}
         isLoading={editFineMutation.isPending}
       />
@@ -366,15 +372,19 @@ function EditFineModal({
   fine,
   onClose,
   onSubmit,
+  categories,
   subcategories,
   isLoading,
 }: {
   fine: FineWithDetails | null;
   onClose: () => void;
   onSubmit: (data: EditFineFormData) => void;
+  categories: any[];
   subcategories: FineSubcategory[];
   isLoading: boolean;
 }) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
     defaultValues: {
@@ -384,16 +394,26 @@ function EditFineModal({
     },
   });
 
-  // Reset form when fine changes (only run when fine.id changes)
+  // Filter subcategories based on selected category
+  const filteredSubcategories = useMemo(() => {
+    if (!selectedCategoryId) return subcategories;
+    return subcategories.filter(sub => sub.categoryId === selectedCategoryId);
+  }, [selectedCategoryId, subcategories]);
+
+  // Reset form and set category when fine changes
   useEffect(() => {
-    if (fine) {
+    if (fine && subcategories.length > 0) {
+      const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
+      const categoryId = currentSubcategory?.categoryId || "";
+      
+      setSelectedCategoryId(categoryId);
       form.reset({
         amount: fine.amount,
         description: fine.description || "",
         subcategoryId: fine.subcategoryId,
       });
     }
-  }, [fine?.id, form]);
+  }, [fine?.id, subcategories, form]);
 
   if (!fine) return null;
 
@@ -426,20 +446,45 @@ function EditFineModal({
               )}
             />
 
+            {/* Category Selector */}
+            <div>
+              <FormLabel>Category</FormLabel>
+              <Select 
+                value={selectedCategoryId} 
+                onValueChange={(value) => {
+                  setSelectedCategoryId(value);
+                  // Clear subcategory when category changes
+                  form.setValue("subcategoryId", "");
+                }}
+              >
+                <SelectTrigger data-testid="select-edit-fine-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Subcategory Selector */}
             <FormField
               control={form.control}
               name="subcategoryId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Subcategory</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger data-testid="select-edit-fine-category">
-                        <SelectValue placeholder="Select category" />
+                      <SelectTrigger data-testid="select-edit-fine-subcategory">
+                        <SelectValue placeholder="Select subcategory" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {subcategories.map((sub) => (
+                      {filteredSubcategories.map((sub) => (
                         <SelectItem key={sub.id} value={sub.id}>
                           {sub.name}
                         </SelectItem>
