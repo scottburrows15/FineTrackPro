@@ -100,7 +100,11 @@ export default function PlayerHome() {
         </Card>
 
         {/* League Position */}
-        <Card className="p-6 bg-white dark:bg-slate-800 border-border shadow-md hover:shadow-lg transition-shadow">
+        <Card 
+          className="p-6 bg-white dark:bg-slate-800 border-border shadow-md hover:shadow-lg transition-all cursor-pointer hover:scale-105 active:scale-95"
+          onClick={() => setLocation("/player/hall-of-shame")}
+          data-testid="card-league-position"
+        >
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">League Position</p>
