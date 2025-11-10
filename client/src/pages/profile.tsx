@@ -37,6 +37,7 @@ export default function Profile() {
     lastName: "",
     position: "",
     nickname: "",
+    preferredPaymentDate: null as number | null,
   });
 
   const [previewImage, setPreviewImage] = useState<string>("");
@@ -50,6 +51,7 @@ export default function Profile() {
         lastName: currentUser.lastName || "",
         position: currentUser.position || "",
         nickname: currentUser.nickname || "",
+        preferredPaymentDate: currentUser.preferredPaymentDate ?? null,
       });
       setPreviewImage(currentUser.profileImageUrl || "");
     }
@@ -350,6 +352,29 @@ export default function Profile() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Email cannot be changed
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="preferredPaymentDate">Preferred Payment Date (Optional)</Label>
+                <Input
+                  id="preferredPaymentDate"
+                  type="number"
+                  min="1"
+                  max="28"
+                  value={formData.preferredPaymentDate ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      preferredPaymentDate: value ? parseInt(value, 10) : null 
+                    }));
+                  }}
+                  placeholder="e.g., 15"
+                  data-testid="input-preferred-payment-date"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Day of month (1-28) for future direct debit scheduling
                 </p>
               </div>
 
