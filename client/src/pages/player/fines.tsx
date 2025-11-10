@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { FineWithDetails, Notification } from "@shared/schema";
-import { Clock, CheckCircle, AlertCircle, CreditCard, Calendar, User } from "lucide-react";
+import { Clock, CheckCircle, AlertCircle, PoundSterling, Calendar, User } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 
 export default function PlayerFines() {
@@ -85,10 +85,10 @@ export default function PlayerFines() {
         {unpaidFines.length > 0 && (
           <Button
             onClick={() => setLocation("/payment")}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold"
             data-testid="button-pay-outstanding"
           >
-            <CreditCard className="mr-2 h-5 w-5" />
+            <PoundSterling className="mr-2 h-5 w-5" />
             Pay {formatCurrency(unpaidFines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0))}
           </Button>
         )}

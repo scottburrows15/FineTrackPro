@@ -59,7 +59,7 @@ export default function PlayerHome() {
       {totalOutstanding > 0 && (
         <Button
           onClick={() => setLocation("/payment")}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           data-testid="button-settle-up"
         >
           <PoundSterling className="mr-2 h-5 w-5" />
