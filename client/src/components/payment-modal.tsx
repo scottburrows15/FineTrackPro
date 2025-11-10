@@ -97,7 +97,7 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
     } catch (error) {
       toast({
         title: "Payment Error",
-        description: "An unexpected error occurred during payment processing",
+        description: error instanceof Error ? error.message : "An unexpected error occurred during payment processing",
         variant: "destructive",
       });
     } finally {
@@ -148,29 +148,7 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
             <div className="space-y-4">
               <PaymentElement 
                 options={{
-                  layout: "accordion",
-                  paymentMethodOrder: ['card', 'apple_pay', 'google_pay', 'link'],
-                  fields: {
-                    billingDetails: {
-                      name: 'auto',
-                      email: 'auto',
-                      phone: 'never',
-                      address: {
-                        country: 'never',
-                        line1: 'never',
-                        line2: 'never',
-                        city: 'never',
-                        state: 'never',
-                        postalCode: 'never'
-                      }
-                    }
-                  },
-                  defaultValues: {
-                    billingDetails: {
-                      name: "",
-                      email: "",
-                    }
-                  }
+                  layout: "tabs",
                 }}
               />
             </div>
