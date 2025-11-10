@@ -58,7 +58,7 @@ export default function AppLayout({
       />
 
       {/* Main Content - With padding for fixed top and bottom bars */}
-      <main className="pt-[220px] sm:pt-[240px] pb-[72px] sm:pb-[80px]">
+      <main className="pt-[88px] pb-[72px] sm:pb-[80px]">
         {children}
       </main>
 
