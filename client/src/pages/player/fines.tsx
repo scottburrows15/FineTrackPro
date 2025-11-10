@@ -1,8 +1,11 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { FineWithDetails, Notification } from "@shared/schema";
@@ -12,6 +15,8 @@ import AppLayout from "@/components/ui/app-layout";
 export default function PlayerFines() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const { data: fines = [], isLoading } = useQuery<FineWithDetails[]>({
     queryKey: ["/api/fines/my"],
@@ -24,7 +29,30 @@ export default function PlayerFines() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const unpaidFines = fines.filter(fine => !fine.isPaid);
-  const paidFines = fines.filter(fine => fine.isPaid);
+  const allPaidFines = fines.filter(fine => fine.isPaid);
+
+  const paidFines = useMemo(() => {
+    let filtered = allPaidFines;
+    
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      filtered = filtered.filter(fine => {
+        const paidDate = fine.paidAt ? new Date(fine.paidAt) : null;
+        return paidDate && paidDate >= fromDate;
+      });
+    }
+    
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(fine => {
+        const paidDate = fine.paidAt ? new Date(fine.paidAt) : null;
+        return paidDate && paidDate <= toDate;
+      });
+    }
+    
+    return filtered;
+  }, [allPaidFines, dateFrom, dateTo]);
 
   if (!user) {
     return null;
@@ -139,10 +167,60 @@ export default function PlayerFines() {
         )}
 
         {/* Paid Fines */}
-        {paidFines.length > 0 && (
+        {allPaidFines.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4 text-foreground">Payment History</h2>
-            <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-bold text-foreground">Payment History</h2>
+              
+              {/* Date Filters */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 sm:w-40">
+                  <Label htmlFor="dateFrom" className="text-xs">From</Label>
+                  <Input
+                    id="dateFrom"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-9 text-sm"
+                    data-testid="input-date-from"
+                  />
+                </div>
+                <div className="flex-1 sm:w-40">
+                  <Label htmlFor="dateTo" className="text-xs">To</Label>
+                  <Input
+                    id="dateTo"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="h-9 text-sm"
+                    data-testid="input-date-to"
+                  />
+                </div>
+                {(dateFrom || dateTo) && (
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDateFrom("");
+                        setDateTo("");
+                      }}
+                      className="h-9 text-xs"
+                      data-testid="button-clear-filters"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {paidFines.length === 0 ? (
+              <Card className="p-8 text-center bg-slate-50 dark:bg-slate-900">
+                <p className="text-muted-foreground">No payments found in the selected date range.</p>
+              </Card>
+            ) : (
+              <div className="space-y-3">
               {paidFines.map((fine) => (
                 <Card 
                   key={fine.id} 
@@ -185,7 +263,8 @@ export default function PlayerFines() {
                   </div>
                 </Card>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
