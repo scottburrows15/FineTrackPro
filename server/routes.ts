@@ -12,9 +12,18 @@ import { fines, notifications, auditLog, processedPayments } from "@shared/schem
 import { eq, inArray } from "drizzle-orm";
 
 // Use dummy Stripe key for testing if not provided
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_testing';
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-const stripe = new Stripe(stripeSecretKey, {
+if (!stripeSecretKey || stripeSecretKey.length < 20) {
+  console.error("⚠️  STRIPE_SECRET_KEY is not configured properly. Payment functionality will not work.");
+  console.error("⚠️  Please set a valid Stripe secret key in the environment variables.");
+} else if (stripeSecretKey.startsWith('pk_')) {
+  console.error("❌ CRITICAL: STRIPE_SECRET_KEY contains a publishable key (pk_), not a secret key (sk_)!");
+  console.error("❌ This will cause all payment operations to fail.");
+  console.error("❌ Please update the environment variable to use a secret key that starts with 'sk_test_' or 'sk_live_'");
+}
+
+const stripe = new Stripe(stripeSecretKey || 'INVALID_KEY', {
   apiVersion: "2025-07-30.basil",
 });
 
@@ -503,18 +512,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
     try {
       const { amount } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      console.log(`Creating payment intent for amount: £${amount} (${Math.round(amount * 100)} pence)`);
+      console.log(`Using Stripe key: ${stripeSecretKey.substring(0, 12)}...`);
+      
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to pence
         currency: "gbp", // UK currency
-        payment_method_types: ['card', 'link'],
-        // Enable additional payment methods that are available in UK
         automatic_payment_methods: {
           enabled: true,
           allow_redirects: 'never' // Keep users on our page
         },
       });
+      
+      console.log(`Payment intent created successfully: ${paymentIntent.id}`);
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
+      console.error("Error creating payment intent:", error.message);
+      console.error("Error type:", error.type);
+      console.error("Error code:", error.code);
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
     }
   });
