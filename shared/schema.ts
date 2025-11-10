@@ -117,13 +117,22 @@ export const auditLog = pgTable("audit_log", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Track processed Stripe payment intents to prevent replay attacks
+export const processedPayments = pgTable("processed_payments", {
+  paymentIntentId: varchar("payment_intent_id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  amount: integer("amount").notNull(),
+  fineIds: jsonb("fine_ids").notNull(),
+  processedAt: timestamp("processed_at").defaultNow().notNull(),
+});
+
 // Admin notification preferences table
 export const adminPreferences = pgTable("admin_preferences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull().unique(),
   emailAlertsEnabled: boolean("email_alerts_enabled").notNull().default(true),
   pushNotificationsEnabled: boolean("push_notifications_enabled").notNull().default(true),
-  summaryNotificationsEnabled: boolean("summary_notifications_enabled").notNull().default(false),
+  summaryNotificationsEnabled: boolean("summary_notifications_enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

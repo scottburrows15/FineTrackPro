@@ -7,6 +7,9 @@ import multer from "multer";
 import path from "path";
 import express from "express";
 import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
+import { db } from "./db";
+import { fines, notifications, auditLog, processedPayments } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 
 // Use dummy Stripe key for testing if not provided
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_testing';
@@ -521,36 +524,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { paymentIntentId, fineIds } = req.body;
       const userId = req.user.claims.sub;
 
-      // Mark fines as paid
-      for (const fineId of fineIds) {
-        await storage.updateFine(fineId, {
-          isPaid: true,
-          paidAt: new Date(),
-          paymentIntentId,
-        });
-
-        // Create notification
-        await storage.createNotification({
-          userId,
-          title: "Fine Paid",
-          message: "Your fine payment has been processed successfully",
-          type: "fine_paid",
-          relatedEntityId: fineId,
-        });
-
-        // Create audit log
-        await storage.createAuditLog({
-          entityType: 'fine',
-          entityId: fineId,
-          action: 'pay',
-          userId,
-          changes: { isPaid: true, paymentIntentId },
-        });
+      // Validate inputs
+      if (!paymentIntentId || !Array.isArray(fineIds) || fineIds.length === 0) {
+        return res.status(400).json({ message: "Invalid payment data" });
       }
 
-      res.json({ success: true });
+      // 1. Verify payment intent with Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ message: "Payment not successful" });
+      }
+
+      // 2. Execute payment confirmation in a transaction for atomicity
+      const result = await db.transaction(async (tx) => {
+        // INSERT into processedPayments first - this enforces one-time use via PRIMARY KEY constraint
+        // If this PaymentIntent was already processed, the INSERT will fail with unique violation
+        try {
+          await tx.insert(processedPayments).values({
+            paymentIntentId,
+            userId,
+            amount: paymentIntent.amount,
+            fineIds: fineIds,
+            processedAt: new Date(),
+          });
+        } catch (error: any) {
+          // Check if it's a unique constraint violation (payment already processed)
+          if (error.code === '23505') { // PostgreSQL unique violation error code
+            throw new Error("This payment has already been processed");
+          }
+          throw error;
+        }
+
+        // Fetch and validate fines belong to user
+        const finesToPay = await tx
+          .select()
+          .from(fines)
+          .where(inArray(fines.id, fineIds));
+
+        // Validate all fines exist
+        if (finesToPay.length !== fineIds.length) {
+          throw new Error("One or more fines not found");
+        }
+
+        // Check all fines belong to the user and aren't already paid
+        for (const fine of finesToPay) {
+          if (fine.playerId !== userId) {
+            throw new Error("Unauthorized: Fine does not belong to user");
+          }
+          if (fine.isPaid) {
+            throw new Error("One or more fines already paid");
+          }
+        }
+
+        // Calculate expected total and verify against payment amount
+        const expectedTotalPence = Math.round(
+          finesToPay.reduce((sum, fine) => sum + parseFloat(fine.amount), 0) * 100
+        );
+
+        if (paymentIntent.amount !== expectedTotalPence) {
+          throw new Error(`Payment amount mismatch: expected ${expectedTotalPence} pence, got ${paymentIntent.amount} pence`);
+        }
+
+        // All validations passed - mark fines as paid
+        const paidAt = new Date();
+        for (const fineId of fineIds) {
+          await tx
+            .update(fines)
+            .set({
+              isPaid: true,
+              paidAt,
+              paymentIntentId,
+            })
+            .where(eq(fines.id, fineId));
+
+          // Create notification
+          await tx.insert(notifications).values({
+            userId,
+            title: "Fine Paid",
+            message: "Your fine payment has been processed successfully",
+            type: "fine_paid",
+            relatedEntityId: fineId,
+          });
+
+          // Create audit log
+          await tx.insert(auditLog).values({
+            entityType: 'fine',
+            entityId: fineId,
+            action: 'pay',
+            userId,
+            changes: { isPaid: true, paymentIntentId },
+          });
+        }
+
+        return { success: true };
+      });
+
+      res.json(result);
     } catch (error) {
       console.error("Error confirming payment:", error);
+      const message = error instanceof Error ? error.message : "Failed to confirm payment";
+      
+      // Check if this is a duplicate payment replay error
+      if (message === "This payment has already been processed") {
+        return res.status(409).json({ message });
+      }
+      
+      // Other validation errors
+      if (message.includes("not found") || message.includes("already paid") || message.includes("Unauthorized") || message.includes("mismatch")) {
+        return res.status(400).json({ message });
+      }
+      
+      // Generic server error
       res.status(500).json({ message: "Failed to confirm payment" });
     }
   });

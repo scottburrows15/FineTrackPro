@@ -62,6 +62,8 @@ export interface IStorage {
   // Fine operations
   getUserFines(userId: string): Promise<FineWithDetails[]>;
   getTeamFines(teamId: string): Promise<FineWithDetails[]>;
+  getFineById(id: string): Promise<Fine | undefined>;
+  getFinesByPaymentIntentId(paymentIntentId: string): Promise<Fine[]>;
   createFine(fine: InsertFine): Promise<Fine>;
   updateFine(id: string, updates: Partial<Fine>): Promise<Fine>;
   deleteFine(id: string): Promise<void>;
@@ -359,6 +361,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(fines.id, id))
       .limit(1);
     return fine;
+  }
+
+  async getFinesByPaymentIntentId(paymentIntentId: string): Promise<Fine[]> {
+    return await db
+      .select()
+      .from(fines)
+      .where(eq(fines.paymentIntentId, paymentIntentId));
   }
 
   async getPlayerStats(userId: string): Promise<PlayerStats> {
