@@ -82,6 +82,11 @@ export default function AdminHome() {
     queryKey: ["/api/notifications"],
     enabled: !!user,
   });
+
+  const { data: fundsSummary, isLoading: fundsSummaryLoading } = useQuery<{ inPot: number; settled: number }>({
+    queryKey: ["/api/admin/funds-summary"],
+  });
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const unpaidCount = fines.filter((f) => !f.isPaid).length;
 
@@ -202,14 +207,16 @@ export default function AdminHome() {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { title: "Total Players", value: statsLoading ? "-" : stats?.totalPlayers || 0, icon: <Users className="w-6 h-6 text-blue-500" />, color: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40" },
-            { title: "Outstanding Fines", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.outstandingFines || "0")), icon: <AlertTriangle className="w-6 h-6 text-orange-500" />, color: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/40" },
-            { title: "This Month", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.monthlyCollection || "0")), icon: <PoundSterling className="w-6 h-6 text-green-500" />, color: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/40" },
-            { title: "Unpaid Fines", value: finesLoading ? "-" : unpaidCount, icon: <Calendar className="w-6 h-6 text-purple-500" />, color: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/40" },
+            { title: "Total Players", value: statsLoading ? "-" : stats?.totalPlayers || 0, icon: <Users className="w-6 h-6 text-blue-500" />, color: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40", testId: "stat-total-players" },
+            { title: "Outstanding Fines", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.outstandingFines || "0")), icon: <AlertTriangle className="w-6 h-6 text-orange-500" />, color: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/40", testId: "stat-outstanding-fines" },
+            { title: "This Month", value: statsLoading ? "-" : formatCurrency(parseFloat(stats?.monthlyCollection || "0")), icon: <PoundSterling className="w-6 h-6 text-green-500" />, color: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/40", testId: "stat-this-month" },
+            { title: "Unpaid Fines", value: finesLoading ? "-" : unpaidCount, icon: <Calendar className="w-6 h-6 text-purple-500" />, color: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/40", testId: "stat-unpaid-fines" },
+            { title: "In the Pot", value: fundsSummaryLoading ? "-" : formatCurrency(fundsSummary?.inPot || 0), icon: <Megaphone className="w-6 h-6 text-emerald-500" />, color: "from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/40", testId: "stat-in-pot" },
+            { title: "Settled This Season", value: fundsSummaryLoading ? "-" : formatCurrency(fundsSummary?.settled || 0), icon: <CheckCircle className="w-6 h-6 text-teal-500" />, color: "from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-900/40", testId: "stat-settled-season" },
           ].map((item, i) => (
-            <Card key={i} className={`p-4 bg-gradient-to-br ${item.color} border border-slate-200 dark:border-slate-700`}>
+            <Card key={i} className={`p-4 bg-gradient-to-br ${item.color} border border-slate-200 dark:border-slate-700`} data-testid={item.testId}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">{item.title}</p>
