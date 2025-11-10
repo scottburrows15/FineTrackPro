@@ -51,74 +51,11 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
   return (
     <>
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="px-4 py-3">
-          {/* FoulPay Logo and Page Title with View Switcher */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <img 
-                  src={logoUrl} 
-                  alt="FoulPay Logo" 
-                  className="h-6 w-auto sm:h-7 object-contain"
-                />
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                  {pageTitle}
-                </h1>
-              </div>
-              {/* View Switcher - only show if user can switch views */}
-              {canSwitchView ? (
-                <div className="flex items-center gap-4 mt-2">
-                  <button
-                    onClick={() => handleViewSwitch('player')}
-                    className="relative pb-1 transition-colors"
-                    data-testid="view-switcher-player"
-                  >
-                    <span className={`text-sm font-medium ${
-                      currentView === 'player' 
-                        ? 'text-blue-600 dark:text-blue-400' 
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}>
-                      Player View
-                    </span>
-                    {currentView === 'player' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleViewSwitch('admin')}
-                    className="relative pb-1 transition-colors"
-                    data-testid="view-switcher-admin"
-                  >
-                    <span className={`text-sm font-medium ${
-                      currentView === 'admin' 
-                        ? 'text-amber-600 dark:text-amber-400' 
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}>
-                      Admin View
-                    </span>
-                    {currentView === 'admin' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {currentView === 'player' ? 'Player View' : 'Admin View'}
-                  </span>
-                  <div 
-                    className={`h-1 w-12 rounded-full ${
-                      currentView === 'player' 
-                        ? 'bg-blue-500' 
-                        : 'bg-amber-500'
-                    }`}
-                  />
-                </div>
-              )}
-            </div>
-
+        <div className="px-4 py-4">
+          {/* Top Row: User Menu on Right */}
+          <div className="flex items-center justify-end mb-4">
             {/* Right Section: Help, Profile, Menu */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* Help Icon */}
               <Button
                 variant="ghost"
@@ -200,6 +137,72 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+
+          {/* Center Section: Logo, Page Title, and View Switcher */}
+          <div className="flex flex-col items-center text-center space-y-3">
+            {/* FoulPay Logo - Bigger */}
+            <img 
+              src={logoUrl} 
+              alt="FoulPay Logo" 
+              className="h-12 w-auto sm:h-14 object-contain"
+            />
+            
+            {/* Page Title underneath logo */}
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              {pageTitle}
+            </h1>
+
+            {/* View Switcher - only show if user can switch views */}
+            {canSwitchView ? (
+              <div className="flex items-center gap-6">
+                <button
+                  onClick={() => handleViewSwitch('player')}
+                  className="relative pb-1 transition-colors"
+                  data-testid="view-switcher-player"
+                >
+                  <span className={`text-sm font-medium ${
+                    currentView === 'player' 
+                      ? 'text-blue-600 dark:text-blue-400' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}>
+                    Player View
+                  </span>
+                  {currentView === 'player' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleViewSwitch('admin')}
+                  className="relative pb-1 transition-colors"
+                  data-testid="view-switcher-admin"
+                >
+                  <span className={`text-sm font-medium ${
+                    currentView === 'admin' 
+                      ? 'text-amber-600 dark:text-amber-400' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}>
+                    Admin View
+                  </span>
+                  {currentView === 'admin' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {currentView === 'player' ? 'Player View' : 'Admin View'}
+                </span>
+                <div 
+                  className={`h-1 w-12 rounded-full ${
+                    currentView === 'player' 
+                      ? 'bg-blue-500' 
+                      : 'bg-amber-500'
+                  }`}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
