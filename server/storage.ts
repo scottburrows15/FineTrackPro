@@ -389,11 +389,33 @@ export class DatabaseStorage implements IStorage {
       .from(fines)
       .where(eq(fines.playerId, userId));
 
+    // Calculate league position based on team leaderboard
+    const user = await this.getUser(userId);
+    let leaguePosition = 0;
+    
+    if (user?.teamId) {
+      // Get team leaderboard (same logic as Hall of Shame)
+      const leaderboard = await db
+        .select({
+          playerId: users.id,
+          totalAmount: sum(fines.amount).as('totalAmount'),
+        })
+        .from(fines)
+        .innerJoin(users, eq(fines.playerId, users.id))
+        .where(eq(users.teamId, user.teamId))
+        .groupBy(users.id)
+        .orderBy(desc(sql`totalAmount`));
+      
+      // Find player's position in leaderboard
+      const position = leaderboard.findIndex(entry => entry.playerId === userId);
+      leaguePosition = position !== -1 ? position + 1 : 0;
+    }
+
     return {
       totalUnpaid: (unpaidResult.total || "0.00").toString(),
       totalPaid: (paidResult.total || "0.00").toString(),
       monthlyFines: Number(monthlyResult.count) || 0,
-      leaguePosition: 4, // This would need a more complex query
+      leaguePosition,
     };
   }
 

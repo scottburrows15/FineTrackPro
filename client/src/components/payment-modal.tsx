@@ -146,9 +146,16 @@ export default function PaymentModal({ fineIds, totalAmount }: PaymentModalProps
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                💳 Choose your payment method below. Apple Pay and Google Pay appear automatically if available on your device.
+              </p>
               <PaymentElement 
                 options={{
                   layout: "tabs",
+                  wallets: {
+                    applePay: 'auto',
+                    googlePay: 'auto',
+                  },
                 }}
               />
             </div>
