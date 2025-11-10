@@ -559,7 +559,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { firstName, lastName, position, nickname } = req.body;
+      const { firstName, lastName, position, nickname, preferredPaymentDate } = req.body;
+      
+      // Validate preferredPaymentDate if provided
+      if (preferredPaymentDate !== undefined && preferredPaymentDate !== null) {
+        const dayNum = parseInt(preferredPaymentDate, 10);
+        if (isNaN(dayNum) || dayNum < 1 || dayNum > 28) {
+          return res.status(400).json({ 
+            message: "Preferred payment date must be between 1 and 28" 
+          });
+        }
+      }
       
       const user = await storage.getUser(userId);
       if (!user) {
@@ -572,6 +582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName,
         position,
         nickname,
+        preferredPaymentDate: preferredPaymentDate !== undefined ? preferredPaymentDate : user.preferredPaymentDate,
       });
 
       await storage.createAuditLog({
@@ -579,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: userId,
         action: 'update',
         userId,
-        changes: { firstName, lastName, position, nickname },
+        changes: { firstName, lastName, position, nickname, preferredPaymentDate },
       });
 
       res.json(updatedUser);
@@ -614,6 +625,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating share link:", error);
       res.status(500).json({ message: "Failed to generate share link" });
+    }
+  });
+
+  // Admin funds summary endpoint
+  app.get('/api/admin/funds-summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Get current rugby season dates (September to August)
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0-indexed
+      
+      // Rugby season starts in September (month 8)
+      let seasonStart: Date;
+      let seasonEnd: Date;
+      
+      if (currentMonth >= 8) { // September onwards
+        seasonStart = new Date(currentYear, 8, 1); // Sept 1st this year
+        seasonEnd = new Date(currentYear + 1, 8, 1); // Sept 1st next year (exclusive)
+      } else { // Before September
+        seasonStart = new Date(currentYear - 1, 8, 1); // Sept 1st last year
+        seasonEnd = new Date(currentYear, 8, 1); // Sept 1st this year (exclusive)
+      }
+
+      const fines = await storage.getTeamFines(user.teamId);
+
+      // Filter for current season (exclusive end date)
+      const seasonFines = fines.filter((fine) => {
+        const createdAt = new Date(fine.createdAt || Date.now());
+        return createdAt >= seasonStart && createdAt < seasonEnd;
+      });
+
+      // In the Pot: All paid fines (Stripe payments only, not withdrawn)
+      const inPot = seasonFines
+        .filter((f) => f.isPaid && f.paymentIntentId) // Only Stripe payments
+        .reduce((sum, f) => sum + parseFloat(f.amount || "0"), 0);
+
+      // Settled This Season: All paid fines this season
+      const settled = seasonFines
+        .filter((f) => f.isPaid)
+        .reduce((sum, f) => sum + parseFloat(f.amount || "0"), 0);
+
+      res.json({ inPot, settled });
+    } catch (error) {
+      console.error("Error fetching funds summary:", error);
+      res.status(500).json({ message: "Failed to fetch funds summary" });
     }
   });
 
@@ -830,6 +893,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting fine:", error);
       res.status(500).json({ message: "Failed to delete fine" });
+    }
+  });
+
+  // Edit fine endpoint
+  app.put('/api/admin/fines/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUserWithTeam(req.user.claims.sub);
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { amount, description, subcategoryId } = req.body;
+      
+      // Validate payload
+      if (amount !== undefined) {
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum < 0) {
+          return res.status(400).json({ message: "Invalid amount" });
+        }
+      }
+      
+      // Get current fine details and verify team ownership
+      const currentFine = await storage.getFineById(id);
+      if (!currentFine) {
+        return res.status(404).json({ message: "Fine not found" });
+      }
+
+      // Verify the fine belongs to admin's team
+      const finePlayer = await storage.getUser(currentFine.playerId);
+      if (!finePlayer || finePlayer.teamId !== user.teamId) {
+        return res.status(403).json({ message: "Cannot edit fines from other teams" });
+      }
+
+      // Update the fine
+      const updatedFine = await storage.updateFine(id, {
+        amount: amount?.toString(),
+        description,
+        subcategoryId,
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'fine',
+        entityId: id,
+        action: 'update',
+        userId: user.id,
+        changes: { amount, description, subcategoryId },
+      });
+
+      res.json({ message: "Fine updated successfully", fine: updatedFine });
+    } catch (error) {
+      console.error("Error updating fine:", error);
+      res.status(500).json({ message: "Failed to update fine" });
     }
   });
 

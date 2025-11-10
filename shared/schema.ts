@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   position: varchar("position"), // e.g., "Striker", "Midfielder"
   nickname: varchar("nickname"), // Team-specific nickname
   stripeCustomerId: varchar("stripe_customer_id"),
+  preferredPaymentDate: integer("preferred_payment_date"), // Day of month (1-28) for direct debit
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
