@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Star
 } from "lucide-react";
+import logoUrl from "@assets/Foul-Pay-Logo_1762790615614.png";
 
 export default function Landing() {
   return (
@@ -20,16 +21,18 @@ export default function Landing() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-soft">
-                <Gavel className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-foreground">TeamFines Pro</span>
+              <img 
+                src={logoUrl} 
+                alt="FoulPay Logo" 
+                className="h-8 w-auto sm:h-10 object-contain"
+              />
             </div>
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
                 onClick={() => window.location.href = '/api/login'}
                 className="btn-enhanced"
+                data-testid="button-sign-in"
               >
                 Sign In
               </Button>
@@ -283,7 +286,7 @@ export default function Landing() {
             Ready to Modernise Your Team's Fine System?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join hundreds of UK sports teams already using TeamFines Pro to streamline their operations.
+            Join hundreds of UK sports teams already using FoulPay to streamline their operations.
           </p>
           <Button 
             size="lg"
@@ -300,13 +303,14 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Gavel className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">TeamFines Pro</span>
+              <img 
+                src={logoUrl} 
+                alt="FoulPay Logo" 
+                className="h-8 w-auto object-contain"
+              />
             </div>
             <div className="text-slate-400 text-sm">
-              © 2024 TeamFines Pro. Built for UK sports teams.
+              © 2025 FoulPay. Built for UK sports teams.
             </div>
           </div>
         </div>
