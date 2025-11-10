@@ -45,6 +45,7 @@ export interface IStorage {
   // Fine category operations
   getTeamCategories(teamId: string): Promise<FineCategory[]>;
   getTeamCategoriesWithCounts(teamId: string): Promise<(FineCategory & { subcategoryCount: number })[]>;
+  getCategory(id: string): Promise<FineCategory | undefined>;
   createFineCategory(category: InsertFineCategory): Promise<FineCategory>;
   updateCategory(id: string, updates: Partial<FineCategory>): Promise<FineCategory>;
   deleteCategory(id: string): Promise<void>;
@@ -181,6 +182,14 @@ export class DatabaseStorage implements IStorage {
       ...row,
       subcategoryCount: Number(row.subcategoryCount) || 0,
     }));
+  }
+
+  async getCategory(id: string): Promise<FineCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(fineCategories)
+      .where(eq(fineCategories.id, id));
+    return category;
   }
 
   async createFineCategory(categoryData: InsertFineCategory): Promise<FineCategory> {

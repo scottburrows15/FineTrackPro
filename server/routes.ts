@@ -638,29 +638,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Get current rugby season dates (September to August)
+      // Get current rugby season dates (September to August) using UTC
+      // Extends to include Aug 31 23:59:59.999 globally to catch western timezones
       const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth(); // 0-indexed
+      const currentYear = now.getUTCFullYear();
+      const currentMonth = now.getUTCMonth(); // 0-indexed
       
       // Rugby season starts in September (month 8)
       let seasonStart: Date;
       let seasonEnd: Date;
       
       if (currentMonth >= 8) { // September onwards
-        seasonStart = new Date(currentYear, 8, 1); // Sept 1st this year
-        seasonEnd = new Date(currentYear + 1, 8, 1); // Sept 1st next year (exclusive)
+        seasonStart = new Date(Date.UTC(currentYear, 8, 1, 0, 0, 0, 0)); // Sept 1st 00:00:00 UTC this year
+        seasonEnd = new Date(Date.UTC(currentYear + 1, 8, 1, 0, 0, 0, 0) - 1); // Aug 31st 23:59:59.999 UTC next year
       } else { // Before September
-        seasonStart = new Date(currentYear - 1, 8, 1); // Sept 1st last year
-        seasonEnd = new Date(currentYear, 8, 1); // Sept 1st this year (exclusive)
+        seasonStart = new Date(Date.UTC(currentYear - 1, 8, 1, 0, 0, 0, 0)); // Sept 1st 00:00:00 UTC last year
+        seasonEnd = new Date(Date.UTC(currentYear, 8, 1, 0, 0, 0, 0) - 1); // Aug 31st 23:59:59.999 UTC this year
       }
 
       const fines = await storage.getTeamFines(user.teamId);
 
-      // Filter for current season (exclusive end date)
+      // Filter for current season (inclusive of Aug 31 globally)
       const seasonFines = fines.filter((fine) => {
         const createdAt = new Date(fine.createdAt || Date.now());
-        return createdAt >= seasonStart && createdAt < seasonEnd;
+        return createdAt >= seasonStart && createdAt <= seasonEnd;
       });
 
       // In the Pot: All paid fines (Stripe payments only, not withdrawn)
@@ -927,7 +928,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Cannot edit fines from other teams" });
       }
 
-      // Update the fine
+      // If subcategoryId is being changed, verify it belongs to admin's team
+      if (subcategoryId && subcategoryId !== currentFine.subcategoryId) {
+        const subcategory = await storage.getSubcategory(subcategoryId);
+        if (!subcategory) {
+          return res.status(404).json({ message: "Subcategory not found" });
+        }
+        
+        // Verify subcategory belongs to admin's team
+        const category = await storage.getCategory(subcategory.categoryId);
+        if (!category || category.teamId !== user.teamId) {
+          return res.status(403).json({ message: "Cannot assign fines to categories from other teams" });
+        }
+      }
+
+      // Update the fine (no playerId changes allowed in this endpoint)
       const updatedFine = await storage.updateFine(id, {
         amount: amount?.toString(),
         description,
