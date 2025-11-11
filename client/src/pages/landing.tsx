@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Star
 } from "lucide-react";
-import logoUrl from "@assets/Foul-Pay-Logo_1762790615614.png";
+import logoUrl from "@assets/Foul-Pay-Logo_1762790615614_1762856044224.png";
 
 export default function Landing() {
   return (

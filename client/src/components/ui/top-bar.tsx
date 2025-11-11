@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
 import { getDisplayName } from "@/lib/userUtils";
-import logoUrl from "@assets/Foul-Pay-Logo_1762790615614.png";
+import logoUrl from "@assets/Foul-Pay-Logo_1762790615614_1762856044224.png";
 
 interface TopBarProps {
   user: UserType | null;
@@ -59,7 +59,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 <img 
                   src={logoUrl} 
                   alt="FoulPay Logo" 
-                  className="h-6 w-auto sm:h-7 object-contain"
+                  className="h-20 w-auto sm:h-20 object-contain"
                 />
                 <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                   {pageTitle}
