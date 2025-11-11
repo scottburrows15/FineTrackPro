@@ -175,9 +175,22 @@ export default function PlayerHome() {
         {/* Compact Notifications */}
         {notifications.length > 0 && (
           <Card className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-2 mb-2">
+            <div 
+              className="flex items-center gap-2 mb-2 cursor-pointer hover:opacity-80 transition-opacity" 
+              onClick={() => setLocation("/player/alerts")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setLocation("/player/alerts");
+                }
+              }}
+              data-testid="header-recent-activity"
+            >
               <AlertCircle className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200">Recent Activity</h3>
+              <span className="ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline">View All →</span>
             </div>
             <div className="space-y-2">
               {notifications.slice(0, 2).map((notification) => (
@@ -202,7 +215,8 @@ export default function PlayerHome() {
               <Button
                 variant="ghost"
                 className="w-full mt-2 text-xs text-slate-600 dark:text-slate-400 h-8"
-                onClick={() => setLocation("/notifications")}
+                onClick={() => setLocation("/player/alerts")}
+                data-testid="button-view-all-notifications"
               >
                 View all {notifications.length} notifications
               </Button>

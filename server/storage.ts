@@ -398,13 +398,13 @@ export class DatabaseStorage implements IStorage {
       const leaderboard = await db
         .select({
           playerId: users.id,
-          totalAmount: sum(fines.amount).as('totalAmount'),
+          totalAmount: sum(fines.amount),
         })
         .from(fines)
         .innerJoin(users, eq(fines.playerId, users.id))
         .where(eq(users.teamId, user.teamId))
         .groupBy(users.id)
-        .orderBy(desc(sql`totalAmount`));
+        .orderBy(desc(sum(fines.amount)));
       
       // Find player's position in leaderboard
       const position = leaderboard.findIndex(entry => entry.playerId === userId);
