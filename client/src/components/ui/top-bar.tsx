@@ -43,7 +43,6 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
   const handleViewSwitch = (view: 'player' | 'admin') => {
     if (onViewChange) {
       onViewChange(view);
-      // Navigate to the appropriate home page
       setLocation(view === 'player' ? '/player/home' : '/admin/home');
     }
   };
@@ -51,92 +50,43 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
   return (
     <>
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="px-4 py-3">
-          {/* FoulPay Logo and Page Title with View Switcher */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <img 
-                  src={logoUrl} 
-                  alt="FoulPay Logo" 
-                  className="h-5 w-auto sm:h-5 object-contain"
-                />
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                  {pageTitle}
-                </h1>
-              </div>
-              {/* View Switcher - only show if user can switch views */}
-              {canSwitchView ? (
-                <div className="flex items-center gap-4 mt-2">
-                  <button
-                    onClick={() => handleViewSwitch('player')}
-                    className="relative pb-1 transition-colors"
-                    data-testid="view-switcher-player"
-                  >
-                    <span className={`text-sm font-medium ${
-                      currentView === 'player' 
-                        ? 'text-blue-600 dark:text-blue-400' 
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}>
-                      Player View
-                    </span>
-                    {currentView === 'player' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleViewSwitch('admin')}
-                    className="relative pb-1 transition-colors"
-                    data-testid="view-switcher-admin"
-                  >
-                    <span className={`text-sm font-medium ${
-                      currentView === 'admin' 
-                        ? 'text-amber-600 dark:text-amber-400' 
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}>
-                      Admin View
-                    </span>
-                    {currentView === 'admin' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-200" />
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {currentView === 'player' ? 'Player View' : 'Admin View'}
-                  </span>
-                  <div 
-                    className={`h-1 w-12 rounded-full ${
-                      currentView === 'player' 
-                        ? 'bg-blue-500' 
-                        : 'bg-amber-500'
-                    }`}
-                  />
-                </div>
-              )}
+        <div className="px-4 py-2">
+          {/* First Row: Logo and User Controls */}
+          <div className="flex items-center justify-between mb-2">
+            {/* Logo */}
+            <div className="flex-shrink-0">
+              <img 
+                src={logoUrl} 
+                alt="FoulPay Logo" 
+                className="h-8 w-auto object-contain"
+              />
             </div>
 
-            {/* Right Section: Help, Profile, Menu */}
-            <div className="flex items-center gap-4">
+            {/* User Controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Help Icon */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setLocation('/help')}
-                className="h-4 w-4 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 data-testid="button-help"
+                aria-label="Help and support"
               >
-                <HelpCircle className="h-7 w-7 text-slate-600 dark:text-slate-400" />
+                <HelpCircle className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               </Button>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Profile Avatar */}
               <button
                 onClick={() => setLocation('/profile')}
-                className="rounded-full hover:ring-2 ring-blue-500 transition-all"
+                className="rounded-full hover:ring-2 ring-blue-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
                 data-testid="button-profile-avatar"
+                aria-label="User profile"
               >
-                <Avatar className="h-8 w-8 shadow-md ring-2 ring-white dark:ring-slate-700">
+                <Avatar className="h-8 w-8 shadow-md ring-1 ring-slate-200 dark:ring-slate-600">
                   {user?.profileImageUrl && (
                     <AvatarImage 
                       src={user.profileImageUrl} 
@@ -144,7 +94,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                       className="object-cover"
                     />
                   )}
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-xs">
                     {getInitials(user)}
                   </AvatarFallback>
                 </Avatar>
@@ -156,50 +106,104 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-4 w-4 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     data-testid="button-hamburger-menu"
+                    aria-label="Main menu"
                   >
-                    <Menu className="h-7 w-7 text-slate-600 dark:text-slate-400" />
+                    <Menu className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-slate-800 border-border">
+                  <div className="px-2 py-1.5 border-b border-slate-100 dark:border-slate-700">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                      {getDisplayName(user)}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                  
                   <DropdownMenuItem 
                     onClick={() => setLocation('/profile')}
                     data-testid="menu-profile-settings"
+                    className="flex items-center gap-2 py-2 cursor-pointer"
                   >
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="h-4 w-4" />
                     <span>Profile Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setLocation(currentView === 'player' ? '/player/settings' : '/admin/settings')}
                     data-testid="menu-app-settings"
+                    className="flex items-center gap-2 py-2 cursor-pointer"
                   >
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="h-4 w-4" />
                     <span>App Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem data-testid="menu-theme-toggle">
-                    <div className="flex items-center justify-between w-full">
-                      <span>Theme</span>
-                      <ThemeToggle />
-                    </div>
-                  </DropdownMenuItem>
+                  <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
+                    Version 1.0.0
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={handleLogout}
-                    className="text-red-600 dark:text-red-400"
+                    className="flex items-center gap-2 py-2 text-red-600 dark:text-red-400 cursor-pointer focus:text-red-700 dark:focus:text-red-300"
                     data-testid="menu-logout"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="h-4 w-4" />
                     <span>Logout</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled className="text-xs text-slate-500">
-                    Version 1.0.0
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+
+          {/* Second Row: Page Title and View Switcher */}
+          <div className="flex items-center justify-between">
+            {/* Page Title - Full width on mobile */}
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0 mr-3">
+              {pageTitle}
+            </h1>
+
+            {/* View Switcher - Compact and always visible when applicable */}
+            {canSwitchView ? (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0">
+                <button
+                  onClick={() => handleViewSwitch('player')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currentView === 'player' 
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  data-testid="view-switcher-player"
+                >
+                  Player
+                </button>
+                <button
+                  onClick={() => handleViewSwitch('admin')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currentView === 'admin' 
+                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  data-testid="view-switcher-admin"
+                >
+                  Admin
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1 flex-shrink-0">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 capitalize">
+                  {currentView}
+                </span>
+                <div 
+                  className={`h-2 w-2 rounded-full ${
+                    currentView === 'player' 
+                      ? 'bg-blue-500' 
+                      : 'bg-amber-500'
+                  }`}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -9,7 +9,17 @@ import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { FineWithDetails, Notification } from "@shared/schema";
-import { Clock, CheckCircle, AlertCircle, PoundSterling, Calendar, User } from "lucide-react";
+import { 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  Calendar, 
+  User, 
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp
+} from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 
 export default function PlayerFines() {
@@ -17,6 +27,8 @@ export default function PlayerFines() {
   const [, setLocation] = useLocation();
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [showPaidFines, setShowPaidFines] = useState(false);
+  const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
   const { data: fines = [], isLoading } = useQuery<FineWithDetails[]>({
     queryKey: ["/api/fines/my"],
@@ -54,6 +66,8 @@ export default function PlayerFines() {
     return filtered;
   }, [allPaidFines, dateFrom, dateTo]);
 
+  const totalOutstanding = unpaidFines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0);
+
   if (!user) {
     return null;
   }
@@ -69,81 +83,100 @@ export default function PlayerFines() {
       }}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 dark:text-red-400">Outstanding</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300" data-testid="text-outstanding-count">
-                  {unpaidFines.length}
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+        {/* Compact Summary Cards */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            {
+              title: "Outstanding",
+              value: unpaidFines.length,
+              icon: AlertCircle,
+              gradient: "from-red-500 to-orange-500",
+              testId: "text-outstanding-count"
+            },
+            {
+              title: "Paid",
+              value: allPaidFines.length,
+              icon: CheckCircle,
+              gradient: "from-emerald-500 to-green-500",
+              testId: "text-paid-count"
+            },
+            {
+              title: "Total",
+              value: fines.length,
+              icon: TrendingUp,
+              gradient: "from-blue-500 to-purple-500",
+              testId: "text-total-count"
+            }
+          ].map((item, index) => (
+            <Card key={index} className={`p-2 bg-gradient-to-br ${item.gradient} text-white shadow-lg border-0`}>
+              <div className="flex flex-col items-center text-center space-y-1">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <item.icon className="h-3 w-3 text-white" />
+                </div>
+                <p className="text-xs text-white/90">{item.title}</p>
+                <p className="text-base font-bold text-white" data-testid={item.testId}>
+                  {item.value}
                 </p>
               </div>
-              <AlertCircle className="h-8 w-8 text-red-500" />
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-emerald-600 dark:text-emerald-400">Paid</p>
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300" data-testid="text-paid-count">
-                  {paidFines.length}
-                </p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-emerald-500" />
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Total</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-total-count">
-                  {fines.length}
-                </p>
-              </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
-        {/* Pay Outstanding Button */}
+        {/* Merged Pay Section - Simple "Settle Up" */}
         {unpaidFines.length > 0 && (
-          <Button
-            onClick={() => setLocation("/payment")}
-            className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold"
-            data-testid="button-pay-outstanding"
-          >
-            <PoundSterling className="mr-2 h-5 w-5" />
-            Pay {formatCurrency(unpaidFines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0))}
-          </Button>
-        )}
-
-        {/* Outstanding Fines */}
-        {unpaidFines.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-foreground">Outstanding Fines</h2>
-            <div className="space-y-3">
-              {unpaidFines.map((fine) => (
-                <Card 
-                  key={fine.id} 
-                  className="p-4 border-l-4 border-l-red-500 hover:shadow-md transition-shadow"
-                  data-testid={`card-fine-${fine.id}`}
+          <Card className="overflow-hidden">
+            {/* Settle Up Section - Clean Header */}
+            <div className="p-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Settle Up</h3>
+                  <p className="text-xs text-green-200 mt-1">
+                    {formatCurrency(totalOutstanding)} • {unpaidFines.length} {unpaidFines.length === 1 ? 'fine' : 'fines'}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setLocation("/payment")}
+                  className="bg-white text-green-600 hover:bg-green-50 h-8 px-4 font-semibold shadow-lg text-sm"
+                  data-testid="button-pay-outstanding"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge className="text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700">
-                          Unpaid
-                        </Badge>
-                        <span className="font-semibold text-foreground truncate">{fine.subcategory?.name || 'Fine'}</span>
-                      </div>
-                      {fine.description && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{fine.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                  Pay Now
+                </Button>
+              </div>
+            </div>
+
+            {/* Outstanding Fines Breakdown */}
+            <div className="p-3 space-y-2">
+              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Outstanding Fines
+              </div>
+
+              <div className="space-y-2">
+                {unpaidFines.map((fine) => (
+                  <Card 
+                    key={fine.id} 
+                    className={`p-2 cursor-pointer transition-all hover:shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 ${
+                      expandedFineId === fine.id ? 'ring-1 ring-blue-500' : ''
+                    }`}
+                    onClick={() => setExpandedFineId(expandedFineId === fine.id ? null : fine.id)}
+                    data-testid={`card-fine-${fine.id}`}
+                  >
+                    {/* Row 1: Status and Date */}
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge className="text-xs bg-red-100 text-red-700">
+                        Unpaid
+                      </Badge>
+                      <span className="text-xs text-slate-500">{formatDate(fine.createdAt)}</span>
+                    </div>
+
+                    {/* Row 2: Subcategory */}
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                      {fine.subcategory?.name || 'Fine'}
+                    </div>
+
+                    {/* Row 3: Issued by, When, and Amount */}
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {fine.issuedByUser?.firstName || 'Admin'}
@@ -153,134 +186,166 @@ export default function PlayerFines() {
                           {formatDate(fine.createdAt)}
                         </span>
                       </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 whitespace-nowrap" data-testid={`text-amount-${fine.id}`}>
+                      <p className="text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap" data-testid={`text-amount-${fine.id}`}>
                         {formatCurrency(parseFloat(fine.amount))}
                       </p>
                     </div>
-                  </div>
-                </Card>
-              ))}
+
+                    {/* Expandable Description */}
+                    {expandedFineId === fine.id && fine.description && (
+                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{fine.description}</p>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Paid Fines */}
+        {/* Payment History - Hidden by Default */}
         {allPaidFines.length > 0 && (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <h2 className="text-xl font-bold text-foreground">Payment History</h2>
+          <Card className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Payment History</h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {allPaidFines.length} payment{allPaidFines.length !== 1 ? 's' : ''} total
+                </p>
+              </div>
               
-              {/* Date Filters */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 sm:w-40">
-                  <Label htmlFor="dateFrom" className="text-xs">From</Label>
-                  <Input
-                    id="dateFrom"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-9 text-sm"
-                    data-testid="input-date-from"
-                  />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPaidFines(!showPaidFines)}
+                className="text-slate-600 dark:text-slate-400 h-8"
+              >
+                {showPaidFines ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+                <span className="ml-1 text-xs">{showPaidFines ? "Hide" : "Show"}</span>
+              </Button>
+            </div>
+
+            {/* Date Filters - Only show when section is expanded */}
+            {showPaidFines && (
+              <>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="dateFrom" className="text-xs">From</Label>
+                      <Input
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="h-7 text-xs"
+                        data-testid="input-date-from"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dateTo" className="text-xs">To</Label>
+                      <Input
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="h-7 text-xs"
+                        data-testid="input-date-to"
+                      />
+                    </div>
+                  </div>
+                  
+                  {(dateFrom || dateTo) && (
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDateFrom("");
+                          setDateTo("");
+                        }}
+                        className="h-7 text-xs"
+                        data-testid="button-clear-filters"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 sm:w-40">
-                  <Label htmlFor="dateTo" className="text-xs">To</Label>
-                  <Input
-                    id="dateTo"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="h-9 text-sm"
-                    data-testid="input-date-to"
-                  />
-                </div>
-                {(dateFrom || dateTo) && (
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDateFrom("");
-                        setDateTo("");
-                      }}
-                      className="h-9 text-xs"
-                      data-testid="button-clear-filters"
-                    >
-                      Clear
-                    </Button>
+
+                {paidFines.length === 0 ? (
+                  <Card className="p-4 text-center bg-slate-50 dark:bg-slate-900 border-dashed">
+                    <Filter className="h-6 w-6 text-slate-400 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs text-slate-600 dark:text-slate-400">No payments found</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                      Try adjusting your date filters
+                    </p>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {paidFines.map((fine) => (
+                      <Card 
+                        key={fine.id} 
+                        className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-80 hover:opacity-100 transition-all"
+                        data-testid={`card-fine-paid-${fine.id}`}
+                      >
+                        {/* Row 1: Status and Date */}
+                        <div className="flex items-center justify-between mb-1">
+                          <Badge className="text-xs bg-green-100 text-green-700">
+                            Paid
+                          </Badge>
+                          <span className="text-xs text-slate-500">{formatDate(fine.paidAt || fine.createdAt)}</span>
+                        </div>
+
+                        {/* Row 2: Subcategory */}
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                          {fine.subcategory?.name || 'Fine'}
+                        </div>
+
+                        {/* Row 3: Issued by, When, and Amount */}
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {fine.issuedByUser?.firstName || 'Admin'}
+                            </span>
+                            {fine.paidAt && (
+                              <span className="flex items-center gap-1 text-green-600">
+                                <CheckCircle className="h-3 w-3" />
+                                Paid {formatDate(fine.paidAt)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                            {formatCurrency(parseFloat(fine.amount))}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 )}
-              </div>
-            </div>
-
-            {paidFines.length === 0 ? (
-              <Card className="p-8 text-center bg-slate-50 dark:bg-slate-900">
-                <p className="text-muted-foreground">No payments found in the selected date range.</p>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-              {paidFines.map((fine) => (
-                <Card 
-                  key={fine.id} 
-                  className="p-4 border-l-4 border-l-emerald-500 opacity-75 hover:opacity-100 transition-opacity"
-                  data-testid={`card-fine-paid-${fine.id}`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700">
-                          Paid
-                        </Badge>
-                        <span className="font-semibold text-foreground truncate">{fine.subcategory?.name || 'Fine'}</span>
-                      </div>
-                      {fine.description && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{fine.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {fine.issuedByUser?.firstName || 'Admin'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(fine.createdAt)}
-                        </span>
-                        {fine.paidAt && (
-                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle className="h-3 w-3" />
-                            Paid {formatDate(fine.paidAt)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                        {formatCurrency(parseFloat(fine.amount))}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-              </div>
+              </>
             )}
-          </div>
+          </Card>
         )}
 
-        {/* Empty State */}
+        {/* Empty States */}
         {isLoading && fines.length === 0 && (
-          <Card className="p-12 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading fines...</p>
+          <Card className="p-6 text-center">
+            <div className="animate-spin w-5 h-5 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
+            <p className="text-xs text-slate-600 dark:text-slate-400">Loading your fines...</p>
           </Card>
         )}
 
         {!isLoading && fines.length === 0 && (
-          <Card className="p-12 text-center">
-            <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold mb-2">No Fines Yet!</h3>
-            <p className="text-muted-foreground">You're all clear. Keep up the good work!</p>
+          <Card className="p-6 text-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700">
+            <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">All Clear! 🎉</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">No fines outstanding</p>
           </Card>
         )}
       </div>
