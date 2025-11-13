@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
 import InlineFineIssuer from "@/components/inline-fine-issuer";
-import { Gavel } from "lucide-react";
 
 export default function AdminFines() {
   const { user } = useAuth();
@@ -30,18 +29,6 @@ export default function AdminFines() {
       canSwitchView={true}
     >
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <Gavel className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-            </div>
-            <h1 className="text-2xl font-bold">Issue Fines</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Issue fines to individual players or multiple players at once
-          </p>
-        </div>
-
         {/* Inline Fine Issuer - No More Popups! */}
         <InlineFineIssuer />
       </div>
