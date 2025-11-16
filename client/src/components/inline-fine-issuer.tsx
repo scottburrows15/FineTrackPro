@@ -257,8 +257,8 @@ export default function FlowingFineIssuer() {
                   }`}
                 >
                   <Avatar className="h-12 w-12 rounded-full shadow overflow-hidden">
-                    {p.avatarUrl ? (
-                      <AvatarImage src={p.avatarUrl} alt={label} />
+                    {p.profileImageUrl ? (
+                      <AvatarImage src={p.profileImageUrl} alt={label} />
                     ) : (
                       <AvatarFallback className="bg-gray-300 text-xs font-bold">
                         {initials(p)}
@@ -332,8 +332,8 @@ export default function FlowingFineIssuer() {
                       className="flex items-center gap-2 bg-white rounded-md px-2 py-1 text-xs border"
                     >
                       <Avatar className="h-6 w-6 rounded-full shadow overflow-hidden">
-                        {p.avatarUrl ? (
-                          <AvatarImage src={p.avatarUrl} alt={label} />
+                        {p.profileImageUrl ? (
+                          <AvatarImage src={p.profileImageUrl} alt={label} />
                         ) : (
                           <AvatarFallback className="bg-gray-300 text-[10px] font-bold">
                             {initials(p)}
