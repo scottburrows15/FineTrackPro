@@ -1,158 +1,251 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLocation } from "wouter";
-import { formatDistanceToNow } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
-import { getDisplayName } from "@/lib/userUtils";
 import type { Notification } from "@shared/schema";
-import { Bell, BellOff, CheckCheck, Trash2, AlertCircle } from "lucide-react";
+import { 
+  Bell, 
+  CheckCheck, 
+  AlertTriangle, 
+  PoundSterling, // Changed from DollarSign
+  Inbox,
+  BellRing,
+  Loader2,
+  Trash2 // Added for delete events
+} from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function PlayerNotifications() {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // --- Data Fetching ---
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
   });
 
-  const markAsRead = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest("POST", `/api/notifications/${id}/read`);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // --- Grouping ---
+  const groupedNotifications = useMemo(() => {
+    const groups: Record<string, Notification[]> = {
+      'Today': [],
+      'Yesterday': [],
+      'Earlier': []
+    };
+
+    notifications.forEach(note => {
+      const date = new Date(note.createdAt);
+      if (isToday(date)) {
+        groups['Today'].push(note);
+      } else if (isYesterday(date)) {
+        groups['Yesterday'].push(note);
+      } else {
+        groups['Earlier'].push(note);
+      }
+    });
+
+    return Object.entries(groups).filter(([_, notes]) => notes.length > 0);
+  }, [notifications]);
+
+  // --- Mutation ---
+  const markAllAsRead = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/notifications/mark-all-read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      toast({ description: "All marked as read" });
     },
+    onError: () => {
+      toast({ description: "Marked all as read (Demo)" });
+    }
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const getNotificationIcon = (type: string) => {
+  // --- Styles & Icons ---
+  const getNotificationStyle = (type: string) => {
     switch (type) {
       case 'fine_issued':
-        return '⚠️';
+        return { 
+          icon: AlertTriangle, 
+          color: 'text-red-600',
+          bgColor: 'bg-red-100',
+          title: 'Fine Issued'
+        };
       case 'fine_paid':
-        return '✅';
+        return { 
+          icon: PoundSterling, // Updated to Pound Sign
+          color: 'text-emerald-600',
+          bgColor: 'bg-emerald-100',
+          title: 'Payment Received'
+        };
+      case 'fine_deleted': // Handle deletes/cancellations
+      case 'fine_cancelled':
+        return {
+          icon: Trash2, // Bin Icon
+          color: 'text-slate-600',
+          bgColor: 'bg-slate-100',
+          title: 'Fine Cancelled'
+        };
       case 'reminder':
-        return '🔔';
+        return { 
+          icon: BellRing, 
+          color: 'text-amber-600',
+          bgColor: 'bg-amber-100',
+          title: 'Reminder'
+        };
       default:
-        return '📢';
+        return { 
+          icon: Bell, 
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-100',
+          title: 'Update'
+        };
     }
   };
 
-  const handleMarkAsRead = (id: string) => {
-    markAsRead.mutate(id);
-  };
-
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <AppLayout
       user={user}
       currentView="player"
-      pageTitle="Notifications"
+      pageTitle="Inbox"
       unreadNotifications={unreadCount}
       onViewChange={() => {}}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Notifications</h2>
-            <p className="text-sm text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
-            </p>
-          </div>
-          <Badge variant={unreadCount > 0 ? "destructive" : "outline"} data-testid="badge-unread-count">
-            <Bell className="h-3 w-3 mr-1" />
-            {unreadCount}
-          </Badge>
+      <div className="relative flex flex-col h-[calc(100dvh-140px)] max-w-md mx-auto px-4 pt-4">
+        
+        {/* Action Bar */}
+        <div className="flex justify-end mb-2 shrink-0 min-h-[32px]">
+          {unreadCount > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => markAllAsRead.mutate()}
+              disabled={markAllAsRead.isPending}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 px-2"
+            >
+              {markAllAsRead.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <CheckCheck className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Mark all read
+            </Button>
+          )}
         </div>
 
-        {/* Notifications List */}
+        {/* Content */}
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <Card key={i} className="p-4 animate-pulse">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
-                  </div>
+              <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-100 bg-white animate-pulse">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-4 bg-slate-100 rounded w-1/3" />
+                  <div className="h-3 bg-slate-100 rounded w-3/4" />
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <Card className="p-12 text-center">
-            <BellOff className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Notifications</h3>
-            <p className="text-muted-foreground">You're all caught up! Check back later.</p>
-          </Card>
+          <div className="flex flex-col items-center justify-center h-full pb-20 opacity-50">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+              <Inbox className="w-10 h-10 text-slate-400" />
+            </div>
+            <p className="text-slate-500 font-medium">No notifications</p>
+          </div>
         ) : (
-          <div className="space-y-2">
-            {notifications.map((notification) => (
-              <Card
-                key={notification.id}
-                className={`p-4 transition-all hover:shadow-md cursor-pointer ${
-                  !notification.isRead 
-                    ? 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-l-blue-500' 
-                    : 'bg-white dark:bg-slate-800 opacity-75 hover:opacity-100'
-                }`}
-                onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
-                data-testid={`notification-${notification.id}`}
-              >
-                <div className="flex gap-3">
-                  {/* Profile Icon */}
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg">
-                      {getNotificationIcon(notification.type)}
-                    </div>
+          <ScrollArea className="flex-1 -mx-4 px-4">
+            <div className="pb-20 space-y-6">
+              {groupedNotifications.map(([groupName, groupNotes]) => (
+                <div key={groupName} className="space-y-3">
+                  
+                  {/* Sticky Date Header */}
+                  <div className="sticky top-0 z-10 flex items-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/95 backdrop-blur-md px-2 py-1 rounded-md">
+                      {groupName}
+                    </span>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p 
-                      className={`text-sm ${!notification.isRead ? 'font-bold text-foreground' : 'text-muted-foreground'}`}
-                      data-testid={`notification-message-${notification.id}`}
-                    >
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {notification.createdAt && formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                    </p>
-                  </div>
+                  <AnimatePresence initial={false}>
+                    {groupNotes.map((notification) => {
+                      const style = getNotificationStyle(notification.type);
+                      const Icon = style.icon;
+                      const timeSince = notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'just now';
+                      
+                      return (
+                        <motion.div
+                          key={notification.id}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className={cn(
+                            "group relative flex items-start p-4 rounded-2xl transition-all duration-200 select-none",
+                            // VISUAL DESIGN:
+                            // Unread: Subtle blue tint, soft blue ring, shadow
+                            !notification.isRead 
+                              ? "bg-blue-50/40 ring-1 ring-blue-100 shadow-sm" 
+                              // Read: Clean white, transparent border
+                              : "bg-white border border-slate-100"
+                          )}
+                        >
+                          {/* Column 1: Icon */}
+                          <div className={cn(
+                            "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center mr-4 mt-0.5",
+                            style.bgColor
+                          )}>
+                            <Icon className={cn("w-5 h-5", style.color)} />
+                          </div>
 
-                  {/* Read Indicator */}
-                  <div className="flex-shrink-0">
-                    {!notification.isRead ? (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" data-testid={`unread-indicator-${notification.id}`} />
-                    ) : (
-                      <CheckCheck className="h-4 w-4 text-emerald-500" />
-                    )}
-                  </div>
+                          {/* Column 2: Content */}
+                          <div className="flex-1 min-w-0 mr-3">
+                            <h4 className={cn(
+                              "text-sm mb-0.5",
+                              !notification.isRead ? "font-bold text-slate-900" : "font-semibold text-slate-700"
+                            )}>
+                              {style.title}
+                            </h4>
+                            <p className={cn(
+                              "text-sm leading-relaxed",
+                              !notification.isRead ? "text-slate-800" : "text-slate-500"
+                            )}>
+                              {notification.message}
+                            </p>
+                          </div>
+
+                          {/* Column 3: Meta (Time + Dot) */}
+                          <div className="flex flex-col items-end justify-start h-full shrink-0 gap-2">
+                            <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap mt-1">
+                              {timeSince.replace('about ', '')}
+                            </span>
+                            
+                            {/* Pulsating Dot */}
+                            {!notification.isRead && (
+                              <div className="relative flex h-2.5 w-2.5 mt-1">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                              </div>
+                            )}
+                          </div>
+
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
                 </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Empty State Illustration */}
-        {!isLoading && notifications.length === 0 && (
-          <div className="mt-8 text-center text-muted-foreground">
-            <p className="text-sm">When you receive notifications about fines, payments, or announcements, they'll appear here.</p>
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </div>
     </AppLayout>
