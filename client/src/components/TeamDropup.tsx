@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { ChevronUp, ChevronDown, Users, Shield, Check, Bell } from "lucide-react";
+import { ChevronUp, ChevronDown, Users, Shield, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +16,7 @@ export function TeamDropup() {
     activeTeam, 
     activeView, 
     switchTeam, 
-    switchView, 
-    isLoading,
-    hasMultipleTeams,
-    canSwitchView 
+    isLoading
   } = useTeam();
   const [open, setOpen] = useState(false);
 
@@ -35,11 +31,6 @@ export function TeamDropup() {
 
   const handleTeamSelect = async (teamId: string) => {
     await switchTeam(teamId);
-    setOpen(false);
-  };
-
-  const handleViewSwitch = async (view: "player" | "admin") => {
-    await switchView(view);
     setOpen(false);
   };
 
@@ -70,71 +61,49 @@ export function TeamDropup() {
       <DropdownMenuContent 
         align="start" 
         side="top" 
-        className="w-64"
+        className="w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
         data-testid="team-switcher-menu"
       >
-        {canSwitchView && (
-          <>
-            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              Switch View
-            </div>
-            <DropdownMenuItem 
-              onClick={() => handleViewSwitch("player")}
-              data-testid="switch-view-player"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              <span>Player View</span>
-              {activeView === "player" && <Check className="h-4 w-4 ml-auto" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => handleViewSwitch("admin")}
-              data-testid="switch-view-admin"
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              <span>Admin View</span>
-              {activeView === "admin" && <Check className="h-4 w-4 ml-auto" />}
-            </DropdownMenuItem>
-            {hasMultipleTeams && <DropdownMenuSeparator />}
-          </>
-        )}
-        
-        {hasMultipleTeams && (
-          <>
-            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              Switch Team
-            </div>
-            {teams.map((membership) => (
-              <DropdownMenuItem
-                key={membership.id}
-                onClick={() => handleTeamSelect(membership.teamId)}
-                data-testid={`switch-team-${membership.teamId}`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
-                      <Users className="h-3 w-3" />
-                    </div>
-                    <span className="truncate">{membership.team.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {membership.unreadCount && membership.unreadCount > 0 && (
-                      <Badge variant="destructive" className="h-5 min-w-5 text-xs">
-                        {membership.unreadCount}
-                      </Badge>
-                    )}
-                    {membership.teamId === activeTeam.teamId && (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </div>
+        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+          Your Teams
+        </div>
+        {teams.map((membership) => (
+          <DropdownMenuItem
+            key={membership.id}
+            onClick={() => handleTeamSelect(membership.teamId)}
+            data-testid={`switch-team-${membership.teamId}`}
+            className="cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted shrink-0">
+                  <Users className="h-3 w-3" />
                 </div>
-              </DropdownMenuItem>
-            ))}
-          </>
-        )}
+                <div className="min-w-0">
+                  <span className="truncate block text-sm">{membership.team.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {membership.role === 'both' ? 'Player & Admin' : 
+                     membership.role === 'admin' ? 'Admin' : 'Player'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {membership.unreadCount && membership.unreadCount > 0 && (
+                  <Badge variant="destructive" className="h-5 min-w-5 text-xs">
+                    {membership.unreadCount}
+                  </Badge>
+                )}
+                {membership.teamId === activeTeam.teamId && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+              </div>
+            </div>
+          </DropdownMenuItem>
+        ))}
         
-        {!hasMultipleTeams && !canSwitchView && (
+        {teams.length === 0 && (
           <div className="px-2 py-3 text-sm text-center text-muted-foreground">
-            You're viewing {activeTeam.team.name}
+            No teams found
           </div>
         )}
       </DropdownMenuContent>
