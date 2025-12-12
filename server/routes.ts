@@ -204,6 +204,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Multi-team membership routes
+  
+  // Get all teams the user belongs to with roles and unread counts
+  app.get('/api/user/teams', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const memberships = await storage.getUserTeamMemberships(userId);
+      res.json(memberships);
+    } catch (error) {
+      console.error("Error fetching user teams:", error);
+      res.status(500).json({ message: "Failed to fetch user teams" });
+    }
+  });
+
+  // Get active team membership
+  app.get('/api/user/active-team', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activeMembership = await storage.getActiveTeamMembership(userId);
+      if (!activeMembership) {
+        return res.status(404).json({ message: "No active team found" });
+      }
+      res.json(activeMembership);
+    } catch (error) {
+      console.error("Error fetching active team:", error);
+      res.status(500).json({ message: "Failed to fetch active team" });
+    }
+  });
+
+  // Switch active team and/or view
+  app.put('/api/user/active-team', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { teamId, activeView } = req.body;
+      
+      if (!teamId) {
+        return res.status(400).json({ message: "teamId is required" });
+      }
+      
+      // Verify user has membership in this team
+      const membership = await storage.getTeamMembership(userId, teamId);
+      if (!membership) {
+        return res.status(403).json({ message: "You are not a member of this team" });
+      }
+      
+      // Check if requested view is allowed based on role
+      if (activeView === 'admin' && membership.role === 'player') {
+        return res.status(403).json({ message: "You do not have admin access to this team" });
+      }
+      
+      const updatedMembership = await storage.setActiveTeamMembership(userId, teamId, activeView);
+      
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: userId,
+        action: 'switch_team',
+        userId,
+        changes: { teamId, activeView },
+      });
+      
+      res.json(updatedMembership);
+    } catch (error) {
+      console.error("Error switching active team:", error);
+      res.status(500).json({ message: "Failed to switch active team" });
+    }
+  });
+
+  // Update team affiliation (role/view preferences)
+  app.patch('/api/user/teams/:teamId/affiliation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { teamId } = req.params;
+      const { role, activeView } = req.body;
+      
+      // Get existing membership
+      const membership = await storage.getTeamMembership(userId, teamId);
+      if (!membership) {
+        return res.status(404).json({ message: "Team membership not found" });
+      }
+      
+      const updates: any = {};
+      if (role !== undefined) updates.role = role;
+      if (activeView !== undefined) updates.activeView = activeView;
+      
+      const updatedMembership = await storage.updateTeamMembership(membership.id, updates);
+      
+      await storage.createAuditLog({
+        entityType: 'team_membership',
+        entityId: membership.id,
+        action: 'update_affiliation',
+        userId,
+        changes: updates,
+      });
+      
+      res.json(updatedMembership);
+    } catch (error) {
+      console.error("Error updating team affiliation:", error);
+      res.status(500).json({ message: "Failed to update team affiliation" });
+    }
+  });
+
   // Team info route
   app.get('/api/team/info', isAuthenticated, async (req: any, res) => {
     try {
