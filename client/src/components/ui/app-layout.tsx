@@ -2,15 +2,16 @@ import { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import TopBar from "@/components/ui/top-bar";
 import BottomNav from "@/components/ui/bottom-nav";
+import { useTeam } from "@/contexts/TeamContext";
 import type { User as UserType } from "@shared/schema";
 
 interface AppLayoutProps {
   user: UserType | null;
-  currentView: 'player' | 'admin';
+  currentView?: 'player' | 'admin'; // Now optional, will use TeamContext by default
   pageTitle: string;
-  unreadNotifications?: number; // Made optional for backward compatibility
-  onViewChange: (view: 'player' | 'admin') => void;
-  canSwitchView: boolean;
+  unreadNotifications?: number;
+  onViewChange?: (view: 'player' | 'admin') => void; // Now optional
+  canSwitchView?: boolean; // Now optional
   children: ReactNode;
 }
 
@@ -27,13 +28,19 @@ interface NotificationCounts {
 
 export default function AppLayout({
   user,
-  currentView,
+  currentView: propCurrentView,
   pageTitle,
   unreadNotifications,
   onViewChange,
-  canSwitchView,
+  canSwitchView: propCanSwitchView,
   children,
 }: AppLayoutProps) {
+  const { activeView, canSwitchView: teamCanSwitchView } = useTeam();
+  
+  // Use TeamContext.activeView as the source of truth, fallback to prop for backward compatibility
+  const currentView = activeView || propCurrentView || 'player';
+  const canSwitchView = propCanSwitchView ?? teamCanSwitchView;
+
   // Fetch independent notification counts for player and admin views
   const { data: notificationCounts } = useQuery<NotificationCounts>({
     queryKey: ["/api/notifications/counts"],

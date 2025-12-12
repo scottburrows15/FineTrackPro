@@ -1,5 +1,7 @@
 import { Gavel, BarChart3, Home, Bell, Settings } from "lucide-react";
 import { useLocation } from "wouter";
+import { TeamDropup } from "@/components/TeamDropup";
+import { useTeam } from "@/contexts/TeamContext";
 
 interface BottomNavProps {
   currentView: 'player' | 'admin';
@@ -8,6 +10,9 @@ interface BottomNavProps {
 
 export default function BottomNav({ currentView, unreadCount }: BottomNavProps) {
   const [location, setLocation] = useLocation();
+  const { hasMultipleTeams, canSwitchView } = useTeam();
+  const showTeamSwitcher = hasMultipleTeams || canSwitchView;
+  
   const navItems = currentView === 'player' 
     ? [
         { id: 'fines', path: '/player/fines', icon: Gavel, label: 'Fines', color: 'text-red-500' },
@@ -27,6 +32,11 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.3)]">
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        {showTeamSwitcher && (
+          <div className="border-b border-slate-200 dark:border-slate-700">
+            <TeamDropup />
+          </div>
+        )}
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -53,7 +63,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                       ${isActive ? item.color : 'text-slate-600 dark:text-slate-400'}
                     `}
                   />
-                {item.id === 'notifications' && item.badge > 0 && (
+                {item.id === 'notifications' && item.badge && item.badge > 0 && (
                     <div 
                       className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
                       data-testid={`badge-${item.id}`}

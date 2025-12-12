@@ -42,6 +42,10 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["/api/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
     },
   });
 

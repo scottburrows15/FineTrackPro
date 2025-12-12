@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
-import { User, Save, Upload, Camera, ArrowLeft } from "lucide-react";
+import { useTeam } from "@/contexts/TeamContext";
+import { User, Save, Upload, Camera, ArrowLeft, Users, Shield, Check, ChevronRight } from "lucide-react";
 import type { User as UserType, Notification } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
 
@@ -21,6 +23,7 @@ export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { teams, activeTeam, switchTeam, switchView, activeView, canSwitchView, isLoading: teamsLoading } = useTeam();
 
   const { data: currentUser, isLoading } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
@@ -160,7 +163,7 @@ export default function Profile() {
   };
 
   const handleBack = () => {
-    if (user?.role === 'admin') {
+    if (activeView === 'admin') {
       setLocation('/admin/settings');
     } else {
       setLocation('/player/settings');
@@ -171,16 +174,14 @@ export default function Profile() {
     return null;
   }
 
-  const currentView = user.role === 'admin' ? 'admin' : 'player';
-
   return (
     <AppLayout
       user={user}
-      currentView={currentView}
+      currentView={activeView}
       pageTitle="Edit Profile"
       unreadNotifications={unreadCount}
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
-      canSwitchView={user.role === 'admin'}
+      canSwitchView={canSwitchView}
     >
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Back Button */}
@@ -376,6 +377,147 @@ export default function Profile() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Day of month (1-28) for future direct debit scheduling
                 </p>
+              </div>
+
+              <Separator />
+
+              {/* Team Affiliations Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-lg font-semibold">Your Teams</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Manage your team memberships and switch between teams
+                </p>
+                
+                {teamsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : teams.length === 0 ? (
+                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">You're not a member of any teams yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {teams.map((membership) => {
+                      const isActive = activeTeam?.teamId === membership.teamId;
+                      return (
+                        <div
+                          key={membership.id}
+                          className={`p-4 rounded-lg border transition-all ${
+                            isActive 
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                          data-testid={`team-membership-${membership.teamId}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                                isActive 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                              }`}>
+                                <Users className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{membership.team.name}</span>
+                                  {isActive && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Active
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {membership.role === 'admin' && (
+                                    <Badge variant="outline" className="text-xs">
+                                      <Shield className="h-3 w-3 mr-1" />
+                                      Admin
+                                    </Badge>
+                                  )}
+                                  {membership.role === 'both' && (
+                                    <>
+                                      <Badge variant="outline" className="text-xs">
+                                        <Users className="h-3 w-3 mr-1" />
+                                        Player
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        <Shield className="h-3 w-3 mr-1" />
+                                        Admin
+                                      </Badge>
+                                    </>
+                                  )}
+                                  {membership.role === 'player' && (
+                                    <Badge variant="outline" className="text-xs">
+                                      <Users className="h-3 w-3 mr-1" />
+                                      Player
+                                    </Badge>
+                                  )}
+                                </div>
+                                {/* View-switch controls for dual-role users on active team */}
+                                {isActive && (membership.role === 'admin' || membership.role === 'both') && canSwitchView && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs text-muted-foreground">Current view:</span>
+                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          switchView('player');
+                                          setLocation('/player/home');
+                                        }}
+                                        className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                                          activeView === 'player' 
+                                            ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                        }`}
+                                        data-testid="profile-view-switcher-player"
+                                      >
+                                        Player
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          switchView('admin');
+                                          setLocation('/admin/home');
+                                        }}
+                                        className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                                          activeView === 'admin' 
+                                            ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                        }`}
+                                        data-testid="profile-view-switcher-admin"
+                                      >
+                                        Admin
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {!isActive && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => switchTeam(membership.teamId)}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                                data-testid={`button-switch-to-team-${membership.teamId}`}
+                              >
+                                Switch
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <Separator />

@@ -7,11 +7,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, HelpCircle, LogOut, User, Settings } from "lucide-react";
+import { Menu, HelpCircle, LogOut, User, Settings, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
 import { getDisplayName } from "@/lib/userUtils";
+import { useTeam } from "@/contexts/TeamContext";
 import logoUrl from "@assets/foulpay-logo.png";
 
 interface TopBarProps {
@@ -24,6 +25,9 @@ interface TopBarProps {
 
 export default function TopBar({ user, currentView, pageTitle, onViewChange, canSwitchView }: TopBarProps) {
   const [, setLocation] = useLocation();
+  const { activeTeam, switchView, canSwitchView: teamCanSwitchView, hasMultipleTeams } = useTeam();
+  
+  const effectiveCanSwitchView = canSwitchView ?? teamCanSwitchView;
 
   const getInitials = (user: UserType | null) => {
     if (!user) return "?";
@@ -40,11 +44,12 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
     window.location.href = "/api/logout";
   };
 
-  const handleViewSwitch = (view: 'player' | 'admin') => {
+  const handleViewSwitch = async (view: 'player' | 'admin') => {
+    await switchView(view);  // Always persist to server
     if (onViewChange) {
-      onViewChange(view);
-      setLocation(view === 'player' ? '/player/home' : '/admin/home');
+      onViewChange(view);    // Then call prop callback if exists
     }
+    setLocation(view === 'player' ? '/player/home' : '/admin/home');
   };
 
   return (
@@ -139,6 +144,21 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                     <Settings className="h-4 w-4" />
                     <span>App Settings</span>
                   </DropdownMenuItem>
+                  {(hasMultipleTeams || effectiveCanSwitchView) && (
+                    <DropdownMenuItem 
+                      onClick={() => setLocation('/profile')}
+                      data-testid="menu-team-management"
+                      className="flex items-center gap-2 py-2 cursor-pointer"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Team Management</span>
+                      {activeTeam && (
+                        <span className="ml-auto text-xs text-muted-foreground truncate max-w-[80px]">
+                          {activeTeam.team.name}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
                     Version 1.0.0
@@ -165,7 +185,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
             </h1>
 
             {/* View Switcher - Compact and always visible when applicable */}
-            {canSwitchView ? (
+            {effectiveCanSwitchView ? (
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0">
                 <button
                   onClick={() => handleViewSwitch('player')}
