@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
+import { TeamProvider } from "@/contexts/TeamContext";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import JoinTeam from "@/pages/join-team";
@@ -75,10 +76,12 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <TeamProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </TeamProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
