@@ -7,6 +7,7 @@ import {
   notifications,
   auditLog,
   adminPreferences,
+  teamMemberships,
   type User,
   type UpsertUser,
   type Team,
@@ -26,6 +27,9 @@ import {
   type UserWithTeam,
   type TeamStats,
   type PlayerStats,
+  type TeamMembership,
+  type InsertTeamMembership,
+  type TeamMembershipWithTeam,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sum, count, sql, gte } from "drizzle-orm";
@@ -93,6 +97,15 @@ export interface IStorage {
   // Admin preferences
   getAdminPreferences(userId: string): Promise<AdminPreferences | undefined>;
   upsertAdminPreferences(preferences: InsertAdminPreferences): Promise<AdminPreferences>;
+  
+  // Team membership operations
+  getUserTeamMemberships(userId: string): Promise<TeamMembershipWithTeam[]>;
+  getTeamMembership(userId: string, teamId: string): Promise<TeamMembership | undefined>;
+  getActiveTeamMembership(userId: string): Promise<TeamMembershipWithTeam | undefined>;
+  createTeamMembership(membership: InsertTeamMembership): Promise<TeamMembership>;
+  updateTeamMembership(id: string, updates: Partial<TeamMembership>): Promise<TeamMembership>;
+  setActiveTeamMembership(userId: string, teamId: string, activeView?: string): Promise<TeamMembership>;
+  deleteTeamMembership(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -784,6 +797,124 @@ export class DatabaseStorage implements IStorage {
     }
 
     return fine;
+  }
+
+  // Team membership operations
+  async getUserTeamMemberships(userId: string): Promise<TeamMembershipWithTeam[]> {
+    const memberships = await db
+      .select({
+        membership: teamMemberships,
+        team: teams,
+      })
+      .from(teamMemberships)
+      .innerJoin(teams, eq(teamMemberships.teamId, teams.id))
+      .where(eq(teamMemberships.userId, userId))
+      .orderBy(desc(teamMemberships.isActive), teams.name);
+
+    // Get unread notification counts for each team membership
+    const results: TeamMembershipWithTeam[] = [];
+    for (const row of memberships) {
+      // Count unread notifications for fines in this team
+      const [unreadResult] = await db
+        .select({ count: count() })
+        .from(notifications)
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        ));
+      
+      results.push({
+        ...row.membership,
+        team: row.team,
+        unreadCount: Number(unreadResult.count) || 0,
+      });
+    }
+    
+    return results;
+  }
+
+  async getTeamMembership(userId: string, teamId: string): Promise<TeamMembership | undefined> {
+    const [membership] = await db
+      .select()
+      .from(teamMemberships)
+      .where(and(
+        eq(teamMemberships.userId, userId),
+        eq(teamMemberships.teamId, teamId)
+      ));
+    return membership;
+  }
+
+  async getActiveTeamMembership(userId: string): Promise<TeamMembershipWithTeam | undefined> {
+    const [result] = await db
+      .select({
+        membership: teamMemberships,
+        team: teams,
+      })
+      .from(teamMemberships)
+      .innerJoin(teams, eq(teamMemberships.teamId, teams.id))
+      .where(and(
+        eq(teamMemberships.userId, userId),
+        eq(teamMemberships.isActive, true)
+      ));
+    
+    if (!result) return undefined;
+    
+    return {
+      ...result.membership,
+      team: result.team,
+    };
+  }
+
+  async createTeamMembership(membership: InsertTeamMembership): Promise<TeamMembership> {
+    const [newMembership] = await db
+      .insert(teamMemberships)
+      .values(membership)
+      .returning();
+    return newMembership;
+  }
+
+  async updateTeamMembership(id: string, updates: Partial<TeamMembership>): Promise<TeamMembership> {
+    const [membership] = await db
+      .update(teamMemberships)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(teamMemberships.id, id))
+      .returning();
+    return membership;
+  }
+
+  async setActiveTeamMembership(userId: string, teamId: string, activeView?: string): Promise<TeamMembership> {
+    // First, deactivate all other memberships for this user
+    await db
+      .update(teamMemberships)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(teamMemberships.userId, userId));
+    
+    // Then activate the specified team membership
+    const updates: Partial<TeamMembership> = { isActive: true, updatedAt: new Date() };
+    if (activeView) {
+      updates.activeView = activeView;
+    }
+    
+    const [membership] = await db
+      .update(teamMemberships)
+      .set(updates)
+      .where(and(
+        eq(teamMemberships.userId, userId),
+        eq(teamMemberships.teamId, teamId)
+      ))
+      .returning();
+    
+    // Also update the user's current teamId for backward compatibility
+    await db
+      .update(users)
+      .set({ teamId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    
+    return membership;
+  }
+
+  async deleteTeamMembership(id: string): Promise<void> {
+    await db.delete(teamMemberships).where(eq(teamMemberships.id, id));
   }
 }
 
