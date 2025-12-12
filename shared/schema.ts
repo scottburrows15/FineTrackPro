@@ -65,6 +65,17 @@ export const teams = pgTable("teams", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Team memberships table - allows users to belong to multiple teams with different roles
+export const teamMemberships = pgTable("team_memberships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  role: varchar("role").notNull().default("player"), // 'player', 'admin', or 'both'
+  isActive: boolean("is_active").default(false), // current active team for this user
+  activeView: varchar("active_view").default("player"), // 'player' or 'admin' - which view is active
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Fine categories table
 export const fineCategories = pgTable("fine_categories", {
@@ -159,12 +170,14 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   finesReceived: many(fines, { relationName: "finesReceived" }),
   notifications: many(notifications),
   auditLogs: many(auditLog),
+  teamMemberships: many(teamMemberships),
 }));
 
 export const teamsRelations = relations(teams, ({ many }) => ({
   members: many(users),
   categories: many(fineCategories),
   subscriptions: many(subscriptions),
+  teamMemberships: many(teamMemberships),
 }));
 
 export const fineCategoriesRelations = relations(fineCategories, ({ one, many }) => ({
@@ -214,6 +227,17 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
   }),
 }));
 
+export const teamMembershipsRelations = relations(teamMemberships, ({ one }) => ({
+  user: one(users, {
+    fields: [teamMemberships.userId],
+    references: [users.id],
+  }),
+  team: one(teams, {
+    fields: [teamMemberships.teamId],
+    references: [teams.id],
+  }),
+}));
+
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -260,6 +284,12 @@ export const insertAdminPreferencesSchema = createInsertSchema(adminPreferences)
   updatedAt: true,
 });
 
+export const insertTeamMembershipSchema = createInsertSchema(teamMemberships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -277,6 +307,8 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AdminPreferences = typeof adminPreferences.$inferSelect;
 export type InsertAdminPreferences = z.infer<typeof insertAdminPreferencesSchema>;
+export type TeamMembership = typeof teamMemberships.$inferSelect;
+export type InsertTeamMembership = z.infer<typeof insertTeamMembershipSchema>;
 
 // Extended types with relations
 export type UserWithTeam = User & {
@@ -303,6 +335,11 @@ export type PlayerStats = {
   totalPaid: string;
   monthlyFines: number;
   leaguePosition: number;
+};
+
+export type TeamMembershipWithTeam = TeamMembership & {
+  team: Team;
+  unreadCount?: number;
 };
 
 // Payment system tables for Open Banking integration
