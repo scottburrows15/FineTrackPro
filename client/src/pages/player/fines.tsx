@@ -93,7 +93,7 @@ export default function PlayerFines() {
       }}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-4xl mx-auto px-4 pb-4 pt-4 space-y-4">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 pb-4 pt-4 space-y-4">
         
         {/* 1. Refined Summary Cards (F) */}
         <div className="grid grid-cols-3 gap-2">

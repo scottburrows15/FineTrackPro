@@ -128,7 +128,7 @@ export default function AdminSettings() {
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -143,7 +143,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Team Information */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -163,7 +163,7 @@ export default function AdminSettings() {
               <p className="text-sm text-muted-foreground">Sport</p>
               <p className="font-medium" data-testid="text-team-sport">{teamInfo?.sport || 'Loading...'}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button 
                 variant="outline" 
                 className="flex-1"
@@ -187,7 +187,7 @@ export default function AdminSettings() {
         </Card>
 
         {/* Fine Categories */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
               <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -210,7 +210,7 @@ export default function AdminSettings() {
         </Card>
 
         {/* Audit History */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -233,7 +233,7 @@ export default function AdminSettings() {
         </Card>
 
         {/* Admin Notification Preferences */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
               <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -299,7 +299,7 @@ export default function AdminSettings() {
         </Card>
 
         {/* Subscription */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
               <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -327,7 +327,7 @@ export default function AdminSettings() {
         </Card>
 
         {/* Account Actions */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
               <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />

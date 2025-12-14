@@ -194,7 +194,7 @@ export default function AdminHome() {
       }
       canSwitchView={true}
     >
-      <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
         {/* Reverted Team Sharing Section */}
         <Card className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">

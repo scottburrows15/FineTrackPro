@@ -28,7 +28,7 @@ export default function AdminFines() {
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Inline Fine Issuer - No More Popups! */}
         <InlineFineIssuer />
       </div>
