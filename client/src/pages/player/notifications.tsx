@@ -122,7 +122,7 @@ export default function PlayerNotifications() {
       onViewChange={() => {}}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="relative flex flex-col h-[calc(100dvh-140px)] max-w-md mx-auto px-4 pt-4">
+      <div className="relative flex flex-col h-[calc(100dvh-140px)] max-w-md mx-auto px-3 sm:px-4 pt-4">
         
         {/* Action Bar */}
         <div className="flex justify-end mb-2 shrink-0 min-h-[32px]">

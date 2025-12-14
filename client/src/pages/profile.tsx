@@ -183,7 +183,7 @@ export default function Profile() {
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={canSwitchView}
     >
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Back Button */}
         <Button
           variant="ghost"
@@ -196,7 +196,7 @@ export default function Profile() {
         </Button>
 
         {/* Profile Card */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />

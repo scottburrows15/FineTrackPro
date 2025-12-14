@@ -65,7 +65,7 @@ export default function Help() {
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -97,7 +97,7 @@ export default function Help() {
         </Card>
 
         {/* FAQs */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <BookOpen className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             <h2 className="text-xl font-semibold">Frequently Asked Questions</h2>
@@ -143,7 +143,7 @@ export default function Help() {
         </Card>
 
         {/* Contact Support */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <h2 className="text-xl font-semibold">Contact Support</h2>
@@ -193,7 +193,7 @@ export default function Help() {
         </Card>
 
         {/* Tutorials & Guides */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             <h2 className="text-xl font-semibold">Tutorials & Guides</h2>
@@ -223,7 +223,7 @@ export default function Help() {
         </Card>
 
         {/* Feature Feedback */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
             <h2 className="text-xl font-semibold">Feature Feedback</h2>
