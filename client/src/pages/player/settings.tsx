@@ -69,31 +69,31 @@ export default function PlayerSettings() {
       }}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
         {/* Profile Header Card */}
         <Card className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16 border-2 border-white/20">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 border-white/20 flex-shrink-0">
               <AvatarImage src={user.avatar} />
-              <AvatarFallback className="bg-white/20 text-white text-lg font-semibold">
+              <AvatarFallback className="bg-white/20 text-white text-sm sm:text-lg font-semibold">
                 {getInitials(user.firstName, user.lastName)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold">{user.firstName} {user.lastName}</h2>
-              <p className="text-blue-100 text-sm">{user.email}</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold truncate">{user.firstName} {user.lastName}</h2>
+              <p className="text-blue-100 text-xs sm:text-sm truncate">{user.email}</p>
               {user.position && (
-                <p className="text-blue-100 text-sm">{user.position}</p>
+                <p className="text-blue-100 text-xs sm:text-sm">{user.position}</p>
               )}
             </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setLocation("/profile")}
-              className="bg-white/20 hover:bg-white/30 text-white border-0"
+              className="bg-white/20 hover:bg-white/30 text-white border-0 flex-shrink-0"
             >
-              <User className="h-4 w-4 mr-2" />
-              Edit
+              <User className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Edit</span>
             </Button>
           </div>
         </Card>
