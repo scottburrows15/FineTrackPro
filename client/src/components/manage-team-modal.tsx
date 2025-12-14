@@ -159,10 +159,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
           {/* Team Details Section */}
           <Card>
             <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Team Details</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2 min-w-0">
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="truncate">Team Details</span>
                 </h3>
                 <Button
                   onClick={() => {
@@ -176,7 +176,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                   }}
                   variant="outline"
                   size="sm"
-                  className="text-xs sm:text-sm"
+                  className="text-xs sm:text-sm flex-shrink-0"
                 >
                   {editingTeam ? 'Cancel' : 'Edit'}
                 </Button>
@@ -252,10 +252,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
           {/* Team Members Section */}
           <Card>
             <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2">
-                  <UserCog className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Team Members ({teamMembers.length})</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2 min-w-0">
+                  <UserCog className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="truncate">Team Members ({teamMembers.length})</span>
                 </h3>
                 <Button
                   onClick={() => {
@@ -274,10 +274,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                   }}
                   variant="outline"
                   size="sm"
-                  className="text-xs sm:text-sm"
+                  className="text-xs sm:text-sm flex-shrink-0"
                 >
                   <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  Add Player
+                  Add
                 </Button>
               </div>
 

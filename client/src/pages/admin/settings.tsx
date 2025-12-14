@@ -63,10 +63,7 @@ export default function AdminSettings() {
   // Save preferences mutation
   const savePreferencesMutation = useMutation({
     mutationFn: async (prefs: { emailAlertsEnabled: boolean; pushNotificationsEnabled: boolean; summaryNotificationsEnabled: boolean }) => {
-      return apiRequest("/api/admin/preferences", {
-        method: "POST",
-        body: JSON.stringify(prefs),
-      });
+      return apiRequest("POST", "/api/admin/preferences", prefs);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/preferences"] });
@@ -128,7 +125,7 @@ export default function AdminSettings() {
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">

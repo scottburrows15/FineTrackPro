@@ -386,9 +386,9 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Left column: categories */}
             <div className="lg:col-span-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold">Categories</h3>
-                <Button onClick={() => { setShowCategoryForm(true); setEditingCategory(null); }} size="sm" className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="text-lg font-semibold min-w-0 truncate">Categories</h3>
+                <Button onClick={() => { setShowCategoryForm(true); setEditingCategory(null); }} size="sm" className="flex items-center gap-2 flex-shrink-0">
                   <Plus className="w-4 h-4" /> <span>Add</span>
                 </Button>
               </div>
@@ -454,20 +454,20 @@ export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategor
 
             {/* Right column: subcategories */}
             <div className="lg:col-span-7">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-lg font-semibold">
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold truncate">
                     Subcategories{selectedCategoryId ? ` — ${categories.find(c => c.id === selectedCategoryId)?.name}` : ''}
                   </h3>
                   <p className="text-xs text-muted-foreground">Click a category on the left to manage its subcategories.</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => { if (selectedCategoryId) setShowSubcategoryForm(true); else toast({ title: "No category selected", description: "Please select a category first", variant: "destructive" }); }}>
-                    <Plus className="w-4 h-4" /> <span>Add Subcategory</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => { if (selectedCategoryId) setShowSubcategoryForm(true); else toast({ title: "No category selected", description: "Please select a category first", variant: "destructive" }); }} className="text-xs sm:text-sm">
+                    <Plus className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Add Subcategory</span><span className="sm:hidden">Add</span>
                   </Button>
                   {selectedCategoryId && (
-                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: 'category', id: selectedCategoryId, name: categories.find(c => c.id === selectedCategoryId)?.name })} className="text-red-600">
+                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: 'category', id: selectedCategoryId, name: categories.find(c => c.id === selectedCategoryId)?.name })} className="text-red-600 flex-shrink-0">
                       <Trash2 className="w-4 h-4" /> <span className="sr-only">Delete category</span>
                     </Button>
                   )}
