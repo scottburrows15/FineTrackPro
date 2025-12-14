@@ -144,21 +144,19 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                     <Settings className="h-4 w-4" />
                     <span>App Settings</span>
                   </DropdownMenuItem>
-                  {(hasMultipleTeams || effectiveCanSwitchView) && (
-                    <DropdownMenuItem 
-                      onClick={() => setLocation('/profile')}
-                      data-testid="menu-team-management"
-                      className="flex items-center gap-2 py-2 cursor-pointer"
-                    >
-                      <Users className="h-4 w-4" />
-                      <span>Team Management</span>
-                      {activeTeam && (
-                        <span className="ml-auto text-xs text-muted-foreground truncate max-w-[80px]">
-                          {activeTeam.team.name}
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem 
+                    onClick={() => setLocation(currentView === 'player' ? '/player/settings' : '/admin/settings')}
+                    data-testid="menu-team-settings"
+                    className="flex items-center gap-2 py-2 cursor-pointer"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Team Settings</span>
+                    {activeTeam && (
+                      <span className="ml-auto text-xs text-muted-foreground truncate max-w-[80px]">
+                        {activeTeam.team.name}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
                     Version 1.0.0
