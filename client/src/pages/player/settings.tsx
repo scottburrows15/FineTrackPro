@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import { 
-  User, 
   Bell, 
   CreditCard, 
   Palette, 
-  Shield, 
   Moon, 
   Sun,
   LogOut,
@@ -50,10 +47,6 @@ export default function PlayerSettings() {
     window.location.href = "/api/logout";
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-
   if (!user) {
     return null;
   }
@@ -62,7 +55,7 @@ export default function PlayerSettings() {
     <AppLayout
       user={user}
       currentView="player"
-      pageTitle="Settings"
+      pageTitle="App Settings"
       unreadNotifications={unreadCount}
       onViewChange={(view) => {
         setLocation(view === 'player' ? '/player/home' : '/admin/home');
@@ -70,76 +63,6 @@ export default function PlayerSettings() {
       canSwitchView={user.role === 'admin'}
     >
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
-        {/* Profile Header Card */}
-        <Card className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 border-white/20 flex-shrink-0">
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback className="bg-white/20 text-white text-sm sm:text-lg font-semibold">
-                {getInitials(user.firstName, user.lastName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold truncate">{user.firstName} {user.lastName}</h2>
-              <p className="text-blue-100 text-xs sm:text-sm truncate">{user.email}</p>
-              {user.position && (
-                <p className="text-blue-100 text-xs sm:text-sm">{user.position}</p>
-              )}
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setLocation("/profile")}
-              className="bg-white/20 hover:bg-white/30 text-white border-0 flex-shrink-0"
-            >
-              <User className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Edit</span>
-            </Button>
-          </div>
-        </Card>
-
-        {/* Quick Settings Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card 
-            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-all text-center"
-            onClick={() => setLocation("/profile")}
-          >
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg inline-flex mb-2">
-              <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Profile</p>
-          </Card>
-
-          <Card 
-            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-all text-center"
-            onClick={() => setLocation("/player/fines")}
-          >
-            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg inline-flex mb-2">
-              <Receipt className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">My Fines</p>
-          </Card>
-
-          <Card 
-            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-all text-center"
-            onClick={() => setLocation("/payment")}
-          >
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg inline-flex mb-2">
-              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Payments</p>
-          </Card>
-
-          <Card 
-            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-all text-center"
-            onClick={() => setLocation("/help")}
-          >
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg inline-flex mb-2">
-              <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Help</p>
-          </Card>
-        </div>
 
         {/* Settings Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -319,45 +242,6 @@ export default function PlayerSettings() {
               </div>
             </Card>
 
-            {/* Account Settings */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Account</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your account</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/profile")}
-                >
-                  <div className="flex items-center gap-3">
-                    <User className="h-4 w-4" />
-                    <span>Edit Profile</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/privacy")}
-                >
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-4 w-4" />
-                    <span>Privacy & Security</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-
             {/* Support & Actions */}
             <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <div className="space-y-3">
@@ -391,7 +275,7 @@ export default function PlayerSettings() {
         {/* App Version */}
         <div className="text-center py-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Fines Tracker v1.0.0
+            FoulPay v1.0.0
           </p>
         </div>
       </div>
