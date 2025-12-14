@@ -11,7 +11,6 @@ import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { AdminPreferences } from "@shared/schema";
 import { 
-  Settings as SettingsIcon, 
   Users, 
   FileText, 
   Crown,
@@ -20,7 +19,11 @@ import {
   Calendar,
   Edit,
   LogOut,
-  Bell
+  Bell,
+  Mail,
+  Smartphone,
+  HelpCircle,
+  ChevronRight
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
@@ -120,256 +123,250 @@ export default function AdminSettings() {
     <AppLayout
       user={user}
       currentView="admin"
-      pageTitle="Settings"
+      pageTitle="Team Settings"
       unreadNotifications={unreadCount}
       onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <SettingsIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <h1 className="text-2xl font-bold">Team Settings</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Manage your team, categories, and subscription
-          </p>
-        </div>
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
+        {/* Settings Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left Column */}
+          <div className="space-y-4">
+            {/* Team Information */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Team Information</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage team details</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Team Name</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100" data-testid="text-team-name">{teamInfo?.name || 'Loading...'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Sport</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100" data-testid="text-team-sport">{teamInfo?.sport || 'Loading...'}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowManageTeamModal(true)}
+                  data-testid="button-edit-team"
+                  className="w-full"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddPlayerModal(true)}
+                  data-testid="button-add-player"
+                  className="w-full"
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Players
+                </Button>
+              </div>
+            </Card>
 
-        {/* Team Information */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Team Information</h3>
-              <p className="text-sm text-muted-foreground">Manage team details and settings</p>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Team Name</p>
-              <p className="font-medium" data-testid="text-team-name">{teamInfo?.name || 'Loading...'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Sport</p>
-              <p className="font-medium" data-testid="text-team-sport">{teamInfo?.sport || 'Loading...'}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            {/* Fine Categories */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                  <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Fine Categories</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage categories and subcategories</p>
+                </div>
+              </div>
+              
               <Button 
                 variant="outline" 
-                className="flex-1"
-                onClick={() => setShowManageTeamModal(true)}
-                data-testid="button-edit-team"
+                className="w-full justify-between h-12"
+                onClick={() => setShowManageCategoriesModal(true)}
+                data-testid="button-manage-categories"
               >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Team
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4" />
+                  <span>Manage Categories</span>
+                </div>
+                <ChevronRight className="h-4 w-4" />
               </Button>
+            </Card>
+
+            {/* Audit History */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Audit History</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">View all team actions</p>
+                </div>
+              </div>
+              
               <Button 
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowAddPlayerModal(true)}
-                data-testid="button-add-player"
+                variant="outline" 
+                className="w-full justify-between h-12"
+                onClick={() => setShowAuditTrailModal(true)}
+                data-testid="button-audit-history"
               >
-                <Users className="mr-2 h-4 w-4" />
-                Add Player
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4" />
+                  <span>View Audit Trail</span>
+                </div>
+                <ChevronRight className="h-4 w-4" />
               </Button>
-            </div>
+            </Card>
           </div>
-        </Card>
 
-        {/* Fine Categories */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-              <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Fine Categories</h3>
-              <p className="text-sm text-muted-foreground">Manage fine categories and subcategories</p>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setShowManageCategoriesModal(true)}
-            data-testid="button-manage-categories"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Manage Categories
-          </Button>
-        </Card>
-
-        {/* Audit History */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Audit History</h3>
-              <p className="text-sm text-muted-foreground">View all team actions and changes</p>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setShowAuditTrailModal(true)}
-            data-testid="button-audit-history"
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            View Audit Trail
-          </Button>
-        </Card>
-
-        {/* Admin Notification Preferences */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-              <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Admin Notification Preferences</h3>
-              <p className="text-sm text-muted-foreground">Manage admin alert settings</p>
-            </div>
-          </div>
-          <Separator className="my-4" />
+          {/* Right Column */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <Label htmlFor="email-alerts" className="text-base font-medium cursor-pointer">
-                  Email Alerts
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive emails when fines are settled
-                </p>
+            {/* Admin Notifications */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Admin Notifications</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage alert settings</p>
+                </div>
               </div>
-              <Switch
-                id="email-alerts"
-                checked={emailAlertsEnabled}
-                onCheckedChange={updateEmailAlerts}
-                data-testid="switch-email-alerts"
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <Label htmlFor="push-notifications" className="text-base font-medium cursor-pointer">
-                  Push Notifications
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Get instant alerts for paid or deleted fines
-                </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <Label htmlFor="email-alerts" className="font-medium text-sm">Email Alerts</Label>
+                      <p className="text-xs text-slate-500">Fines settled notifications</p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="email-alerts"
+                    checked={emailAlertsEnabled}
+                    onCheckedChange={updateEmailAlerts}
+                    data-testid="switch-email-alerts"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Smartphone className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <Label htmlFor="push-notifications" className="font-medium text-sm">Push Notifications</Label>
+                      <p className="text-xs text-slate-500">Instant fine alerts</p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="push-notifications"
+                    checked={pushNotificationsEnabled}
+                    onCheckedChange={updatePushNotifications}
+                    data-testid="switch-push-notifications"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <Label htmlFor="summary-notifications" className="font-medium text-sm">Summary Notifications</Label>
+                      <p className="text-xs text-slate-500">Activity digests</p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="summary-notifications"
+                    checked={summaryNotificationsEnabled}
+                    onCheckedChange={updateSummaryNotifications}
+                    data-testid="switch-summary-notifications"
+                  />
+                </div>
               </div>
-              <Switch
-                id="push-notifications"
-                checked={pushNotificationsEnabled}
-                onCheckedChange={updatePushNotifications}
-                data-testid="switch-push-notifications"
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <Label htmlFor="summary-notifications" className="text-base font-medium cursor-pointer">
-                  Summary Notifications
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Daily or weekly digests of team activity
-                </p>
+            </Card>
+
+            {/* Subscription */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Subscription</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your plan</p>
+                </div>
+                {teamInfo?.isTrialActive && (
+                  <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
+                    Trial
+                  </Badge>
+                )}
               </div>
-              <Switch
-                id="summary-notifications"
-                checked={summaryNotificationsEnabled}
-                onCheckedChange={updateSummaryNotifications}
-                data-testid="switch-summary-notifications"
-              />
-            </div>
-          </div>
-        </Card>
+              
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12"
+                onClick={() => setShowSubscriptionModal(true)}
+                data-testid="button-manage-subscription"
+              >
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Manage Subscription</span>
+                </div>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Card>
 
-        {/* Subscription */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold">Subscription</h3>
-              <p className="text-sm text-muted-foreground">Manage your subscription plan</p>
-            </div>
-            {teamInfo?.isTrialActive && (
-              <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
-                Trial
-              </Badge>
-            )}
+            {/* Support & Actions */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between h-12"
+                  onClick={() => setLocation("/help")}
+                  data-testid="link-help"
+                >
+                  <div className="flex items-center gap-3">
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Help & Support</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                <Separator />
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start h-12 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="h-4 w-4 mr-3" />
+                  Sign Out
+                </Button>
+              </div>
+            </Card>
           </div>
-          <Separator className="my-4" />
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setShowSubscriptionModal(true)}
-            data-testid="button-manage-subscription"
-          >
-            <DollarSign className="mr-2 h-4 w-4" />
-            Manage Subscription
-          </Button>
-        </Card>
+        </div>
 
-        {/* Account Actions */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Account</h3>
-              <p className="text-sm text-muted-foreground">Account and security settings</p>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <div className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => setLocation("/profile")}
-              data-testid="button-edit-profile"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Log Out
-            </Button>
-          </div>
-        </Card>
-
-        {/* Help */}
-        <Card className="p-4 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-700">
-          <p className="text-sm text-muted-foreground text-center">
-            Need help? Visit our{" "}
-            <button
-              onClick={() => setLocation("/help")}
-              className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
-              data-testid="link-help"
-            >
-              Help Center
-            </button>
+        {/* App Version */}
+        <div className="text-center py-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            FoulPay v1.0.0
           </p>
-        </Card>
+        </div>
       </div>
 
       {/* Modals */}
