@@ -1,7 +1,14 @@
-import { Gavel, BarChart3, Home, Bell, Settings } from "lucide-react";
+import { useState } from "react";
+import { Gavel, BarChart3, Home, Bell, Users, ChevronUp, Check } from "lucide-react";
 import { useLocation } from "wouter";
-import { TeamDropup } from "@/components/TeamDropup";
 import { useTeam } from "@/contexts/TeamContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface BottomNavProps {
   currentView: 'player' | 'admin';
@@ -10,8 +17,8 @@ interface BottomNavProps {
 
 export default function BottomNav({ currentView, unreadCount }: BottomNavProps) {
   const [location, setLocation] = useLocation();
-  const { hasMultipleTeams, canSwitchView } = useTeam();
-  const showTeamSwitcher = hasMultipleTeams || canSwitchView;
+  const { teams, activeTeam, switchTeam, isLoading } = useTeam();
+  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
   
   const navItems = currentView === 'player' 
     ? [
@@ -19,24 +26,28 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
         { id: 'stats', path: '/player/stats', icon: BarChart3, label: 'Stats', color: 'text-emerald-500' },
         { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
         { id: 'notifications', path: '/player/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
-        { id: 'settings', path: '/player/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
       ]
     : [
         { id: 'fines', path: '/admin/fines', icon: Gavel, label: 'Issue', color: 'text-red-500' },
         { id: 'analytics', path: '/admin/analytics', icon: BarChart3, label: 'Analytics', color: 'text-emerald-500' },
         { id: 'home', path: '/admin/home', icon: Home, label: 'Dashboard', color: 'text-blue-500' },
         { id: 'notifications', path: '/admin/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
-        { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Team', color: 'text-amber-500' },
       ];
+
+  const handleTeamSelect = async (teamId: string) => {
+    await switchTeam(teamId);
+    setTeamMenuOpen(false);
+  };
+
+  const getTeamDisplayName = () => {
+    if (isLoading || !activeTeam) return "Team";
+    const name = activeTeam.team.name;
+    return name.length > 6 ? name.substring(0, 6) + "…" : name;
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.3)]">
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        {showTeamSwitcher && (
-          <div className="border-b border-slate-200 dark:border-slate-700">
-            <TeamDropup />
-          </div>
-        )}
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -63,7 +74,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                       ${isActive ? item.color : 'text-slate-600 dark:text-slate-400'}
                     `}
                   />
-                {item.id === 'notifications' && item.badge && item.badge > 0 && (
+                  {item.id === 'notifications' && item.badge && item.badge > 0 && (
                     <div 
                       className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
                       data-testid={`badge-${item.id}`}
@@ -91,6 +102,93 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
               </button>
             );
           })}
+          
+          {/* Team Switcher - replaces settings cog */}
+          <DropdownMenu open={teamMenuOpen} onOpenChange={setTeamMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`
+                  flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg
+                  transition-all duration-200 min-w-[60px] sm:min-w-[70px] relative
+                  ${teamMenuOpen 
+                    ? 'bg-blue-50 dark:bg-blue-900/20' 
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }
+                `}
+                data-testid="bottom-nav-team"
+              >
+                <div className="relative flex items-center">
+                  <Users 
+                    className={`
+                      h-5 w-5 sm:h-6 sm:w-6 transition-colors
+                      ${teamMenuOpen ? 'text-amber-500' : 'text-slate-600 dark:text-slate-400'}
+                    `}
+                  />
+                  <ChevronUp className={`h-3 w-3 ml-0.5 transition-transform ${teamMenuOpen ? 'rotate-180' : ''} text-slate-400`} />
+                </div>
+                <span 
+                  className={`
+                    text-[10px] sm:text-xs font-medium transition-colors truncate max-w-[60px]
+                    ${teamMenuOpen 
+                      ? 'text-blue-600 dark:text-blue-400' 
+                      : 'text-slate-600 dark:text-slate-400'
+                    }
+                  `}
+                >
+                  {getTeamDisplayName()}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              side="top" 
+              className="w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-2"
+              data-testid="team-switcher-menu"
+            >
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                Your Teams
+              </div>
+              {teams.map((membership) => (
+                <DropdownMenuItem
+                  key={membership.id}
+                  onClick={() => handleTeamSelect(membership.teamId)}
+                  data-testid={`switch-team-${membership.teamId}`}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted shrink-0">
+                        <Users className="h-3 w-3" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="truncate block text-sm">{membership.team.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {membership.role === 'both' ? 'Player & Admin' : 
+                           membership.role === 'admin' ? 'Admin' : 'Player'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {membership.unreadCount && membership.unreadCount > 0 && (
+                        <Badge variant="destructive" className="h-5 min-w-5 text-xs">
+                          {membership.unreadCount}
+                        </Badge>
+                      )}
+                      {activeTeam && membership.teamId === activeTeam.teamId && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+              
+              {teams.length === 0 && (
+                <div className="px-2 py-3 text-sm text-center text-muted-foreground">
+                  No teams found
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
