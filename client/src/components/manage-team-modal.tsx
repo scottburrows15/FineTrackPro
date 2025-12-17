@@ -14,6 +14,7 @@ import { getDisplayName } from "@/lib/userUtils";
 import { UK_SPORTS } from "@/lib/sportPositions";
 import { Users, Edit, Trash2, Crown, UserCog, Save, Settings, UserPlus } from "lucide-react";
 import type { User, Team } from "@shared/schema";
+import AddPlayerModal from "@/components/add-player-modal";
 
 interface ManageTeamModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
   const queryClient = useQueryClient();
   
   const [editingTeam, setEditingTeam] = useState(false);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [teamForm, setTeamForm] = useState({
     name: "",
     sport: "",
@@ -258,26 +260,13 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                   <span className="truncate">Team Members ({teamMembers.length})</span>
                 </h3>
                 <Button
-                  onClick={() => {
-                    // Copy invite code to clipboard
-                    navigator.clipboard.writeText(teamInfo?.inviteCode || '').then(() => {
-                      toast({
-                        title: "Invite Code Copied",
-                        description: "Share this code with players to join your team.",
-                      });
-                    }).catch(() => {
-                      toast({
-                        title: "Copy Failed",
-                        description: `Invite code: ${teamInfo?.inviteCode}`,
-                      });
-                    });
-                  }}
+                  onClick={() => setShowAddPlayerModal(true)}
                   variant="outline"
                   size="sm"
                   className="text-xs sm:text-sm flex-shrink-0"
                 >
                   <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  Add
+                  Add Player
                 </Button>
               </div>
 
@@ -354,6 +343,12 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
           </Card>
         </div>
       </DialogContent>
+
+      {/* Add Player Modal */}
+      <AddPlayerModal 
+        isOpen={showAddPlayerModal} 
+        onClose={() => setShowAddPlayerModal(false)} 
+      />
     </Dialog>
   );
 }
