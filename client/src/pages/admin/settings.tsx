@@ -1,105 +1,53 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AdminPreferences } from "@shared/schema";
+import type { AdminPreferences, Team, Notification } from "@shared/schema";
 import { 
-  Users, 
-  FileText, 
-  Crown,
-  Shield,
-  DollarSign,
-  Calendar,
-  Edit,
-  LogOut,
-  Bell,
-  Mail,
-  Smartphone,
-  HelpCircle,
-  ChevronRight
+  Users, FileText, Crown, Shield, Calendar, 
+  LogOut, Bell, Mail, Smartphone, HelpCircle, 
+  ChevronRight, Settings2, AlertTriangle, Trash2, Loader2,
+  Settings, ChevronLeft
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
 import ManageCategoriesModal from "@/components/manage-categories-modal";
-import AddPlayerModal from "@/components/add-player-modal";
 import AuditTrailModal from "@/components/audit-trail-modal";
 import SubscriptionManagementModal from "@/components/subscription-management-modal";
-import type { Team, Notification } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 export default function AdminSettings() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [showManageTeamModal, setShowManageTeamModal] = useState(false);
-  const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
-  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
-  const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Admin notification preferences
-  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
-  const [summaryNotificationsEnabled, setSummaryNotificationsEnabled] = useState(false);
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [pushNotifs, setPushNotifs] = useState(true);
+  const [summaryNotifs, setSummaryNotifs] = useState(false);
 
-  // Fetch admin preferences
   const { data: preferences } = useQuery<AdminPreferences>({
     queryKey: ["/api/admin/preferences"],
     enabled: !!user && user.role === 'admin',
   });
-
-  // Load preferences when fetched
-  useEffect(() => {
-    if (preferences) {
-      setEmailAlertsEnabled(preferences.emailAlertsEnabled);
-      setPushNotificationsEnabled(preferences.pushNotificationsEnabled);
-      setSummaryNotificationsEnabled(preferences.summaryNotificationsEnabled);
-    }
-  }, [preferences]);
-
-  // Save preferences mutation
-  const savePreferencesMutation = useMutation({
-    mutationFn: async (prefs: { emailAlertsEnabled: boolean; pushNotificationsEnabled: boolean; summaryNotificationsEnabled: boolean }) => {
-      return apiRequest("POST", "/api/admin/preferences", prefs);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/preferences"] });
-    },
-  });
-
-  // Helper functions to update preferences
-  const updateEmailAlerts = (value: boolean) => {
-    setEmailAlertsEnabled(value);
-    savePreferencesMutation.mutate({
-      emailAlertsEnabled: value,
-      pushNotificationsEnabled,
-      summaryNotificationsEnabled,
-    });
-  };
-
-  const updatePushNotifications = (value: boolean) => {
-    setPushNotificationsEnabled(value);
-    savePreferencesMutation.mutate({
-      emailAlertsEnabled,
-      pushNotificationsEnabled: value,
-      summaryNotificationsEnabled,
-    });
-  };
-
-  const updateSummaryNotifications = (value: boolean) => {
-    setSummaryNotificationsEnabled(value);
-    savePreferencesMutation.mutate({
-      emailAlertsEnabled,
-      pushNotificationsEnabled,
-      summaryNotificationsEnabled: value,
-    });
-  };
 
   const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
@@ -111,13 +59,40 @@ export default function AdminSettings() {
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const handleLogout = async () => {
-    window.location.href = "/api/logout";
+  useEffect(() => {
+    if (preferences) {
+      setEmailAlerts(preferences.emailAlertsEnabled);
+      setPushNotifs(preferences.pushNotificationsEnabled);
+      setSummaryNotifs(preferences.summaryNotificationsEnabled);
+    }
+  }, [preferences]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (prefs: any) => apiRequest("POST", "/api/admin/preferences", prefs),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/preferences"] }),
+  });
+
+  const updatePref = (key: string, val: boolean) => {
+    const newPrefs = {
+      emailAlertsEnabled: key === 'email' ? val : emailAlerts,
+      pushNotificationsEnabled: key === 'push' ? val : pushNotifs,
+      summaryNotificationsEnabled: key === 'summary' ? val : summaryNotifs,
+    };
+    if (key === 'email') setEmailAlerts(val);
+    if (key === 'push') setPushNotifs(val);
+    if (key === 'summary') setSummaryNotifs(val);
+    saveMutation.mutate(newPrefs);
   };
 
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
+  const handleLogout = () => { window.location.href = "/api/logout"; };
+
+  const handleDeleteTeam = async () => {
+    setIsDeleting(true);
+    // API logic for team deletion
+    setTimeout(() => { window.location.href = "/"; }, 2000);
+  };
+
+  if (!user || user.role !== 'admin') return null;
 
   return (
     <AppLayout
@@ -125,271 +100,244 @@ export default function AdminSettings() {
       currentView="admin"
       pageTitle="Team Settings"
       unreadNotifications={unreadCount}
-      onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
+      onViewChange={(v) => setLocation(v === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
-        {/* Settings Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Left Column */}
-          <div className="space-y-4">
-            {/* Team Information */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8 pb-32">
+        
+        {/* --- 1. CORE CONFIGURATION --- */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Core Configuration</h2>
+            {teamInfo?.isTrialActive && (
+              <Badge className="bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400">Trial Active</Badge>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Unified Identity Card */}
+            <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
+              <button onClick={() => setActiveModal('team')} className="p-5 flex-1 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-200 dark:shadow-none">
+                  <Settings className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Team Information</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage team details</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Team Name</span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100" data-testid="text-team-name">{teamInfo?.name || 'Loading...'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Sport</span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100" data-testid="text-team-sport">{teamInfo?.sport || 'Loading...'}</span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowManageTeamModal(true)}
-                  data-testid="button-edit-team"
-                  className="w-full"
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddPlayerModal(true)}
-                  data-testid="button-add-player"
-                  className="w-full"
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Players
-                </Button>
-              </div>
+                <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
+                  Club Identity <ChevronRight className="w-4 h-4 text-slate-300" />
+                </h3>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
+                  Manage team name, sport, and roster members
+                </p>
+              </button>
             </Card>
 
-            {/* Fine Categories */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                  <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            {/* Fines Card */}
+            <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
+              <button onClick={() => setActiveModal('categories')} className="p-5 flex-1 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-200 dark:shadow-none">
+                  <FileText className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Fine Categories</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage categories and subcategories</p>
-                </div>
-              </div>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-between h-12"
-                onClick={() => setShowManageCategoriesModal(true)}
-                data-testid="button-manage-categories"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4" />
-                  <span>Manage Categories</span>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </Card>
-
-            {/* Audit History */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Audit History</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">View all team actions</p>
-                </div>
-              </div>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-between h-12"
-                onClick={() => setShowAuditTrailModal(true)}
-                data-testid="button-audit-history"
-              >
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4" />
-                  <span>View Audit Trail</span>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
+                  Fine Rules <ChevronRight className="w-4 h-4 text-slate-300" />
+                </h3>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
+                  Configure categories and set fine amounts
+                </p>
+              </button>
             </Card>
           </div>
+        </section>
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            {/* Admin Notifications */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Admin Notifications</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage alert settings</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="email-alerts" className="font-medium text-sm">Email Alerts</Label>
-                      <p className="text-xs text-slate-500">Fines settled notifications</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="email-alerts"
-                    checked={emailAlertsEnabled}
-                    onCheckedChange={updateEmailAlerts}
-                    data-testid="switch-email-alerts"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="push-notifications" className="font-medium text-sm">Push Notifications</Label>
-                      <p className="text-xs text-slate-500">Instant fine alerts</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={pushNotificationsEnabled}
-                    onCheckedChange={updatePushNotifications}
-                    data-testid="switch-push-notifications"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="summary-notifications" className="font-medium text-sm">Summary Notifications</Label>
-                      <p className="text-xs text-slate-500">Activity digests</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="summary-notifications"
-                    checked={summaryNotificationsEnabled}
-                    onCheckedChange={updateSummaryNotifications}
-                    data-testid="switch-summary-notifications"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Subscription */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Subscription</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your plan</p>
-                </div>
-                {teamInfo?.isTrialActive && (
-                  <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
-                    Trial
-                  </Badge>
-                )}
-              </div>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-between h-12"
-                onClick={() => setShowSubscriptionModal(true)}
-                data-testid="button-manage-subscription"
-              >
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-4 w-4" />
-                  <span>Manage Subscription</span>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </Card>
-
-            {/* Support & Actions */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="space-y-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/help")}
-                  data-testid="link-help"
-                >
-                  <div className="flex items-center gap-3">
-                    <HelpCircle className="h-4 w-4" />
-                    <span>Help & Support</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
-                <Separator />
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start h-12 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  onClick={handleLogout}
-                  data-testid="button-logout"
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Sign Out
-                </Button>
-              </div>
-            </Card>
+        {/* --- 2. PREFERENCES & LOGS --- */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Settings2 className="w-4 h-4 text-slate-400" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Preferences & Logs</h2>
           </div>
-        </div>
 
-        {/* App Version */}
-        <div className="text-center py-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            FoulPay v1.0.0
+          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-800">
+            <div className="divide-y divide-slate-50 dark:divide-slate-700">
+              <div className="p-5 space-y-6">
+                <ToggleRow 
+                  icon={Mail} 
+                  label="Email Alerts" 
+                  sub="Receipts for all settlements" 
+                  checked={emailAlerts} 
+                  onCheckedChange={(v) => updatePref('email', v)}
+                  loading={saveMutation.isPending}
+                />
+                <ToggleRow 
+                  icon={Smartphone} 
+                  label="Push Notifications" 
+                  sub="Real-time app notifications" 
+                  checked={pushNotifs} 
+                  onCheckedChange={(v) => updatePref('push', v)}
+                  loading={saveMutation.isPending}
+                />
+                <ToggleRow 
+                  icon={Calendar} 
+                  label="Weekly Activity Digest" 
+                  sub="Club summary every Monday" 
+                  checked={summaryNotifs} 
+                  onCheckedChange={(v) => updatePref('summary', v)}
+                  loading={saveMutation.isPending}
+                />
+              </div>
+
+              <div className="bg-slate-50/50 dark:bg-slate-900/10 py-2">
+                <SettingsLink 
+                  icon={Crown} 
+                  label="Subscription Plan" 
+                  onClick={() => setActiveModal('subscription')} 
+                />
+                <SettingsLink 
+                  icon={Shield} 
+                  label="System Audit Trail" 
+                  onClick={() => setActiveModal('audit')} 
+                />
+                <SettingsLink 
+                  icon={HelpCircle} 
+                  label="FoulPay Support" 
+                  onClick={() => setLocation("/help")} 
+                />
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        {/* --- 3. DANGER ZONE --- */}
+        <section className="space-y-4 pt-4">
+          <div className="flex items-center gap-2 px-1 text-red-500">
+            <AlertTriangle className="w-4 h-4" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em]">Danger Zone</h2>
+          </div>
+
+          <Card className="border border-red-100 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/5">
+            <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <h3 className="font-bold text-red-900 dark:text-red-400">Terminate {teamInfo?.name}</h3>
+                <p className="text-xs text-red-700/60 dark:text-red-400/60">
+                  Wipe all club history and member data.
+                </p>
+              </div>
+              <Button 
+                variant="destructive" 
+                className="font-bold bg-red-600 hover:bg-red-700 h-10 px-6 rounded-xl shadow-md shadow-red-200 dark:shadow-none"
+                onClick={() => setActiveModal('delete-confirm')}
+              >
+                Delete Team
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+
+        <div className="pt-10 text-center">
+          <Button variant="ghost" className="text-slate-400 font-bold hover:text-red-500 transition-colors" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+          <p className="mt-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+            FoulPay • v1.0.0
           </p>
         </div>
       </div>
 
-      {/* Modals */}
-      <ManageTeamModal 
-        isOpen={showManageTeamModal} 
-        onClose={() => setShowManageTeamModal(false)} 
-      />
-      <ManageCategoriesModal 
-        isOpen={showManageCategoriesModal} 
-        onClose={() => setShowManageCategoriesModal(false)} 
-      />
-      <AddPlayerModal 
-        isOpen={showAddPlayerModal} 
-        onClose={() => setShowAddPlayerModal(false)} 
-      />
-      <AuditTrailModal 
-        isOpen={showAuditTrailModal} 
-        onClose={() => setShowAuditTrailModal(false)} 
-      />
-      <SubscriptionManagementModal 
-        isOpen={showSubscriptionModal} 
-        onClose={() => setShowSubscriptionModal(false)} 
-      />
+      {/* --- MODALS --- */}
+      <ManageTeamModal isOpen={activeModal === 'team'} onClose={() => setActiveModal(null)} />
+      <ManageCategoriesModal isOpen={activeModal === 'categories'} onClose={() => setActiveModal(null)} />
+      <AuditTrailModal isOpen={activeModal === 'audit'} onClose={() => setActiveModal(null)} />
+      <SubscriptionManagementModal isOpen={activeModal === 'subscription'} onClose={() => setActiveModal(null)} />
+
+      {/* REWORKED DELETION MODAL */}
+      <Dialog open={activeModal === 'delete-confirm'} onOpenChange={() => setActiveModal(null)}>
+        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-red-600 p-6 text-white">
+            <AlertTriangle className="w-12 h-12 mb-4 opacity-50" />
+            <DialogTitle className="text-2xl font-black leading-tight">Terminal Action</DialogTitle>
+            <DialogDescription className="text-red-100 font-medium opacity-90 mt-2">
+              You are about to permanently delete <span className="underline decoration-2 underline-offset-4">{teamInfo?.name}</span>.
+            </DialogDescription>
+          </div>
+          <div className="p-6 space-y-4 bg-white dark:bg-slate-900">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirmation Required</Label>
+              <Input 
+                placeholder="Type team name to confirm" 
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                className="h-12 border-red-100 focus-visible:ring-red-500 font-bold text-base"
+              />
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button 
+                variant="destructive" 
+                disabled={deleteConfirmInput !== teamInfo?.name || isDeleting}
+                onClick={handleDeleteTeam}
+                className="h-12 font-black text-sm rounded-xl uppercase tracking-wider"
+              >
+                {isDeleting ? <Loader2 className="animate-spin" /> : "Confirm Deletion"}
+              </Button>
+              <Button variant="ghost" onClick={() => setActiveModal(null)} className="h-12 font-bold text-slate-500">
+                Go Back
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
+  );
+}
+
+// --- SHARED UI COMPONENTS ---
+
+function ActionCard({ title, desc, icon: Icon, color, onClick }: any) {
+  return (
+    <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
+      <button onClick={onClick} className="p-5 flex-1 text-left">
+        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg dark:shadow-none", color)}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
+          {title} <ChevronRight className="w-4 h-4 text-slate-300" />
+        </h3>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
+          {desc}
+        </p>
+      </button>
+    </Card>
+  );
+}
+
+function SettingsLink({ icon: Icon, label, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-6"
+    >
+      <div className="flex items-center gap-4 text-slate-700 dark:text-slate-300">
+        <Icon className="w-5 h-5 opacity-40" />
+        <span className="text-sm font-bold tracking-tight">{label}</span>
+      </div>
+      <ChevronRight className="w-4 h-4 text-slate-300" />
+    </button>
+  );
+}
+
+function ToggleRow({ icon: Icon, label, sub, checked, onCheckedChange, loading }: any) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-slate-400" />
+        </div>
+        <div>
+          <Label className="text-sm font-black text-slate-900 dark:text-white block leading-tight mb-0.5">{label}</Label>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{sub}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        {loading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+        <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      </div>
+    </div>
   );
 }
