@@ -32,7 +32,7 @@ import {
   type TeamMembershipWithTeam,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql, gte } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql, gte, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -82,8 +82,11 @@ export interface IStorage {
   
   // Notifications
   getUserNotifications(userId: string): Promise<Notification[]>;
+  getTeamNotifications(teamId: string): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationRead(id: string): Promise<void>;
+  markNotificationUnread(id: string): Promise<void>;
+  markAllNotificationsRead(userId: string, notificationTypes?: string[]): Promise<void>;
   
   // Audit log
   createAuditLog(log: InsertAuditLog): Promise<void>;
@@ -497,6 +500,48 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.id, id));
+  }
+
+  async markNotificationUnread(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: false })
+      .where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(userId: string, notificationTypes?: string[]): Promise<void> {
+    if (notificationTypes && notificationTypes.length > 0) {
+      await db
+        .update(notifications)
+        .set({ isRead: true })
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false),
+          inArray(notifications.type, notificationTypes)
+        ));
+    } else {
+      await db
+        .update(notifications)
+        .set({ isRead: true })
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        ));
+    }
+  }
+
+  async getTeamNotifications(teamId: string): Promise<Notification[]> {
+    // Get all users in the team and their notifications
+    const teamUsers = await db.select({ id: users.id }).from(users).where(eq(users.teamId, teamId));
+    const userIds = teamUsers.map(u => u.id);
+    
+    if (userIds.length === 0) return [];
+    
+    return await db
+      .select()
+      .from(notifications)
+      .where(inArray(notifications.userId, userIds))
+      .orderBy(desc(notifications.createdAt));
   }
 
   async createAuditLog(logData: InsertAuditLog): Promise<void> {

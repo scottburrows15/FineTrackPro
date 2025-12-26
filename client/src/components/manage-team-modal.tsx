@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { getDisplayName } from "@/lib/userUtils";
 import { UK_SPORTS } from "@/lib/sportPositions";
-import { Users, Edit, Trash2, Crown, UserCog, Save, Settings, UserPlus } from "lucide-react";
+import { Edit2, Trash2, Crown, UserPlus, Search, Settings, ShieldCheck, X, Loader2 } from "lucide-react";
 import type { User, Team } from "@shared/schema";
 import AddPlayerModal from "@/components/add-player-modal";
+import EditPlayerModal from "@/components/edit-player-modal"; 
+import { cn } from "@/lib/utils";
 
 interface ManageTeamModalProps {
   isOpen: boolean;
@@ -27,328 +26,239 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
   
   const [editingTeam, setEditingTeam] = useState(false);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
-  const [teamForm, setTeamForm] = useState({
-    name: "",
-    sport: "",
-  });
+  const [selectedPlayer, setSelectedPlayer] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [teamForm, setTeamForm] = useState({ name: "", sport: "" });
 
-  // Fetch team info
-  const { data: teamInfo, isLoading: teamLoading } = useQuery<Team>({
+  const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
     enabled: isOpen,
   });
 
-  // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/team-members"],
     enabled: isOpen,
   });
 
-  // Initialize form when team data loads
   useEffect(() => {
     if (teamInfo && !editingTeam) {
-      setTeamForm({
-        name: teamInfo.name,
-        sport: teamInfo.sport,
-      });
+      setTeamForm({ name: teamInfo.name, sport: teamInfo.sport });
     }
   }, [teamInfo, editingTeam]);
 
-  // Update team mutation
-  const updateTeam = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("PATCH", "/api/team", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Team Updated",
-        description: "Team details have been updated successfully.",
+  const processedMembers = useMemo(() => {
+    return [...teamMembers]
+      .filter((m) => {
+        const searchStr = `${m.firstName} ${m.lastName} ${m.nickname || ""}`.toLowerCase();
+        return searchStr.includes(searchQuery.toLowerCase());
+      })
+      .sort((a, b) => {
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        return (a.lastName || "").localeCompare(b.lastName || "");
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/team/info"] });
-      setEditingTeam(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update team",
-        variant: "destructive",
-      });
-    },
-  });
+  }, [teamMembers, searchQuery]);
 
-  // Remove player mutation
+  const getInitials = (user: User) => {
+    const first = user.firstName?.[0] || "";
+    const last = user.lastName?.[0] || "";
+    return (first + last).toUpperCase() || "??";
+  };
+
   const removePlayer = useMutation({
-    mutationFn: async (playerId: string) => {
-      return await apiRequest("DELETE", `/api/admin/players/${playerId}`);
-    },
+    mutationFn: async (playerId: string) => await apiRequest("DELETE", `/api/admin/players/${playerId}`),
     onSuccess: () => {
-      toast({
-        title: "Player Removed",
-        description: "Player has been removed from the team.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/team-members"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove player",
-        variant: "destructive",
-      });
     },
   });
 
-  // Toggle admin role mutation
   const toggleAdminRole = useMutation({
-    mutationFn: async ({ playerId, newRole }: { playerId: string; newRole: string }) => {
-      return await apiRequest("PATCH", `/api/admin/players/${playerId}/role`, { role: newRole });
-    },
+    mutationFn: async ({ playerId, newRole }: { playerId: string; newRole: string }) => 
+      await apiRequest("PATCH", `/api/admin/players/${playerId}/role`, { role: newRole }),
     onSuccess: () => {
-      toast({
-        title: "Role Updated",
-        description: "Player role has been updated successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/team-members"] });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update role",
-        variant: "destructive",
-      });
-    },
   });
-
-  const handleUpdateTeam = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamForm.name.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a team name.",
-        variant: "destructive",
-      });
-      return;
-    }
-    updateTeam.mutate(teamForm);
-  };
-
-  const handleRemovePlayer = (playerId: string, playerName: string) => {
-    if (confirm(`Are you sure you want to remove ${playerName} from the team?`)) {
-      removePlayer.mutate(playerId);
-    }
-  };
-
-  const handleToggleRole = (playerId: string, currentRole: string, playerName: string) => {
-    const newRole = currentRole === 'admin' ? 'player' : 'admin';
-    const action = newRole === 'admin' ? 'promote' : 'demote';
-    
-    if (confirm(`Are you sure you want to ${action} ${playerName} ${newRole === 'admin' ? 'to admin' : 'to player'}?`)) {
-      toggleAdminRole.mutate({ playerId, newRole });
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center space-x-2 text-base sm:text-lg">
-            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Team Settings</span>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="overflow-y-auto flex-1 space-y-3 sm:space-y-6">
-          {/* Team Details Section */}
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2 min-w-0">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="truncate">Team Details</span>
-                </h3>
-                <Button
-                  onClick={() => {
-                    if (editingTeam) {
-                      setTeamForm({
-                        name: teamInfo?.name || "",
-                        sport: teamInfo?.sport || "",
-                      });
-                    }
-                    setEditingTeam(!editingTeam);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs sm:text-sm flex-shrink-0"
-                >
-                  {editingTeam ? 'Cancel' : 'Edit'}
-                </Button>
+      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[85vh]">
+        
+        {/* --- HEADER --- */}
+        <div className="bg-slate-50 dark:bg-slate-950 p-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-4 pr-10">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm">
+                <Settings className="w-5 h-5 text-white" />
               </div>
-
-              {editingTeam ? (
-                <form onSubmit={handleUpdateTeam} className="space-y-3 sm:space-y-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                    <div>
-                      <Label htmlFor="teamName" className="text-sm">Team Name</Label>
-                      <Input
-                        id="teamName"
-                        value={teamForm.name}
-                        onChange={(e) => setTeamForm(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Enter team name"
-                        className="mt-1 h-9 text-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="teamSport" className="text-sm">Sport</Label>
-                      <Select
-                        value={teamForm.sport}
-                        onValueChange={(value) => setTeamForm(prev => ({ ...prev, sport: value }))}
-                      >
-                        <SelectTrigger className="mt-1 h-9 text-sm">
-                          <SelectValue placeholder="Select a sport" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {UK_SPORTS.map((sport) => (
-                            <SelectItem key={sport} value={sport} className="text-sm">
-                              {sport}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                    <Button type="submit" size="sm" disabled={updateTeam.isPending} className="w-full sm:w-auto text-xs sm:text-sm">
-                      {updateTeam.isPending ? (
-                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      ) : (
-                        <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      )}
-                      {updateTeam.isPending ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-2 sm:space-y-3">
-                  <div>
-                    <span className="text-xs sm:text-sm font-medium text-slate-600">Team Name:</span>
-                    <p className="text-sm sm:text-base font-semibold text-slate-900 mt-1">{teamInfo?.name}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-medium text-slate-600">Sport:</span>
-                    <p className="text-sm sm:text-base text-slate-900 mt-1">{teamInfo?.sport}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-medium text-slate-600">Invite Code:</span>
-                    <div className="mt-1">
-                      <code className="bg-slate-100 px-2 py-1 rounded text-xs sm:text-sm font-mono">
-                        {teamInfo?.inviteCode}
-                      </code>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Team Members Section */}
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2 min-w-0">
-                  <UserCog className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="truncate">Team Members ({teamMembers.length})</span>
-                </h3>
-                <Button
-                  onClick={() => setShowAddPlayerModal(true)}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs sm:text-sm flex-shrink-0"
-                >
-                  <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  Add Player
-                </Button>
+              <div className="min-w-0 text-left">
+                <DialogTitle className="text-lg font-black tracking-tight leading-none truncate text-slate-900 dark:text-white">Club Identity</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-1">
+                  Settings & Roster
+                </DialogDescription>
               </div>
+            </div>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="rounded-lg h-8 px-2 font-bold text-[10px] uppercase tracking-wider text-blue-600 hover:bg-blue-100/50 shrink-0"
+              onClick={() => setEditingTeam(!editingTeam)}
+            >
+              {editingTeam ? <X className="w-3 h-3 mr-1" /> : <Edit2 className="w-3 h-3 mr-1" />}
+              {editingTeam ? "Cancel" : "Edit"}
+            </Button>
+          </div>
 
-              {membersLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                  <p className="text-sm text-slate-600 mt-2">Loading team members...</p>
+          {!editingTeam ? (
+            <div className="mt-4 flex gap-4 items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Active Club</p>
+                <p className="text-sm font-black text-slate-900 dark:text-white truncate">{teamInfo?.name}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Invite Code</p>
+                <code className="text-xs font-black text-blue-600 dark:text-blue-400 tracking-widest bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
+                  {teamInfo?.inviteCode}
+                </code>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1 text-left">
+                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Club Name</Label>
+                  <Input 
+                    className="h-9 bg-white dark:bg-slate-900 border-none rounded-lg font-bold text-sm shadow-sm"
+                    value={teamForm.name}
+                    onChange={(e) => setTeamForm(p => ({ ...p, name: e.target.value }))}
+                  />
                 </div>
-              ) : teamMembers.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600">No team members yet.</p>
+                <div className="space-y-1 text-left">
+                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Sport</Label>
+                  <Select value={teamForm.sport} onValueChange={(v) => setTeamForm(p => ({ ...p, sport: v }))}>
+                    <SelectTrigger className="h-9 bg-white dark:bg-slate-900 border-none rounded-lg font-bold text-xs shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UK_SPORTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <div className="space-y-2 sm:space-y-3 max-h-64 sm:max-h-80 overflow-y-auto">
-                  {teamMembers.map((member) => (
-                    <div key={member.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-slate-50 rounded-lg space-y-3 sm:space-y-0">
-                      {/* Member Info - Full width on mobile */}
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <Avatar className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0">
-                          <AvatarImage 
-                            src={member.profileImageUrl || undefined} 
-                            className="object-cover"
-                          />
-                          <AvatarFallback className="text-xs sm:text-sm">
-                            {getDisplayName(member).split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2 flex-wrap">
-                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">
-                              {getDisplayName(member)}
-                            </span>
-                            {member.role === 'admin' && (
-                              <Badge variant="secondary" className="flex items-center space-x-1 flex-shrink-0">
-                                <Crown className="w-2 h-2 sm:w-3 sm:h-3" />
-                                <span className="text-xs">Admin</span>
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs sm:text-sm text-slate-600 truncate">
-                            {member.email} {member.position && `• ${member.position}`}
-                          </p>
-                        </div>
-                      </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-                      {/* Action Buttons - Stacked on mobile */}
-                      <div className="flex items-center gap-2 sm:space-x-2 flex-shrink-0">
-                        <Button
-                          onClick={() => handleToggleRole(member.id, member.role, getDisplayName(member))}
-                          variant="outline"
-                          size="sm"
-                          disabled={toggleAdminRole.isPending}
-                          className="text-xs sm:text-sm h-8 px-2 sm:px-3 flex-1 sm:flex-initial"
-                        >
-                          {member.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                        </Button>
-                        <Button
-                          onClick={() => handleRemovePlayer(member.id, getDisplayName(member))}
-                          variant="outline"
-                          size="sm"
-                          disabled={removePlayer.isPending}
-                          className="text-red-600 hover:text-red-700 h-8 px-2 sm:px-3"
-                          title="Remove Player"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </div>
+        {/* --- ROSTER --- */}
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-900">
+          <div className="px-5 pt-4 pb-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+                Squad Roster ({teamMembers.length})
+              </h3>
+              <Button 
+                size="sm" 
+                onClick={() => setShowAddPlayerModal(true)}
+                className="h-7 bg-blue-600 text-white hover:bg-blue-700 font-bold text-[9px] uppercase tracking-wider rounded-lg px-3"
+              >
+                <UserPlus className="w-3 h-3 mr-1" />
+                Add
+              </Button>
+            </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+              <Input 
+                placeholder="Search players..."
+                className="h-9 pl-9 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-medium placeholder:text-slate-400 shadow-inner"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2">
+            {membersLoading ? (
+               <div className="py-10 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-300" /></div>
+            ) : processedMembers.map((member) => (
+              <div 
+                key={member.id} 
+                className={cn(
+                  "group relative flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-transparent hover:border-blue-100 transition-all overflow-hidden",
+                  member.role === 'admin' ? "pl-5" : "pl-3"
+                )}
+              >
+                {/* WIDER VERTICAL ADMIN STRIP */}
+                {member.role === 'admin' && (
+                  <div className="absolute left-0 top-0 bottom-0 w-3 bg-amber-400 flex items-center justify-center">
+                    <span className="rotate-180 text-[7px] font-black uppercase text-amber-900/40 tracking-[0.2em] [writing-mode:vertical-lr]">
+                      ADMIN
+                    </span>
+                  </div>
+                )}
+
+                <div className="relative shrink-0">
+                  <Avatar className="h-10 w-10 rounded-lg overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm">
+                    <AvatarImage 
+                      src={member.profileImageUrl || undefined} 
+                      className="object-cover w-full h-full aspect-square" 
+                    />
+                    <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-xs rounded-none">
+                      {getInitials(member)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.role === 'admin' && (
+                    <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 border border-white dark:border-slate-700 shadow-sm">
+                      <Crown className="w-2.5 h-2.5 text-amber-900" />
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white truncate block leading-tight">
+                    {member.firstName} {member.lastName}
+                  </span>
+                  <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">
+                    {member.nickname ? `"${member.nickname}"` : member.position || "Member"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600" onClick={() => setSelectedPlayer(member)}>
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-lg text-slate-400" 
+                    onClick={() => toggleAdminRole.mutate({ 
+                      playerId: member.id, 
+                      newRole: member.role === 'admin' ? 'player' : 'admin' 
+                    })}
+                  >
+                    <ShieldCheck className={cn("w-4 h-4", member.role === 'admin' && "text-blue-600")} />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600"
+                    onClick={() => {
+                      if(confirm(`Remove ${member.firstName}?`)) removePlayer.mutate(member.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </DialogContent>
-
-      {/* Add Player Modal */}
-      <AddPlayerModal 
-        isOpen={showAddPlayerModal} 
-        onClose={() => setShowAddPlayerModal(false)} 
-      />
+      
+      <AddPlayerModal isOpen={showAddPlayerModal} onClose={() => setShowAddPlayerModal(false)} />
+      {selectedPlayer && (
+        <EditPlayerModal isOpen={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} player={selectedPlayer} />
+      )}
     </Dialog>
   );
 }

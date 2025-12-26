@@ -1,558 +1,266 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Tags, Edit2, Trash2, PoundSterling, GripVertical } from "lucide-react";
-import type { FineCategory, FineSubcategory } from "@shared/schema";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
+import { Plus, Edit2, Trash2, GripVertical, X, ChevronLeft, Check, Tags, Layers, ArrowRight, Search } from "lucide-react";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from "@/lib/utils";
 
-interface ManageCategoriesModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const PRESET_COLORS = ["#1E40AF", "#3b82f6", "#10b981", "#ef4444", "#f59e0b", "#8b5cf6", "#64748b", "#000000"];
 
-interface SortableCategoryCardProps {
-  category: FineCategory & { subcategoryCount?: number };
-  isSelected: boolean;
-  onSelect: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function SortableCategoryCard({ category, isSelected, onSelect, onEdit, onDelete }: SortableCategoryCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.6 : 1,
+function SortableItem({ id, data, type, onSelect, onEdit, onDelete }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  
+  const style = { 
+    transform: CSS.Transform.toString(transform), 
+    transition, 
+    opacity: isDragging ? 0.5 : 1, 
+    zIndex: isDragging ? 50 : 1 
   };
 
   return (
-    <Card
+    <div
       ref={setNodeRef}
       style={style}
-      className={`cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''} ${isDragging ? 'z-50' : ''}`}
-      onClick={onSelect}
+      onClick={onSelect ? () => onSelect(data) : undefined}
+      className={cn(
+        "group relative flex items-start gap-2 p-3 rounded-xl border transition-all mb-2 select-none",
+        onSelect ? "cursor-pointer active:scale-[0.99]" : "",
+        isDragging 
+          ? "bg-white shadow-xl ring-2 ring-blue-500 border-transparent z-50 scale-[1.02]" 
+          : "bg-slate-50 border-transparent hover:border-blue-100 hover:bg-white"
+      )}
     >
-      <CardContent className="p-3">
-        <div className="flex items-center gap-3">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 rounded"
-            aria-hidden
+      {/* Drag Handle - Aligned to top */}
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="w-6 h-8 flex items-center justify-center cursor-grab hover:bg-slate-200/50 rounded-md shrink-0 mt-0.5" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="w-3.5 h-3.5 text-slate-300" />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex items-start gap-3">
+        {type === 'category' && (
+          <div 
+            className="h-9 w-9 rounded-lg flex items-center justify-center shadow-sm border border-white shrink-0 mt-0.5"
+            style={{ backgroundColor: data.color }}
           >
-            <GripVertical className="w-4 h-4 text-slate-400" />
+            <Tags className="w-4 h-4 text-white opacity-90" />
           </div>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: category.color }}>
-              <Tags className="w-4 h-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">{category.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {category.subcategoryCount ?? 0} subcategor{(category.subcategoryCount ?? 0) !== 1 ? 'ies' : 'y'}
-              </p>
-            </div>
-          </div>
+        )}
 
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              aria-label={`Edit ${category.name}`}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-              aria-label={`Delete ${category.name}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+        <div className="flex-1 min-w-0 py-0.5">
+          <div className="text-sm font-bold text-slate-900 leading-snug break-words">
+            {data.name}
           </div>
+          {type === 'category' && (
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mt-1">
+              {data.subcategoryCount || 0} Options
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Value & Actions - Pinned to right */}
+      <div className="flex items-center gap-1 shrink-0 ml-2 mt-0.5">
+        {type === 'subcategory' && (
+          <span className="bg-white text-slate-900 font-black text-[11px] px-2 py-1 rounded-lg border border-slate-200 shadow-sm mr-1 whitespace-nowrap">
+            £{parseFloat(data.defaultAmount || 0).toFixed(2)}
+          </span>
+        )}
+        
+        <div className="flex items-center">
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600" onClick={(e) => { e.stopPropagation(); onEdit(data); }}>
+            <Edit2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600" onClick={(e) => { e.stopPropagation(); onDelete(data); }}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+          {onSelect && (
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-300 hover:text-blue-600" onClick={(e) => { e.stopPropagation(); onSelect(data); }}>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
-interface SortableSubcategoryCardProps {
-  subcategory: FineSubcategory;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function SortableSubcategoryCard({ subcategory, onEdit, onDelete }: SortableSubcategoryCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subcategory.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.6 : 1,
-  };
-
-  return (
-    <Card ref={setNodeRef} style={style} className={`${isDragging ? 'z-50' : ''}`}>
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 rounded" aria-hidden>
-            <GripVertical className="w-4 h-4 text-slate-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{subcategory.name}</p>
-            <p className="text-xs text-muted-foreground">Default: £{parseFloat(subcategory.defaultAmount || "0").toFixed(2)}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={onEdit} className="h-8 w-8 p-0">
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={onDelete} className="h-8 w-8 p-0 text-red-600">
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModalProps) {
+export default function ManageCategoriesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [showSubcategoryForm, setShowSubcategoryForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<FineCategory | null>(null);
-  const [editingSubcategory, setEditingSubcategory] = useState<FineSubcategory | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'category' | 'subcategory'; id: string; name?: string } | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null); 
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Forms
-  const [categoryForm, setCategoryForm] = useState({ name: "", color: "#1E40AF" });
-  const [subcategoryForm, setSubcategoryForm] = useState({ name: "", defaultAmount: "0.00" });
+  const { data: categories = [] } = useQuery<any[]>({ queryKey: ["/api/categories"], enabled: isOpen });
+  const { data: subcategories = [] } = useQuery<any[]>({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"], enabled: !!selectedCategoryId });
 
-  // Data
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<(FineCategory & { subcategoryCount?: number })[]>({
-    queryKey: ["/api/categories"],
-    enabled: isOpen,
-    keepPreviousData: true,
-  });
+  const filteredCategories = useMemo(() => 
+    categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())), 
+    [categories, searchQuery]
+  );
 
-  const { data: subcategories = [], isLoading: subcategoriesLoading } = useQuery<FineSubcategory[]>({
-    queryKey: ["/api/categories", selectedCategoryId, "subcategories"],
-    enabled: isOpen && !!selectedCategoryId,
-    keepPreviousData: true,
-  });
-
-  // Mutations
-  const createCategory = useMutation({
-    mutationFn: (payload: any) => apiRequest("POST", "/api/categories", payload),
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      const isSub = 'defaultAmount' in data;
+      const url = isSub ? (data.id ? `/api/subcategories/${data.id}` : `/api/categories/${selectedCategoryId}/subcategories`) : (data.id ? `/api/categories/${data.id}` : `/api/categories`);
+      return apiRequest(data.id ? "PATCH" : "POST", url, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({ title: "Category Created", description: "Category successfully created." });
-      setShowCategoryForm(false);
-      setCategoryForm({ name: "", color: "#1E40AF" });
-      setEditingCategory(null);
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create category", variant: "destructive" });
-    },
+      if (selectedCategoryId) queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
+      setEditingItem(null);
+      toast({ title: "Saved successfully" });
+    }
   });
 
-  const updateCategory = useMutation({
-    mutationFn: (payload: { id: string; name: string; color: string }) => apiRequest("PATCH", `/api/categories/${payload.id}`, { name: payload.name, color: payload.color }),
+  const deleteMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("DELETE", 'defaultAmount' in data ? `/api/subcategories/${data.id}` : `/api/categories/${data.id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({ title: "Category Updated", description: "Category updated." });
-      setShowCategoryForm(false);
-      setEditingCategory(null);
-      setCategoryForm({ name: "", color: "#1E40AF" });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update category", variant: "destructive" });
-    },
-  });
-
-  const deleteCategory = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/categories/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({ title: "Category Deleted", description: "Category removed." });
+      if (selectedCategoryId) queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
       setDeleteConfirm(null);
-      setSelectedCategoryId(null);
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to delete category", variant: "destructive" });
-    },
+      toast({ title: "Deleted successfully" });
+    }
   });
 
-  const createSubcategory = useMutation({
-    mutationFn: (payload: any) => apiRequest("POST", `/api/categories/${selectedCategoryId}/subcategories`, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-      toast({ title: "Subcategory Created", description: "Subcategory added." });
-      setShowSubcategoryForm(false);
-      setSubcategoryForm({ name: "", defaultAmount: "0.00" });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create subcategory", variant: "destructive" });
-    },
-  });
-
-  const updateSubcategory = useMutation({
-    mutationFn: (payload: { id: string; name: string; defaultAmount: string }) => apiRequest("PATCH", `/api/subcategories/${payload.id}`, { name: payload.name, defaultAmount: payload.defaultAmount }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-      toast({ title: "Subcategory Updated", description: "Subcategory updated." });
-      setShowSubcategoryForm(false);
-      setEditingSubcategory(null);
-      setSubcategoryForm({ name: "", defaultAmount: "0.00" });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update subcategory", variant: "destructive" });
-    },
-  });
-
-  const deleteSubcategory = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/subcategories/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-      toast({ title: "Subcategory Deleted", description: "Subcategory removed." });
-      setDeleteConfirm(null);
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to delete subcategory", variant: "destructive" });
-    },
-  });
-
-  const reorderCategories = useMutation({
-    mutationFn: (ids: string[]) => apiRequest("PATCH", "/api/categories/reorder", { categoryIds: ids }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: "Failed to reorder categories", variant: "destructive" });
-    },
-  });
-
-  const reorderSubcategories = useMutation({
-    mutationFn: (ids: string[]) => apiRequest("PATCH", `/api/categories/${selectedCategoryId}/subcategories/reorder`, { subcategoryIds: ids }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories", selectedCategoryId, "subcategories"] });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: "Failed to reorder subcategories", variant: "destructive" });
-    },
-  });
-
-  // drag handlers
-  const handleCategoryDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent, list: any[], mutationFn: any) => {
     const { active, over } = event;
-    if (!over) return;
-    if (active.id !== over.id) {
-      const oldIndex = categories.findIndex(c => c.id === active.id);
-      const newIndex = categories.findIndex(c => c.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-      const newOrder = arrayMove(categories, oldIndex, newIndex);
-      reorderCategories.mutate(newOrder.map(c => c.id));
+    if (over && active.id !== over.id) {
+      const oldIndex = list.findIndex(i => i.id === active.id);
+      const newIndex = list.findIndex(i => i.id === over.id);
+      mutationFn(arrayMove(list, oldIndex, newIndex).map(i => i.id));
     }
   };
 
-  const handleSubcategoryDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-    if (active.id !== over.id) {
-      const oldIndex = subcategories.findIndex(s => s.id === active.id);
-      const newIndex = subcategories.findIndex(s => s.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-      const newOrder = arrayMove(subcategories, oldIndex, newIndex);
-      reorderSubcategories.mutate(newOrder.map(s => s.id));
-    }
-  };
+  const reorderCats = useMutation({ mutationFn: (ids: string[]) => apiRequest("PATCH", "/api/categories/reorder", { categoryIds: ids }) });
+  const reorderSubs = useMutation({ mutationFn: (ids: string[]) => apiRequest("PATCH", `/api/categories/${selectedCategoryId}/subcategories/reorder`, { subcategoryIds: ids }) });
 
-  // helpers
-  useEffect(() => {
-    if (!selectedCategoryId && categories.length > 0) {
-      setSelectedCategoryId(categories[0].id);
-    }
-  }, [categories, selectedCategoryId]);
+  const isSubView = !!selectedCategoryId;
+  const currentCategory = categories.find(c => c.id === selectedCategoryId);
 
-  const startEditCategory = (category: FineCategory) => {
-    setEditingCategory(category);
-    setCategoryForm({ name: category.name, color: category.color || "#1E40AF" });
-    setShowCategoryForm(true);
-  };
-
-  const startEditSubcategory = (subcategory: FineSubcategory) => {
-    setEditingSubcategory(subcategory);
-    setSubcategoryForm({ name: subcategory.name, defaultAmount: subcategory.defaultAmount || "0.00" });
-    setShowSubcategoryForm(true);
-  };
-
-  // submit handlers
-  const submitCategory = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!categoryForm.name.trim()) {
-      toast({ title: "Missing", description: "Category name required", variant: "destructive" });
-      return;
-    }
-    if (editingCategory) {
-      updateCategory.mutate({ id: editingCategory.id, name: categoryForm.name, color: categoryForm.color });
-    } else {
-      createCategory.mutate(categoryForm);
-    }
-  };
-
-  const submitSubcategory = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!selectedCategoryId) {
-      toast({ title: "Select category", description: "Please select a category first", variant: "destructive" });
-      return;
-    }
-    if (!subcategoryForm.name.trim()) {
-      toast({ title: "Missing", description: "Subcategory name required", variant: "destructive" });
-      return;
-    }
-    if (!/^\d+(\.\d{1,2})?$/.test(subcategoryForm.defaultAmount)) {
-      toast({ title: "Invalid amount", description: "Default amount must be a number (max 2 decimals)", variant: "destructive" });
-      return;
-    }
-    if (editingSubcategory) {
-      updateSubcategory.mutate({ id: editingSubcategory.id, name: subcategoryForm.name, defaultAmount: subcategoryForm.defaultAmount });
-    } else {
-      createSubcategory.mutate({ name: subcategoryForm.name, defaultAmount: subcategoryForm.defaultAmount });
-    }
-  };
-
-  const confirmDelete = () => {
-    if (!deleteConfirm) return;
-    if (deleteConfirm.type === 'category') deleteCategory.mutate(deleteConfirm.id);
-    else deleteSubcategory.mutate(deleteConfirm.id);
-  };
-
-  // small UI currency helper
-  const formatCurrencyUI = (amt: string) => {
-    const n = parseFloat(amt || "0");
-    if (isNaN(n)) return "£0.00";
-    return `£${n.toFixed(2)}`;
-  };
-
-  // Render
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <Tags className="w-5 h-5" />
-            <span>Fine Types</span>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Left column: categories */}
-            <div className="lg:col-span-5">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <h3 className="text-lg font-semibold min-w-0 truncate">Categories</h3>
-                <Button onClick={() => { setShowCategoryForm(true); setEditingCategory(null); }} size="sm" className="flex items-center gap-2 flex-shrink-0">
-                  <Plus className="w-4 h-4" /> <span>Add</span>
-                </Button>
-              </div>
-
-              {/* Category form (collapsible) */}
-              {showCategoryForm && (
-                <Card className="mb-3">
-                  <CardContent className="p-3">
-                    <form onSubmit={submitCategory} className="space-y-3">
-                      <div>
-                        <Label htmlFor="catName">Name</Label>
-                        <Input id="catName" value={categoryForm.name} onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Training" />
-                      </div>
-                      <div>
-                        <Label htmlFor="catColor">Colour</Label>
-                        <Input id="catColor" type="color" value={categoryForm.color} onChange={(e) => setCategoryForm(prev => ({ ...prev, color: e.target.value }))} className="h-9 w-20 p-0" />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}>
-                          {editingCategory ? (updateCategory.isPending ? "Updating..." : "Update") : (createCategory.isPending ? "Creating..." : "Create")}
-                        </Button>
-                        <Button variant="outline" onClick={() => { setShowCategoryForm(false); setEditingCategory(null); setCategoryForm({ name: "", color: "#1E40AF" }); }}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white flex flex-col h-[85vh] max-h-[85vh] [&>button]:hidden">
+        
+        {/* HEADER */}
+        <div className="bg-slate-50 p-5 border-b border-slate-100 shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              {isSubView ? (
+                 <Button variant="ghost" size="icon" onClick={() => setSelectedCategoryId(null)} className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-500 hover:text-blue-600 hover:border-blue-200"><ChevronLeft className="w-5 h-5" /></Button>
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm"><Layers className="w-5 h-5 text-white" /></div>
               )}
+              <div className="min-w-0 text-left">
+                <DialogTitle className="text-lg font-black tracking-tight leading-none truncate text-slate-900">{isSubView ? currentCategory?.name : "Fine Architecture"}</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-1">{isSubView ? "Manage Options" : "Categories & Types"}</DialogDescription>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-200/50" onClick={onClose}><X className="w-4 h-4" /></Button>
+          </div>
+        </div>
 
-              {/* Categories list */}
-              <div className="space-y-3">
-                {categoriesLoading ? (
-                  <div className="text-center py-6">
-                    <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                    <p className="text-sm text-muted-foreground mt-2">Loading...</p>
-                  </div>
-                ) : categories.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p>No categories yet. Add one to get started.</p>
-                  </div>
-                ) : (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
-                    <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {categories.map((cat) => (
-                          <SortableCategoryCard
-                            key={cat.id}
-                            category={cat}
-                            isSelected={selectedCategoryId === cat.id}
-                            onSelect={() => setSelectedCategoryId(cat.id)}
-                            onEdit={() => startEditCategory(cat)}
-                            onDelete={() => setDeleteConfirm({ type: 'category', id: cat.id, name: cat.name })}
-                          />
+        {/* SEARCH BAR */}
+        {!isSubView && (
+          <div className="px-5 pt-4 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+              <Input placeholder="Search categories..." className="h-9 pl-9 bg-slate-50 border-none rounded-xl text-xs font-medium shadow-inner" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {/* MAIN SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-hidden relative">
+          <div className="flex w-[200%] h-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]" style={{ transform: isSubView ? "translateX(-50%)" : "translateX(0)" }}>
+            
+            {/* PANEL 1: CATEGORIES */}
+            <div className="w-1/2 h-full flex flex-col min-h-0">
+              <div className="px-5 pt-4 pb-2 flex justify-between items-center shrink-0">
+                 <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Categories ({categories.length})</h3>
+                 <Button size="sm" onClick={() => setEditingItem({ name: "", color: "#1E40AF" })} className="h-7 bg-blue-600 text-white font-bold text-[9px] uppercase tracking-wider rounded-lg px-3 hover:bg-blue-700 shadow-sm"><Plus className="w-3 h-3 mr-1" /> Add New</Button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 pb-5 scrollbar-hide">
+                {editingItem && !('defaultAmount' in editingItem) && (
+                  <div className="p-3 mb-4 bg-slate-50 rounded-xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Category Name</Label>
+                        <Input autoFocus value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} className="h-9 bg-white border-none rounded-lg font-bold text-sm" />
+                      </div>
+                      <div className="flex flex-wrap gap-2 p-1">
+                        {PRESET_COLORS.map(c => (
+                          <button key={c} onClick={() => setEditingItem({...editingItem, color: c})} className={cn("w-6 h-6 rounded-full", editingItem.color === c ? "ring-2 ring-blue-500 ring-offset-2 scale-110" : "opacity-40")} style={{ backgroundColor: c }} />
                         ))}
                       </div>
-                    </SortableContext>
-                  </DndContext>
+                      <div className="flex gap-2"><Button size="sm" className="flex-1 h-8 bg-blue-600 text-[9px] font-bold uppercase" onClick={() => saveMutation.mutate(editingItem)}>Save</Button><Button size="sm" variant="ghost" className="flex-1 h-8 text-[9px] font-bold uppercase" onClick={() => setEditingItem(null)}>Cancel</Button></div>
+                    </div>
+                  </div>
                 )}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, categories, reorderCats.mutate)}>
+                  <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                    {filteredCategories.map(cat => <SortableItem key={cat.id} id={cat.id} data={cat} type="category" onSelect={(c: any) => setSelectedCategoryId(c.id)} onEdit={setEditingItem} onDelete={setDeleteConfirm} />)}
+                  </SortableContext>
+                </DndContext>
               </div>
             </div>
 
-            {/* Right column: subcategories */}
-            <div className="lg:col-span-7">
-              <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-base sm:text-lg font-semibold truncate">
-                    Subcategories{selectedCategoryId ? ` — ${categories.find(c => c.id === selectedCategoryId)?.name}` : ''}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">Click a category on the left to manage its subcategories.</p>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => { if (selectedCategoryId) setShowSubcategoryForm(true); else toast({ title: "No category selected", description: "Please select a category first", variant: "destructive" }); }} className="text-xs sm:text-sm">
-                    <Plus className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Add Subcategory</span><span className="sm:hidden">Add</span>
-                  </Button>
-                  {selectedCategoryId && (
-                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: 'category', id: selectedCategoryId, name: categories.find(c => c.id === selectedCategoryId)?.name })} className="text-red-600 flex-shrink-0">
-                      <Trash2 className="w-4 h-4" /> <span className="sr-only">Delete category</span>
-                    </Button>
-                  )}
-                </div>
+            {/* PANEL 2: SUBCATEGORIES */}
+            <div className="w-1/2 h-full flex flex-col min-h-0">
+              <div className="px-5 pt-4 pb-2 flex justify-between items-center shrink-0">
+                 <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Options ({subcategories.length})</h3>
+                 <Button size="sm" onClick={() => setEditingItem({ name: "", defaultAmount: "0.00" })} className="h-7 bg-blue-600 text-white font-bold text-[9px] uppercase tracking-wider rounded-lg px-3 hover:bg-blue-700 shadow-sm"><Plus className="w-3 h-3 mr-1" /> Add New</Button>
               </div>
-
-              {/* Subcategory form */}
-              {showSubcategoryForm && (
-                <Card className="mb-3">
-                  <CardContent className="p-3">
-                    <form onSubmit={submitSubcategory} className="space-y-3">
-                      <div>
-                        <Label htmlFor="subName">Name</Label>
-                        <Input id="subName" value={subcategoryForm.name} onChange={(e) => setSubcategoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Late Arrival" />
+              <div className="flex-1 overflow-y-auto px-5 pb-5 scrollbar-hide">
+                {editingItem && 'defaultAmount' in editingItem && (
+                   <div className="p-3 mb-4 bg-slate-50 rounded-xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Option Name</Label>
+                        <Input autoFocus value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} className="h-9 bg-white border-none rounded-lg font-bold text-sm" />
                       </div>
-                      <div>
-                        <Label htmlFor="subAmount">Default Amount (£)</Label>
-                        <Input id="subAmount" type="number" min="0" step="0.01" value={subcategoryForm.defaultAmount} onChange={(e) => setSubcategoryForm(prev => ({ ...prev, defaultAmount: e.target.value }))} />
+                      <div className="space-y-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Default Fine (£)</Label>
+                        <Input type="number" step="0.01" value={editingItem.defaultAmount} onChange={e => setEditingItem({...editingItem, defaultAmount: e.target.value})} className="h-9 bg-white border-none rounded-lg font-bold text-sm" />
                       </div>
-
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={createSubcategory.isPending || updateSubcategory.isPending}>
-                          {editingSubcategory ? (updateSubcategory.isPending ? "Updating..." : "Update") : (createSubcategory.isPending ? "Creating..." : "Create")}
-                        </Button>
-                        <Button variant="outline" onClick={() => { setShowSubcategoryForm(false); setEditingSubcategory(null); setSubcategoryForm({ name: "", defaultAmount: "0.00" }); }}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Subcategories list */}
-              <div className="space-y-2">
-                {selectedCategoryId && subcategoriesLoading ? (
-                  <div className="text-center py-6">
-                    <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                    <p className="text-sm text-muted-foreground mt-2">Loading subcategories...</p>
-                  </div>
-                ) : selectedCategoryId && subcategories.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <PoundSterling className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                    <p>No subcategories for this category yet.</p>
-                  </div>
-                ) : selectedCategoryId ? (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubcategoryDragEnd}>
-                    <SortableContext items={subcategories.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {subcategories.map((sub) => (
-                          <SortableSubcategoryCard
-                            key={sub.id}
-                            subcategory={sub}
-                            onEdit={() => startEditSubcategory(sub)}
-                            onDelete={() => setDeleteConfirm({ type: 'subcategory', id: sub.id, name: sub.name })}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p>Select a category to view subcategories.</p>
+                      <div className="flex gap-2 pt-1"><Button size="sm" className="flex-1 h-8 bg-blue-600 text-[9px] font-bold uppercase" onClick={() => saveMutation.mutate(editingItem)}>Save</Button><Button size="sm" variant="ghost" className="flex-1 h-8 text-[9px] font-bold uppercase" onClick={() => setEditingItem(null)}>Cancel</Button></div>
+                    </div>
                   </div>
                 )}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, subcategories, reorderSubs.mutate)}>
+                  <SortableContext items={subcategories.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                    {subcategories.map(sub => <SortableItem key={sub.id} id={sub.id} data={sub} type="subcategory" onEdit={setEditingItem} onDelete={setDeleteConfirm} />)}
+                  </SortableContext>
+                </DndContext>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Delete confirmation */}
+        {/* DELETE DIALOG */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete {deleteConfirm?.type === 'category' ? 'Category' : 'Subcategory'}</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{deleteConfirm?.name}"? {deleteConfirm?.type === 'category' && 'This will also delete all subcategories within it.'}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-            </AlertDialogFooter>
+          <AlertDialogContent className="rounded-[28px] border-none">
+            <AlertDialogHeader><AlertDialogTitle className="font-black text-lg text-slate-900 tracking-tight">Confirm Deletion</AlertDialogTitle><AlertDialogDescription className="font-medium text-slate-500">Are you sure you want to remove "{deleteConfirm?.name}"?</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter><AlertDialogCancel className="rounded-xl font-bold text-xs">Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteMutation.mutate(deleteConfirm)} className="bg-red-600 hover:bg-red-700 rounded-xl font-bold text-xs">Delete</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
       </DialogContent>
     </Dialog>
   );

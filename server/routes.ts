@@ -8,8 +8,8 @@ import path from "path";
 import express from "express";
 import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
 import { db } from "./db";
-import { fines, notifications, auditLog, processedPayments } from "@shared/schema";
-import { eq, inArray } from "drizzle-orm";
+import { fines, notifications, auditLog, processedPayments, users } from "@shared/schema";
+import { eq, inArray, and } from "drizzle-orm";
 
 // Use dummy Stripe key for testing if not provided
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -573,7 +573,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get player and admin details for notifications
       const player = await storage.getUser(fine.playerId);
-      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+      const playerName = player ? 
+        (player.nickname || `${player.firstName || ''} ${player.lastName || ''}`.trim() || player.email || 'Player') 
+        : 'Player';
 
       // Create notification for player
       await storage.createNotification({
@@ -584,14 +586,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedEntityId: fine.id,
       });
 
-      // Create notification for admin (fine_paid type for admin notifications)
-      await storage.createNotification({
-        userId: userId, // Admin who marked it as paid
-        title: "Fine Marked as Paid",
-        message: `Fine for ${playerName} (£${amount}) has been settled`,
-        type: "fine_paid",
-        relatedEntityId: fine.id,
-      });
+      // Create notification for all team admins (fine_paid type for admin notifications)
+      const teamAdmins = await storage.getTeamMembers(user.teamId);
+      const adminMembers = teamAdmins.filter(m => m.role === 'admin');
+      for (const admin of adminMembers) {
+        await storage.createNotification({
+          userId: admin.id,
+          title: "Payment Received",
+          message: `${playerName} paid £${amount} (recorded manually)`,
+          type: "fine_paid",
+          relatedEntityId: fine.id,
+        });
+      }
 
       // Create audit log
       await storage.createAuditLog({
@@ -709,7 +715,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // All validations passed - mark fines as paid
         const paidAt = new Date();
+        
+        // Get the player info for admin notification message
+        const [player] = await tx.select().from(users).where(eq(users.id, userId));
+        const playerName = player ? 
+          (player.nickname || `${player.firstName || ''} ${player.lastName || ''}`.trim() || player.email || 'Player') 
+          : 'Player';
+        
+        // Get team admins to notify them
+        const teamAdmins = player?.teamId ? 
+          await tx.select().from(users).where(and(
+            eq(users.teamId, player.teamId),
+            eq(users.role, 'admin')
+          )) : [];
+        
         for (const fineId of fineIds) {
+          const [fineDetails] = await tx.select().from(fines).where(eq(fines.id, fineId));
+          const amount = fineDetails?.amount || '0';
+          
           await tx
             .update(fines)
             .set({
@@ -719,14 +742,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .where(eq(fines.id, fineId));
 
-          // Create notification
+          // Create notification for player (payment_confirmed type for player notifications)
           await tx.insert(notifications).values({
             userId,
-            title: "Fine Paid",
-            message: "Your fine payment has been processed successfully",
-            type: "fine_paid",
+            title: "Payment Confirmed",
+            message: `Your payment of £${amount} has been processed successfully`,
+            type: "payment_confirmed",
             relatedEntityId: fineId,
           });
+          
+          // Create notification for each admin (fine_paid type for admin notifications)
+          for (const admin of teamAdmins) {
+            await tx.insert(notifications).values({
+              userId: admin.id,
+              title: "Payment Received",
+              message: `${playerName} paid £${amount}`,
+              type: "fine_paid",
+              relatedEntityId: fineId,
+            });
+          }
 
           // Create audit log
           await tx.insert(auditLog).values({
@@ -1064,7 +1098,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const player = await storage.getUser(fineDetails.playerId);
-      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+      const playerName = player ? 
+        (player.nickname || `${player.firstName || ''} ${player.lastName || ''}`.trim() || player.email || 'Player') 
+        : 'Player';
       const amount = fineDetails.amount;
 
       // Actually delete the fine from database
@@ -1079,14 +1115,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedEntityId: id,
       });
 
-      // Create notification for admin (fine_deleted type for admin notifications)
-      await storage.createNotification({
-        userId: user.id,
-        title: "Fine Deleted",
-        message: `Fine for ${playerName} (£${amount}) has been deleted`,
-        type: "fine_deleted",
-        relatedEntityId: id,
-      });
+      // Create notification for all team admins (fine_deleted type for admin notifications)
+      const teamAdmins = await storage.getTeamMembers(user.teamId!);
+      const adminMembers = teamAdmins.filter(m => m.role === 'admin');
+      for (const admin of adminMembers) {
+        await storage.createNotification({
+          userId: admin.id,
+          title: "Fine Deleted",
+          message: `Fine for ${playerName} (£${amount}) has been deleted`,
+          type: "fine_deleted",
+          relatedEntityId: id,
+        });
+      }
       
       await storage.createAuditLog({
         entityType: 'fine',
@@ -1679,6 +1719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark notification as read (POST for backwards compatibility)
   app.post('/api/notifications/:id/read', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
@@ -1687,6 +1728,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark notification as read (PATCH)
+  app.patch('/api/notifications/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.markNotificationRead(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark notification as unread (PATCH)
+  app.patch('/api/notifications/:id/unread', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.markNotificationUnread(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as unread:", error);
+      res.status(500).json({ message: "Failed to mark notification as unread" });
+    }
+  });
+
+  // Mark all notifications as read (POST)
+  app.post('/api/notifications/mark-all-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get the notification types to mark based on user role context
+      // Frontend can optionally send types array to filter
+      const { types } = req.body;
+      
+      await storage.markAllNotificationsRead(userId, types);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
   });
 
