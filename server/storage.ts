@@ -557,6 +557,7 @@ export class DatabaseStorage implements IStorage {
       userId: string | null;
       changes: any;
       createdAt: Date | null;
+      description: string;
       user: {
         id: string;
         firstName: string | null;
@@ -569,7 +570,6 @@ export class DatabaseStorage implements IStorage {
     const offset = (page - 1) * limit;
 
     // Get audit logs with user details for the team
-    // First, get all user IDs from the team to filter audit logs
     const teamUserIds = await db
       .select({ id: users.id })
       .from(users)
@@ -585,19 +585,24 @@ export class DatabaseStorage implements IStorage {
     const finesEntityTypes = ['fine', 'category', 'subcategory'];
     const teamEntityTypes = ['team', 'user', 'team_membership'];
     
+    // Actions to exclude (not meaningful for audit trail)
+    const excludedActions = ['switch_team', 'update_affiliation'];
+    
     // Build the entity type filter based on the filter parameter
-    let entityTypeFilter = sql`1=1`; // No filter by default
+    let entityTypeFilter = sql`1=1`;
     if (filter === 'fines') {
       entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(finesEntityTypes.map(t => sql`${t}`), sql`, `)})`;
     } else if (filter === 'team') {
       entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(teamEntityTypes.map(t => sql`${t}`), sql`, `)})`;
     } else {
-      // 'all' filter: show only fines and team related (exclude other entity types)
       const allRelevantTypes = [...finesEntityTypes, ...teamEntityTypes];
       entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(allRelevantTypes.map(t => sql`${t}`), sql`, `)})`;
     }
+    
+    // Exclude non-meaningful actions
+    const actionFilter = sql`${auditLog.action} NOT IN (${sql.join(excludedActions.map(a => sql`${a}`), sql`, `)})`;
 
-    const logs = await db
+    const rawLogs = await db
       .select({
         id: auditLog.id,
         entityType: auditLog.entityType,
@@ -615,7 +620,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(auditLog)
       .leftJoin(users, eq(auditLog.userId, users.id))
-      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter}`)
+      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter} AND ${actionFilter}`)
       .orderBy(desc(auditLog.createdAt))
       .limit(limit)
       .offset(offset);
@@ -624,7 +629,168 @@ export class DatabaseStorage implements IStorage {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(auditLog)
-      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter}`);
+      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter} AND ${actionFilter}`);
+
+    // Collect all unique IDs that need resolution
+    const playerIds = new Set<string>();
+    const teamIds = new Set<string>();
+    const categoryIds = new Set<string>();
+    const subcategoryIds = new Set<string>();
+    
+    for (const log of rawLogs) {
+      const changes = log.changes as any;
+      if (changes?.playerId) playerIds.add(changes.playerId);
+      if (changes?.teamId) teamIds.add(changes.teamId);
+      if (changes?.categoryId) categoryIds.add(changes.categoryId);
+      if (changes?.subcategoryId) subcategoryIds.add(changes.subcategoryId);
+      if (log.entityType === 'user' && log.entityId) playerIds.add(log.entityId);
+      if (log.entityType === 'team' && log.entityId) teamIds.add(log.entityId);
+      if (log.entityType === 'category' && log.entityId) categoryIds.add(log.entityId);
+      if (log.entityType === 'subcategory' && log.entityId) subcategoryIds.add(log.entityId);
+    }
+
+    // Resolve IDs to names in bulk
+    const playerNames: Record<string, string> = {};
+    const teamNames: Record<string, string> = {};
+    const categoryNames: Record<string, string> = {};
+    const subcategoryNames: Record<string, string> = {};
+
+    if (playerIds.size > 0) {
+      const playerList = await db.select().from(users).where(inArray(users.id, Array.from(playerIds)));
+      for (const p of playerList) {
+        playerNames[p.id] = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email || 'Unknown';
+      }
+    }
+
+    if (teamIds.size > 0) {
+      const teamList = await db.select().from(teams).where(inArray(teams.id, Array.from(teamIds)));
+      for (const t of teamList) {
+        teamNames[t.id] = t.name;
+      }
+    }
+
+    if (categoryIds.size > 0) {
+      const catList = await db.select().from(fineCategories).where(inArray(fineCategories.id, Array.from(categoryIds)));
+      for (const c of catList) {
+        categoryNames[c.id] = c.name;
+      }
+    }
+
+    if (subcategoryIds.size > 0) {
+      const subList = await db.select().from(fineSubcategories).where(inArray(fineSubcategories.id, Array.from(subcategoryIds)));
+      for (const s of subList) {
+        subcategoryNames[s.id] = s.name;
+      }
+    }
+
+    // Generate human-readable descriptions
+    const logs = rawLogs.map(log => {
+      const actorName = log.user ? 
+        (log.user.firstName && log.user.lastName ? `${log.user.firstName} ${log.user.lastName}` : log.user.email || 'Unknown') 
+        : 'System';
+      const changes = log.changes as any || {};
+      let description = '';
+
+      switch (log.entityType) {
+        case 'fine':
+          const playerName = changes.playerId ? playerNames[changes.playerId] || 'a player' : 'a player';
+          const amount = changes.amount ? `£${changes.amount}` : '';
+          if (log.action === 'create') {
+            description = `${actorName} issued a fine${amount ? ` of ${amount}` : ''} to ${playerName}`;
+          } else if (log.action === 'update') {
+            description = `${actorName} updated a fine for ${playerName}${amount ? ` (${amount})` : ''}`;
+          } else if (log.action === 'delete') {
+            description = `${actorName} deleted a fine${amount ? ` of ${amount}` : ''} for ${playerName}`;
+          } else if (log.action === 'payment_recorded') {
+            description = `${actorName} recorded payment${amount ? ` of ${amount}` : ''} for ${playerName}`;
+          } else {
+            description = `${actorName} ${log.action.replace(/_/g, ' ')} fine`;
+          }
+          break;
+
+        case 'category':
+          const catName = categoryNames[log.entityId] || changes.name || 'a category';
+          if (log.action === 'create') {
+            description = `${actorName} created category "${catName}"`;
+          } else if (log.action === 'delete') {
+            description = `${actorName} deleted category "${catName}"`;
+          } else {
+            description = `${actorName} updated category "${catName}"`;
+          }
+          break;
+
+        case 'subcategory':
+          const subName = subcategoryNames[log.entityId] || changes.name || 'a fine type';
+          if (log.action === 'create') {
+            description = `${actorName} created fine type "${subName}"`;
+          } else if (log.action === 'delete') {
+            description = `${actorName} deleted fine type "${subName}"`;
+          } else {
+            description = `${actorName} updated fine type "${subName}"`;
+          }
+          break;
+
+        case 'team':
+          const tName = teamNames[log.entityId] || changes.name || 'the team';
+          if (log.action === 'update') {
+            const updateDetails: string[] = [];
+            if (changes.name) updateDetails.push(`name to "${changes.name}"`);
+            if (changes.sport) updateDetails.push(`sport to "${changes.sport}"`);
+            description = updateDetails.length > 0 
+              ? `${actorName} updated team ${updateDetails.join(' and ')}`
+              : `${actorName} updated team settings`;
+          } else if (log.action === 'create') {
+            description = `${actorName} created team "${tName}"`;
+          } else {
+            description = `${actorName} ${log.action.replace(/_/g, ' ')} team`;
+          }
+          break;
+
+        case 'user':
+          const targetName = playerNames[log.entityId] || 'a member';
+          if (log.action === 'join_team') {
+            description = `${targetName} joined the team`;
+          } else if (log.action === 'remove_from_team') {
+            description = `${actorName} removed ${targetName} from the team`;
+          } else if (log.action === 'update_role') {
+            description = `${actorName} changed ${targetName}'s role to ${changes.role || 'member'}`;
+          } else if (log.action === 'update') {
+            const updateParts: string[] = [];
+            if (changes.firstName || changes.lastName) updateParts.push('name');
+            if (changes.position) updateParts.push('position');
+            if (changes.nickname) updateParts.push('nickname');
+            description = updateParts.length > 0
+              ? `${actorName} updated ${targetName}'s ${updateParts.join(', ')}`
+              : `${actorName} updated ${targetName}'s profile`;
+          } else if (log.action === 'profile_image_updated') {
+            description = `${actorName} updated ${targetName}'s profile image`;
+          } else {
+            description = `${actorName} ${log.action.replace(/_/g, ' ')} ${targetName}`;
+          }
+          break;
+
+        case 'team_membership':
+          const memberName = changes.userId ? playerNames[changes.userId] || 'a member' : 'a member';
+          if (log.action === 'create') {
+            description = `${memberName} was added to the team`;
+          } else if (log.action === 'delete') {
+            description = `${memberName} was removed from the team`;
+          } else if (log.action === 'update') {
+            description = `${actorName} updated membership for ${memberName}`;
+          } else {
+            description = `${actorName} ${log.action.replace(/_/g, ' ')} team membership`;
+          }
+          break;
+
+        default:
+          description = `${actorName} ${log.action.replace(/_/g, ' ')} ${log.entityType}`;
+      }
+
+      return {
+        ...log,
+        description,
+      };
+    });
 
     return {
       logs,

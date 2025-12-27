@@ -40,6 +40,7 @@ interface AuditLogEntry {
   userId: string | null;
   changes: any;
   createdAt: string;
+  description: string;
   user: {
     id: string;
     firstName: string | null;
@@ -162,10 +163,10 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
+      log.description?.toLowerCase().includes(term) ||
       log.action.toLowerCase().includes(term) ||
       log.entityType.toLowerCase().includes(term) ||
-      getUserName(log.user).toLowerCase().includes(term) ||
-      log.entityId.toLowerCase().includes(term)
+      getUserName(log.user).toLowerCase().includes(term)
     );
   }) || [];
 
@@ -283,36 +284,22 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
                           </div>
 
                           <div className="flex-1 min-w-0 space-y-1">
-                            {/* Top Row: User & Action */}
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-slate-900">
-                                  {getUserName(log.user)}
-                                </span>
-                                <span className="text-sm text-slate-500">
-                                  {log.action.replace(/_/g, ' ')}
-                                </span>
-                                <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-5 bg-slate-100 text-slate-600 border-slate-200">
-                                  {ENTITY_LABELS[log.entityType] || log.entityType}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center text-xs text-slate-400 shrink-0 gap-1">
+                            {/* Description and timestamp */}
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-sm text-slate-700 leading-snug">
+                                {log.description}
+                              </p>
+                              <div className="flex items-center text-xs text-slate-400 shrink-0 gap-1 pt-0.5">
                                 <Clock className="w-3 h-3" />
                                 {format(new Date(log.createdAt), 'MMM d, HH:mm')}
                               </div>
                             </div>
 
-                            {/* Entity ID / Subtitle */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-mono text-slate-400 truncate max-w-[200px]">
-                                #{log.entityId.split('-')[0]}...
-                              </span>
-                              {log.changes && (
-                                <ChevronDown className={cn(
-                                  "w-4 h-4 text-slate-300 transition-transform duration-200",
-                                  isExpanded && "rotate-180 text-slate-500"
-                                )} />
-                              )}
+                            {/* Category badge */}
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-5 bg-slate-100 text-slate-600 border-slate-200">
+                                {ENTITY_LABELS[log.entityType] || log.entityType}
+                              </Badge>
                             </div>
                           </div>
                         </div>
