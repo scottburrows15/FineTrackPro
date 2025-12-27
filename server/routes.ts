@@ -931,8 +931,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
+      const filterParam = (req.query.filter as string) || 'all';
+      
+      // Validate filter parameter
+      const validFilters = ['all', 'fines', 'team'];
+      const filter = validFilters.includes(filterParam) ? filterParam : 'all';
 
-      const auditData = await storage.getAuditLog(user.teamId!, page, limit);
+      const auditData = await storage.getAuditLog(user.teamId!, page, limit, filter as 'all' | 'fines' | 'team');
       res.json(auditData);
     } catch (error) {
       console.error("Error fetching audit log:", error);

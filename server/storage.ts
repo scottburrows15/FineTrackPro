@@ -548,7 +548,7 @@ export class DatabaseStorage implements IStorage {
     await db.insert(auditLog).values(logData);
   }
 
-  async getAuditLog(teamId: string, page = 1, limit = 50): Promise<{
+  async getAuditLog(teamId: string, page = 1, limit = 50, filter?: 'all' | 'fines' | 'team'): Promise<{
     logs: Array<{
       id: string;
       entityType: string;
@@ -581,6 +581,22 @@ export class DatabaseStorage implements IStorage {
       return { logs: [], total: 0 };
     }
 
+    // Define entity types for each filter category
+    const finesEntityTypes = ['fine', 'category', 'subcategory'];
+    const teamEntityTypes = ['team', 'user', 'team_membership'];
+    
+    // Build the entity type filter based on the filter parameter
+    let entityTypeFilter = sql`1=1`; // No filter by default
+    if (filter === 'fines') {
+      entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(finesEntityTypes.map(t => sql`${t}`), sql`, `)})`;
+    } else if (filter === 'team') {
+      entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(teamEntityTypes.map(t => sql`${t}`), sql`, `)})`;
+    } else {
+      // 'all' filter: show only fines and team related (exclude other entity types)
+      const allRelevantTypes = [...finesEntityTypes, ...teamEntityTypes];
+      entityTypeFilter = sql`${auditLog.entityType} IN (${sql.join(allRelevantTypes.map(t => sql`${t}`), sql`, `)})`;
+    }
+
     const logs = await db
       .select({
         id: auditLog.id,
@@ -599,7 +615,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(auditLog)
       .leftJoin(users, eq(auditLog.userId, users.id))
-      .where(sql`${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL`)
+      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter}`)
       .orderBy(desc(auditLog.createdAt))
       .limit(limit)
       .offset(offset);
@@ -608,7 +624,7 @@ export class DatabaseStorage implements IStorage {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(auditLog)
-      .where(sql`${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL`);
+      .where(sql`(${auditLog.userId} IN (${sql.join(teamUserIdList.map(id => sql`${id}`), sql`, `)}) OR ${auditLog.userId} IS NULL) AND ${entityTypeFilter}`);
 
     return {
       logs,

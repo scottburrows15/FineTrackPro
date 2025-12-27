@@ -10,13 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { 
   Activity,
   User,
   CreditCard,
-  FileText,
-  Settings,
   Trash2,
   Edit,
   Plus,
@@ -26,11 +23,14 @@ import {
   Search,
   Calendar,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  History
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 interface AuditLogEntry {
   id: string;
@@ -65,284 +65,288 @@ const ACTION_ICONS = {
   pay: CreditCard,
   payment_recorded: CreditCard,
   join_team: User,
+  switch_team: ArrowUpDown,
   profile_updated: User,
+  profile_image_updated: User,
+  update_role: User,
+  update_affiliation: User,
+  remove_from_team: Trash2,
   reorder: ArrowUpDown,
 } as const;
 
-const ACTION_LABELS = {
-  create: "Created",
-  update: "Updated", 
-  delete: "Deleted",
-  pay: "Paid",
-  payment_recorded: "Payment Recorded",
-  join_team: "Joined Team",
-  profile_updated: "Profile Updated",
-  reorder: "Reordered",
-} as const;
+const ACTION_STYLES = {
+  create: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  join_team: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  update: "bg-blue-100 text-blue-700 border-blue-200",
+  profile_updated: "bg-blue-100 text-blue-700 border-blue-200",
+  profile_image_updated: "bg-blue-100 text-blue-700 border-blue-200",
+  update_role: "bg-amber-100 text-amber-700 border-amber-200",
+  update_affiliation: "bg-blue-100 text-blue-700 border-blue-200",
+  switch_team: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  reorder: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  delete: "bg-red-100 text-red-700 border-red-200",
+  remove_from_team: "bg-red-100 text-red-700 border-red-200",
+  pay: "bg-purple-100 text-purple-700 border-purple-200",
+  payment_recorded: "bg-purple-100 text-purple-700 border-purple-200",
+  default: "bg-slate-100 text-slate-700 border-slate-200"
+};
 
-const ENTITY_LABELS = {
+const ENTITY_LABELS: Record<string, string> = {
   fine: "Fine",
-  user: "User",
+  user: "Member",
   team: "Team",
+  team_membership: "Membership",
   category: "Category",
   subcategory: "Subcategory",
-} as const;
+};
 
 export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProps) {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'fines' | 'team'>('all');
   const limit = 50;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: auditData, isLoading } = useQuery<AuditData>({
-    queryKey: ['/api/admin/audit-log', page, limit],
+    queryKey: ['/api/admin/audit-log', page, limit, activeFilter],
     queryFn: async () => {
-      const url = `/api/admin/audit-log?page=${page}&limit=${limit}`;
+      const url = `/api/admin/audit-log?page=${page}&limit=${limit}&filter=${activeFilter}`;
       const response = await fetch(url, { credentials: 'include' });
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
       return await response.json();
     },
     enabled: isOpen,
   });
 
   const migrateMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('POST', '/api/admin/migrate-audit-log');
-    },
+    mutationFn: async () => await apiRequest('POST', '/api/admin/migrate-audit-log'),
     onSuccess: () => {
-      toast({
-        title: "Migration Complete",
-        description: "Existing fines and user data have been added to audit trail",
-      });
-      // Refresh the audit log data - invalidate all audit log queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/admin/audit-log']
-        // By default, partial matching is used, so this will invalidate all queries starting with this key
-      });
+      toast({ title: "Migration Complete", description: "History updated." });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/audit-log'] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Migration Failed",
-        description: error.message || "Failed to migrate existing data",
-        variant: "destructive",
-      });
+      toast({ title: "Migration Failed", description: error.message, variant: "destructive" });
     },
   });
 
   const getActionIcon = (action: string) => {
-    const Icon = ACTION_ICONS[action as keyof typeof ACTION_ICONS] || Activity;
-    return Icon;
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'create':
-      case 'join_team':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'update':
-      case 'profile_updated':
-      case 'reorder':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'delete':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'pay':
-      case 'payment_recorded':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+    return ACTION_ICONS[action as keyof typeof ACTION_ICONS] || Activity;
   };
 
   const getUserName = (user: AuditLogEntry['user']) => {
     if (!user) return 'System';
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    if (user.firstName) return user.firstName;
-    if (user.lastName) return user.lastName;
-    if (user.email) return user.email;
-    return 'Unknown User';
+    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+    return user.email || 'Unknown User';
   };
 
   const formatChanges = (changes: any) => {
     if (!changes || typeof changes !== 'object') return null;
     
-    return Object.entries(changes).map(([key, value]) => (
-      <div key={key} className="text-sm">
-        <span className="font-medium text-slate-600">{key}:</span>{' '}
-        <span className="text-slate-800">
-          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-        </span>
+    return (
+      <div className="grid grid-cols-1 gap-2">
+        {Object.entries(changes).map(([key, value]) => (
+          <div key={key} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 text-xs">
+            <span className="font-semibold text-slate-500 shrink-0 min-w-[100px] uppercase tracking-wider text-[10px]">{key}</span>
+            <span className="font-mono text-slate-700 bg-white px-2 py-1 rounded border border-slate-100 w-full break-all">
+              {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+            </span>
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
-  const filteredLogs = auditData?.logs?.filter((log: AuditLogEntry) => {
+  const filteredLogs = auditData?.logs?.filter((log) => {
     if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase();
     return (
-      log.action.toLowerCase().includes(searchLower) ||
-      log.entityType.toLowerCase().includes(searchLower) ||
-      getUserName(log.user).toLowerCase().includes(searchLower) ||
-      log.entityId.toLowerCase().includes(searchLower)
+      log.action.toLowerCase().includes(term) ||
+      log.entityType.toLowerCase().includes(term) ||
+      getUserName(log.user).toLowerCase().includes(term) ||
+      log.entityId.toLowerCase().includes(term)
     );
   }) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Audit Trail
-            </DialogTitle>
-            <div className="flex items-center gap-2">
+      <DialogContent className="w-[95vw] max-w-2xl h-[85vh] p-0 gap-0 bg-slate-50/50 flex flex-col overflow-hidden">
+        
+        {/* Header */}
+        <div className="bg-white border-b border-slate-100 p-4 shrink-0">
+          <DialogHeader className="mb-4">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-800">
+                <div className="bg-blue-50 p-2 rounded-lg">
+                  <History className="w-5 h-5 text-blue-600" />
+                </div>
+                Audit Trail
+              </DialogTitle>
+              
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => migrateMutation.mutate()}
                 disabled={migrateMutation.isPending}
-                className="flex items-center gap-2"
+                className="text-xs h-8 text-slate-500 hover:text-blue-600"
               >
-                <RefreshCw className={`w-4 h-4 ${migrateMutation.isPending ? 'animate-spin' : ''}`} />
-                {migrateMutation.isPending ? 'Migrating...' : 'Add Existing Data'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={onClose}>
-                Close
+                <RefreshCw className={cn("w-3 h-3 mr-2", migrateMutation.isPending && "animate-spin")} />
+                Sync History
               </Button>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="Search activities..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          {/* Filter Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-xl mb-3">
+            {[
+              { key: 'all', label: 'All Activity' },
+              { key: 'fines', label: 'Fines' },
+              { key: 'team', label: 'Team' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveFilter(tab.key as 'all' | 'fines' | 'team');
+                  setPage(1);
+                }}
+                data-testid={`filter-${tab.key}`}
+                className={cn(
+                  "flex-1 px-3 py-1.5 text-[11px] font-bold rounded-lg uppercase transition-all",
+                  activeFilter === tab.key
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Filter className="w-4 h-4" />
-            <span>{filteredLogs.length} of {auditData?.logs?.length || 0} activities</span>
+
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search logs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-9 text-sm bg-slate-50 border-slate-200 focus-visible:ring-1 focus-visible:ring-blue-500"
+                data-testid="search-audit-logs"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Audit Log Content */}
-        <div className="flex-1 overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              {searchTerm ? 'No activities found matching your search.' : 'No audit log entries found.'}
-            </div>
-          ) : (
-            <ScrollArea className="h-full">
-              <div className="space-y-3">
-                {filteredLogs.map((log: AuditLogEntry) => {
-                  const ActionIcon = getActionIcon(log.action);
-                  const isExpanded = expandedEntry === log.id;
-                  
-                  return (
-                    <Card key={log.id} className="border border-slate-200">
-                      <CardContent className="p-4">
-                        <div 
-                          className="flex items-start justify-between cursor-pointer"
-                          onClick={() => setExpandedEntry(isExpanded ? null : log.id)}
-                        >
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="flex-shrink-0 mt-1">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActionColor(log.action)}`}>
-                                <ActionIcon className="w-4 h-4" />
-                              </div>
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline" className={getActionColor(log.action)}>
-                                  {ACTION_LABELS[log.action as keyof typeof ACTION_LABELS] || log.action}
-                                </Badge>
-                                <span className="text-sm font-medium text-slate-700">
-                                  {ENTITY_LABELS[log.entityType as keyof typeof ENTITY_LABELS] || log.entityType}
-                                </span>
-                              </div>
-                              
-                              <div className="text-sm text-slate-600">
-                                <span className="font-medium">{getUserName(log.user)}</span>
-                                {' '}{ACTION_LABELS[log.action as keyof typeof ACTION_LABELS]?.toLowerCase() || log.action}{' '}
-                                {log.entityType === 'fine' && 'a fine'}
-                                {log.entityType === 'user' && 'user profile'}
-                                {log.entityType === 'team' && 'team settings'}
-                                {log.entityType === 'category' && 'fine category'}
-                                {log.entityType === 'subcategory' && 'fine type'}
-                              </div>
-                              
-                              <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm')}
-                                </div>
-                                {log.entityId && (
-                                  <div className="truncate">
-                                    ID: {log.entityId.slice(0, 8)}...
-                                  </div>
-                                )}
-                              </div>
+        {/* Content */}
+        <ScrollArea className="flex-1 bg-white">
+          <div className="p-0">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin" />
+                <span className="text-sm">Loading history...</span>
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                <Search className="w-8 h-8 opacity-20" />
+                <p className="text-sm">No records found</p>
+              </div>
+            ) : (
+              <div className="relative">
+                {/* Vertical Timeline Line */}
+                <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-100 z-0 hidden sm:block" />
+
+                <div className="divide-y divide-slate-50">
+                  {filteredLogs.map((log) => {
+                    const ActionIcon = getActionIcon(log.action);
+                    const isExpanded = expandedEntry === log.id;
+                    const styleClass = ACTION_STYLES[log.action as keyof typeof ACTION_STYLES] || ACTION_STYLES.default;
+                    
+                    return (
+                      <div 
+                        key={log.id} 
+                        className={cn(
+                          "relative group transition-colors hover:bg-slate-50/50 cursor-pointer",
+                          isExpanded ? "bg-slate-50/80" : "bg-white"
+                        )}
+                        onClick={() => setExpandedEntry(isExpanded ? null : log.id)}
+                      >
+                        <div className="flex p-4 gap-4">
+                          {/* Timeline Icon */}
+                          <div className="relative z-10 hidden sm:flex shrink-0">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center border shadow-sm",
+                              styleClass,
+                              "bg-white" 
+                            )}>
+                              <ActionIcon className="w-3.5 h-3.5" />
                             </div>
                           </div>
-                          
-                          <div className="flex-shrink-0 ml-2">
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-slate-400" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400" />
-                            )}
+
+                          <div className="flex-1 min-w-0 space-y-1">
+                            {/* Top Row: User & Action */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-slate-900">
+                                  {getUserName(log.user)}
+                                </span>
+                                <span className="text-sm text-slate-500">
+                                  {log.action.replace(/_/g, ' ')}
+                                </span>
+                                <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-5 bg-slate-100 text-slate-600 border-slate-200">
+                                  {ENTITY_LABELS[log.entityType] || log.entityType}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center text-xs text-slate-400 shrink-0 gap-1">
+                                <Clock className="w-3 h-3" />
+                                {format(new Date(log.createdAt), 'MMM d, HH:mm')}
+                              </div>
+                            </div>
+
+                            {/* Entity ID / Subtitle */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-mono text-slate-400 truncate max-w-[200px]">
+                                #{log.entityId.split('-')[0]}...
+                              </span>
+                              {log.changes && (
+                                <ChevronDown className={cn(
+                                  "w-4 h-4 text-slate-300 transition-transform duration-200",
+                                  isExpanded && "rotate-180 text-slate-500"
+                                )} />
+                              )}
+                            </div>
                           </div>
                         </div>
-                        
-                        {/* Expanded Details */}
+
+                        {/* Expandable Details */}
                         {isExpanded && log.changes && (
-                          <div className="mt-4 pt-3 border-t border-slate-100">
-                            <h4 className="text-sm font-medium text-slate-700 mb-2">Changes:</h4>
-                            <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+                          <div className="pl-4 sm:pl-16 pr-4 pb-4 animate-in slide-in-from-top-1 duration-200">
+                            <div className="bg-slate-100/50 rounded-lg p-3 border border-slate-200/60 text-sm">
                               {formatChanges(log.changes)}
                             </div>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </ScrollArea>
-          )}
-        </div>
+            )}
+          </div>
+        </ScrollArea>
 
-        {/* Pagination */}
+        {/* Footer */}
         {auditData?.total && auditData.total > limit && (
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-slate-600">
-              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, auditData.total)} of {auditData.total} activities
-            </div>
-            
+          <div className="bg-white border-t border-slate-100 p-3 flex items-center justify-between shrink-0">
+            <span className="text-xs text-slate-500 font-medium">
+              Page {page} of {Math.ceil(auditData.total / limit)}
+            </span>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
+                className="h-8 text-xs"
               >
                 Previous
               </Button>
@@ -351,6 +355,7 @@ export default function AuditTrailModal({ isOpen, onClose }: AuditTrailModalProp
                 size="sm"
                 onClick={() => setPage(p => p + 1)}
                 disabled={page * limit >= auditData.total}
+                className="h-8 text-xs"
               >
                 Next
               </Button>

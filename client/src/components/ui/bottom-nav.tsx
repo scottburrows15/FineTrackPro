@@ -53,6 +53,10 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
             const Icon = item.icon;
             const isActive = location === item.path;
             
+            // Fix: Explicitly check if badge is greater than 0 using null coalescing
+            // This prevents '0' being rendered as text when count is 0
+            const showBadge = item.id === 'notifications' && (item.badge ?? 0) > 0;
+            
             return (
               <button
                 key={item.id}
@@ -74,13 +78,13 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                       ${isActive ? item.color : 'text-slate-600 dark:text-slate-400'}
                     `}
                   />
-                  {item.id === 'notifications' && item.badge && item.badge > 0 && (
+                  {showBadge && (
                     <div 
                       className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
                       data-testid={`badge-${item.id}`}
                     >
                       <span className="text-[10px] font-bold text-white leading-none">
-                        {item.badge > 99 ? '99+' : item.badge}
+                        {(item.badge || 0) > 99 ? '99+' : item.badge}
                       </span>
                     </div>
                   )}
