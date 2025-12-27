@@ -2,8 +2,16 @@ import { Router, Request, Response } from 'express';
 import { storage } from './storage';
 import { calculatePaymentFees, poundsToPence, formatPenceToPounds } from './fees';
 import type { Team } from '@shared/schema';
+import crypto from 'crypto';
 
 const router = Router();
+
+const GOCARDLESS_CLIENT_ID = process.env.GOCARDLESS_CLIENT_ID;
+const GOCARDLESS_CLIENT_SECRET = process.env.GOCARDLESS_CLIENT_SECRET;
+const GOCARDLESS_ENVIRONMENT = process.env.NODE_ENV === 'production' ? 'live' : 'sandbox';
+const GOCARDLESS_OAUTH_BASE = GOCARDLESS_ENVIRONMENT === 'live' 
+  ? 'https://connect.gocardless.com'
+  : 'https://connect-sandbox.gocardless.com';
 
 // Cache GoCardless clients per access token to support multiple teams
 const gocardlessClients = new Map<string, any>();
@@ -373,6 +381,255 @@ router.post('/api/admin/wallet/withdraw', isAuthenticated, async (req: any, res:
   } catch (error: any) {
     console.error('Error processing withdrawal:', error);
     res.status(500).json({ message: error.message || 'Failed to process withdrawal' });
+  }
+});
+
+// =====================
+// GoCardless OAuth Endpoints
+// =====================
+
+// Get GoCardless connection status
+router.get('/api/admin/gocardless/status', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const team = await storage.getTeam(user.teamId);
+    if (!team) {
+      return res.status(400).json({ message: 'Team not found' });
+    }
+
+    const isConnected = !!team.goCardlessAccessToken;
+    
+    res.json({
+      connected: isConnected,
+      organisationId: team.goCardlessOrganisationId || null,
+      connectedAt: team.goCardlessConnectedAt || null,
+    });
+  } catch (error) {
+    console.error('Error getting GoCardless status:', error);
+    res.status(500).json({ message: 'Failed to get connection status' });
+  }
+});
+
+// Start GoCardless OAuth flow
+router.post('/api/admin/gocardless/connect', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const team = await storage.getTeam(user.teamId);
+    if (!team) {
+      return res.status(400).json({ message: 'Team not found' });
+    }
+
+    if (!GOCARDLESS_CLIENT_ID) {
+      return res.status(500).json({ message: 'GoCardless is not configured. Please contact support.' });
+    }
+
+    // Generate a secure random state token
+    const state = crypto.randomBytes(32).toString('hex');
+    const stateExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store the state in the team record
+    await storage.updateTeam(user.teamId, {
+      goCardlessOAuthState: state,
+      goCardlessOAuthStateExpiresAt: stateExpiresAt,
+    });
+
+    // Build the OAuth authorization URL
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : process.env.PRODUCTION_URL || 'http://localhost:5000';
+
+    const redirectUri = `${baseUrl}/api/admin/gocardless/callback`;
+    
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: GOCARDLESS_CLIENT_ID,
+      redirect_uri: redirectUri,
+      scope: 'read_write',
+      state: state,
+      initial_view: 'signup', // Show signup for new merchants
+    });
+
+    const authorizeUrl = `${GOCARDLESS_OAUTH_BASE}/oauth/authorize?${params.toString()}`;
+
+    await storage.createAuditLog({
+      entityType: 'team',
+      entityId: user.teamId,
+      action: 'gocardless_connect_started',
+      userId: user.id,
+      changes: { initiatedAt: new Date().toISOString() },
+    });
+
+    res.json({ authorizeUrl });
+  } catch (error) {
+    console.error('Error starting GoCardless connect:', error);
+    res.status(500).json({ message: 'Failed to start connection' });
+  }
+});
+
+// OAuth callback from GoCardless
+router.get('/api/admin/gocardless/callback', async (req: Request, res: Response) => {
+  try {
+    const { code, state, error, error_description } = req.query;
+
+    // Handle OAuth errors
+    if (error) {
+      console.error('GoCardless OAuth error:', error, error_description);
+      return res.redirect('/admin/settings?gocardless=error&message=' + encodeURIComponent(String(error_description || error)));
+    }
+
+    if (!code || !state) {
+      return res.redirect('/admin/settings?gocardless=error&message=Missing+authorization+code');
+    }
+
+    // Find the team by state token
+    const team = await storage.getTeamByGoCardlessState(String(state));
+    if (!team) {
+      console.error('No team found with matching state token');
+      return res.redirect('/admin/settings?gocardless=error&message=Invalid+or+expired+session');
+    }
+
+    // Check if state has expired
+    if (team.goCardlessOAuthStateExpiresAt && new Date() > team.goCardlessOAuthStateExpiresAt) {
+      await storage.updateTeam(team.id, {
+        goCardlessOAuthState: null,
+        goCardlessOAuthStateExpiresAt: null,
+      });
+      return res.redirect('/admin/settings?gocardless=error&message=Session+expired');
+    }
+
+    if (!GOCARDLESS_CLIENT_ID || !GOCARDLESS_CLIENT_SECRET) {
+      return res.redirect('/admin/settings?gocardless=error&message=GoCardless+not+configured');
+    }
+
+    // Exchange the authorization code for tokens
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : process.env.PRODUCTION_URL || 'http://localhost:5000';
+
+    const tokenResponse = await fetch(`${GOCARDLESS_OAUTH_BASE}/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        client_id: GOCARDLESS_CLIENT_ID,
+        client_secret: GOCARDLESS_CLIENT_SECRET,
+        redirect_uri: `${baseUrl}/api/admin/gocardless/callback`,
+        code: code,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', errorData);
+      return res.redirect('/admin/settings?gocardless=error&message=Authorization+failed');
+    }
+
+    const tokenData = await tokenResponse.json() as {
+      access_token: string;
+      refresh_token?: string;
+      organisation_id?: string;
+    };
+
+    // Clear the client cache for this team if they had a previous token
+    if (team.goCardlessAccessToken) {
+      gocardlessClients.delete(team.goCardlessAccessToken);
+    }
+
+    // Store the tokens
+    await storage.updateTeam(team.id, {
+      goCardlessAccessToken: tokenData.access_token,
+      goCardlessRefreshToken: tokenData.refresh_token || null,
+      goCardlessOrganisationId: tokenData.organisation_id || null,
+      goCardlessConnectedAt: new Date(),
+      goCardlessOAuthState: null,
+      goCardlessOAuthStateExpiresAt: null,
+    });
+
+    await storage.createAuditLog({
+      entityType: 'team',
+      entityId: team.id,
+      action: 'gocardless_connected',
+      userId: null, // Callback doesn't have user context
+      changes: { connectedAt: new Date().toISOString() },
+    });
+
+    res.redirect('/admin/settings?gocardless=success');
+  } catch (error) {
+    console.error('Error in GoCardless callback:', error);
+    res.redirect('/admin/settings?gocardless=error&message=Connection+failed');
+  }
+});
+
+// Disconnect GoCardless
+router.delete('/api/admin/gocardless/disconnect', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const team = await storage.getTeam(user.teamId);
+    if (!team) {
+      return res.status(400).json({ message: 'Team not found' });
+    }
+
+    if (!team.goCardlessAccessToken) {
+      return res.status(400).json({ message: 'GoCardless is not connected' });
+    }
+
+    // Clear the client cache
+    gocardlessClients.delete(team.goCardlessAccessToken);
+
+    // Revoke the token with GoCardless (best effort)
+    try {
+      if (GOCARDLESS_CLIENT_ID && GOCARDLESS_CLIENT_SECRET) {
+        await fetch(`${GOCARDLESS_OAUTH_BASE}/oauth/revoke`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: GOCARDLESS_CLIENT_ID,
+            client_secret: GOCARDLESS_CLIENT_SECRET,
+            token: team.goCardlessAccessToken,
+          }),
+        });
+      }
+    } catch (revokeError) {
+      console.error('Failed to revoke GoCardless token:', revokeError);
+      // Continue with local cleanup even if revocation fails
+    }
+
+    // Clear stored credentials
+    await storage.updateTeam(user.teamId, {
+      goCardlessAccessToken: null,
+      goCardlessRefreshToken: null,
+      goCardlessOrganisationId: null,
+      goCardlessConnectedAt: null,
+    });
+
+    await storage.createAuditLog({
+      entityType: 'team',
+      entityId: user.teamId,
+      action: 'gocardless_disconnected',
+      userId: user.id,
+      changes: { disconnectedAt: new Date().toISOString() },
+    });
+
+    res.json({ message: 'GoCardless disconnected successfully' });
+  } catch (error) {
+    console.error('Error disconnecting GoCardless:', error);
+    res.status(500).json({ message: 'Failed to disconnect' });
   }
 });
 

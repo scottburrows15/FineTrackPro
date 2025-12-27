@@ -52,6 +52,7 @@ export interface IStorage {
   // Team operations
   getTeam(id: string): Promise<Team | undefined>;
   getTeamByInviteCode(code: string): Promise<Team | undefined>;
+  getTeamByGoCardlessState(state: string): Promise<Team | undefined>;
   createTeam(team: InsertTeam): Promise<Team>;
   generateInviteCode(): string;
   
@@ -186,6 +187,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTeamByInviteCode(code: string): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.inviteCode, code));
+    return team;
+  }
+
+  async getTeamByGoCardlessState(state: string): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.goCardlessOAuthState, state));
     return team;
   }
 

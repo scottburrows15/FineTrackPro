@@ -59,7 +59,11 @@ export const teams = pgTable("teams", {
   bankIban: varchar("bank_iban", { length: 50 }),
   referencePrefix: varchar("reference_prefix", { length: 10 }).default("FINE"),
   goCardlessAccessToken: text("gocardless_access_token"),
+  goCardlessRefreshToken: text("gocardless_refresh_token"),
   goCardlessOrganisationId: varchar("gocardless_organisation_id", { length: 255 }),
+  goCardlessConnectedAt: timestamp("gocardless_connected_at"),
+  goCardlessOAuthState: varchar("gocardless_oauth_state", { length: 255 }),
+  goCardlessOAuthStateExpiresAt: timestamp("gocardless_oauth_state_expires_at"),
   // Subscription fields
   currentSubscriptionId: varchar("current_subscription_id"),
   isTrialActive: boolean("is_trial_active").default(false),
