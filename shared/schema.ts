@@ -49,6 +49,7 @@ export const teams = pgTable("teams", {
   sport: varchar("sport").notNull().default("Football"), // e.g., "Football", "Rugby", "Netball", "Hockey"
   inviteCode: varchar("invite_code").unique().notNull(),
   currency: varchar("currency", { length: 3 }).default("GBP"),
+  passFeesToPlayer: boolean("pass_fees_to_player").default(false), // When true, players pay transaction fees
   obProvider: varchar("ob_provider", { length: 50 }),
   obAccountId: varchar("ob_account_id", { length: 255 }),
   obConsentId: varchar("ob_consent_id", { length: 255 }),
@@ -57,6 +58,8 @@ export const teams = pgTable("teams", {
   bankAccountNumber: varchar("bank_account_number", { length: 20 }),
   bankIban: varchar("bank_iban", { length: 50 }),
   referencePrefix: varchar("reference_prefix", { length: 10 }).default("FINE"),
+  goCardlessAccessToken: text("gocardless_access_token"),
+  goCardlessOrganisationId: varchar("gocardless_organisation_id", { length: 255 }),
   // Subscription fields
   currentSubscriptionId: varchar("current_subscription_id"),
   isTrialActive: boolean("is_trial_active").default(false),
@@ -402,6 +405,54 @@ export const obTokens = pgTable("ob_tokens", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Team Wallet table - tracks team balances in pence
+export const teamWallets = pgTable("team_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull().unique(),
+  availableBalance: integer("available_balance").notNull().default(0), // in pence
+  pendingBalance: integer("pending_balance").notNull().default(0), // in pence
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payouts table - tracks withdrawals from team wallet
+export const payouts = pgTable("payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  amount: integer("amount").notNull(), // in pence
+  status: varchar("status").notNull().default("pending"), // 'pending', 'processing', 'paid', 'failed'
+  goCardlessPayoutId: varchar("gocardless_payout_id", { length: 255 }),
+  bankAccountName: varchar("bank_account_name", { length: 255 }),
+  bankSortCode: varchar("bank_sort_code", { length: 10 }),
+  bankAccountNumber: varchar("bank_account_number", { length: 20 }),
+  failureReason: text("failure_reason"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// GoCardless Billing Requests table - tracks payment requests
+export const gcBillingRequests = pgTable("gc_billing_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  playerId: varchar("player_id").references(() => users.id).notNull(),
+  billingRequestId: varchar("billing_request_id", { length: 255 }).unique(),
+  billingRequestFlowId: varchar("billing_request_flow_id", { length: 255 }),
+  paymentId: varchar("payment_id", { length: 255 }),
+  fineAmount: integer("fine_amount").notNull(), // Original fine amount in pence
+  foulPayFee: integer("foulpay_fee").notNull(), // FoulPay fee in pence
+  goCardlessFee: integer("gocardless_fee").notNull(), // GoCardless fee in pence
+  totalCharged: integer("total_charged").notNull(), // Total amount charged in pence
+  netWalletCredit: integer("net_wallet_credit").notNull(), // Amount credited to wallet in pence
+  status: varchar("status").notNull().default("pending"), // 'pending', 'authorising', 'confirmed', 'failed', 'cancelled'
+  fineIds: jsonb("fine_ids").notNull(), // Array of fine IDs being paid
+  redirectUrl: text("redirect_url"),
+  failureReason: text("failure_reason"),
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Subscription management tables
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -489,3 +540,30 @@ export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+// Team Wallet insert schema and types
+export const insertTeamWalletSchema = createInsertSchema(teamWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type TeamWallet = typeof teamWallets.$inferSelect;
+export type InsertTeamWallet = z.infer<typeof insertTeamWalletSchema>;
+
+// Payouts insert schema and types
+export const insertPayoutSchema = createInsertSchema(payouts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type Payout = typeof payouts.$inferSelect;
+export type InsertPayout = z.infer<typeof insertPayoutSchema>;
+
+// GoCardless Billing Requests insert schema and types
+export const insertGcBillingRequestSchema = createInsertSchema(gcBillingRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type GcBillingRequest = typeof gcBillingRequests.$inferSelect;
+export type InsertGcBillingRequest = z.infer<typeof insertGcBillingRequestSchema>;
