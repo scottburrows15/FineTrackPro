@@ -23,13 +23,14 @@ import {
   Users, FileText, Crown, Shield, Calendar, 
   LogOut, Bell, Mail, Smartphone, HelpCircle, 
   ChevronRight, Settings2, AlertTriangle, Trash2, Loader2,
-  Settings, ChevronLeft
+  Settings, ChevronLeft, Wallet, CreditCard
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
 import ManageCategoriesModal from "@/components/manage-categories-modal";
 import AuditTrailModal from "@/components/audit-trail-modal";
 import SubscriptionManagementModal from "@/components/subscription-management-modal";
+import AdminWalletModal from "@/components/admin-wallet-modal";
 import { cn } from "@/lib/utils";
 
 export default function AdminSettings() {
@@ -147,7 +148,29 @@ export default function AdminSettings() {
           </div>
         </section>
 
-        {/* --- 2. PREFERENCES & LOGS --- */}
+        {/* --- 2. PAYMENTS & WALLET --- */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Wallet className="w-4 h-4 text-slate-400" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Payments & Wallet</h2>
+          </div>
+          
+          <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
+            <button onClick={() => setActiveModal('wallet')} className="p-5 flex-1 text-left">
+              <div className="w-10 h-10 rounded-2xl bg-green-600 flex items-center justify-center mb-4 shadow-lg shadow-green-200 dark:shadow-none">
+                <CreditCard className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
+                Team Wallet <ChevronRight className="w-4 h-4 text-slate-300" />
+              </h3>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
+                View balance, withdraw funds, and manage fee settings
+              </p>
+            </button>
+          </Card>
+        </section>
+
+        {/* --- 3. PREFERENCES & LOGS --- */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Settings2 className="w-4 h-4 text-slate-400" />
@@ -246,6 +269,7 @@ export default function AdminSettings() {
       <ManageCategoriesModal isOpen={activeModal === 'categories'} onClose={() => setActiveModal(null)} />
       <AuditTrailModal isOpen={activeModal === 'audit'} onClose={() => setActiveModal(null)} />
       <SubscriptionManagementModal isOpen={activeModal === 'subscription'} onClose={() => setActiveModal(null)} />
+      <AdminWalletModal isOpen={activeModal === 'wallet'} onClose={() => setActiveModal(null)} />
 
       {/* REWORKED DELETION MODAL */}
       <Dialog open={activeModal === 'delete-confirm'} onOpenChange={() => setActiveModal(null)}>

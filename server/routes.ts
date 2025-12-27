@@ -1943,6 +1943,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn('⚠️ Subscription routes not available:', error instanceof Error ? error.message : 'Unknown error');
   }
 
+  // Mount GoCardless payment routes
+  try {
+    const gocardlessRoutes = await import('./gocardless');
+    app.use(gocardlessRoutes.default);
+    console.log('✅ GoCardless routes mounted successfully');
+  } catch (error) {
+    console.warn('⚠️ GoCardless routes not available:', error instanceof Error ? error.message : 'Unknown error');
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -43,6 +43,12 @@ export function calculateGoCardlessFee(amountPence: number): number {
 /**
  * Calculate all fees and totals based on whether fees are passed to the player
  * 
+ * GoCardless charges 1% on the TOTAL transaction amount, so we need to solve for T:
+ * T = subtotal + 0.01 * T
+ * T - 0.01T = subtotal
+ * 0.99T = subtotal
+ * T = subtotal / 0.99 (rounded up)
+ * 
  * @param fineAmountPence - Total fine amount in pence
  * @param passFeesToPlayer - If true, player pays fees on top of fine. If false, fees deducted from fine.
  * @returns Complete fee breakdown
@@ -56,22 +62,17 @@ export function calculatePaymentFees(
   
   if (passFeesToPlayer) {
     // Player pays fees on top of fine
-    // First calculate subtotal (fine + FoulPay fee)
+    // Subtotal = fine + FoulPay fee (before GoCardless fee)
     const subtotal = fineAmountPence + foulPayFeePence;
     
-    // GoCardless 1% is on the total transaction amount
-    // We need to calculate what total amount would give us the correct GoCardless fee
-    // If T is total charge, GoCardless fee = T * 0.01
-    // T = fine + foulPayFee + gcFee
-    // T = fine + foulPayFee + T * 0.01
-    // T - 0.01T = fine + foulPayFee
-    // 0.99T = fine + foulPayFee
-    // T = (fine + foulPayFee) / 0.99
+    // GoCardless charges 1% on the total, so we solve for total:
+    // T = subtotal / 0.99 (rounded up to cover the fee)
+    const totalChargePence = Math.ceil(subtotal / 0.99);
     
-    // For simplicity, we calculate GC fee on the subtotal and add it
-    const goCardlessFeePence = calculateGoCardlessFee(subtotal);
+    // GoCardless fee is the difference
+    const goCardlessFeePence = totalChargePence - subtotal;
+    
     const totalFeePence = foulPayFeePence + goCardlessFeePence;
-    const totalChargePence = fineAmountPence + totalFeePence;
     
     // Team wallet receives the full fine amount (player covered all fees)
     const netWalletCreditPence = fineAmountPence;
