@@ -868,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin funds summary endpoint
+  // Admin funds summary endpoint - returns wallet balances
   app.get('/api/admin/funds-summary', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -878,41 +878,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Get current rugby season dates (September to August) using UTC
-      // Extends to include Aug 31 23:59:59.999 globally to catch western timezones
-      const now = new Date();
-      const currentYear = now.getUTCFullYear();
-      const currentMonth = now.getUTCMonth(); // 0-indexed
+      // Get team wallet to return available and pending balances
+      const wallet = await storage.getTeamWallet(user.teamId);
       
-      // Rugby season starts in September (month 8)
-      let seasonStart: Date;
-      let seasonEnd: Date;
-      
-      if (currentMonth >= 8) { // September onwards
-        seasonStart = new Date(Date.UTC(currentYear, 8, 1, 0, 0, 0, 0)); // Sept 1st 00:00:00 UTC this year
-        seasonEnd = new Date(Date.UTC(currentYear + 1, 8, 1, 0, 0, 0, 0) - 1); // Aug 31st 23:59:59.999 UTC next year
-      } else { // Before September
-        seasonStart = new Date(Date.UTC(currentYear - 1, 8, 1, 0, 0, 0, 0)); // Sept 1st 00:00:00 UTC last year
-        seasonEnd = new Date(Date.UTC(currentYear, 8, 1, 0, 0, 0, 0) - 1); // Aug 31st 23:59:59.999 UTC this year
-      }
-
-      const fines = await storage.getTeamFines(user.teamId);
-
-      // Filter for current season (inclusive of Aug 31 globally)
-      const seasonFines = fines.filter((fine) => {
-        const createdAt = new Date(fine.createdAt || Date.now());
-        return createdAt >= seasonStart && createdAt <= seasonEnd;
-      });
-
-      // In the Pot: All paid fines (Stripe payments only, not withdrawn)
-      const inPot = seasonFines
-        .filter((f) => f.isPaid && f.paymentIntentId) // Only Stripe payments
-        .reduce((sum, f) => sum + parseFloat(f.amount || "0"), 0);
-
-      // Settled This Season: All paid fines this season
-      const settled = seasonFines
-        .filter((f) => f.isPaid)
-        .reduce((sum, f) => sum + parseFloat(f.amount || "0"), 0);
+      // In Pot = available balance (in pence, convert to pounds)
+      // Pending = pending balance (in pence, convert to pounds)
+      const inPot = wallet ? wallet.availableBalance / 100 : 0;
+      const settled = wallet ? wallet.pendingBalance / 100 : 0;
 
       res.json({ inPot, settled });
     } catch (error) {

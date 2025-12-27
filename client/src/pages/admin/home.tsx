@@ -271,12 +271,12 @@ export default function AdminHome() {
                 testId: "stat-in-pot" 
               },
               { 
-                title: "Settled", 
+                title: "Pending", 
                 value: fundsSummaryLoading ? "-" : formatCurrency(fundsSummary?.settled || 0), 
                 icon: <Target className="w-4 h-4" />, 
                 color: "from-violet-500 to-purple-600",
                 bgColor: "bg-gradient-to-br from-violet-500 to-purple-600",
-                testId: "stat-settled-season" 
+                testId: "stat-pending-balance" 
               },
             ].map((item, i) => (
               <Card key={i} className={`p-3 ${item.bgColor} text-white shadow-lg border-0`} data-testid={item.testId}>
