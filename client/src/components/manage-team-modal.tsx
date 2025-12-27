@@ -80,6 +80,39 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
     },
   });
 
+  const saveTeamSettings = useMutation({
+    mutationFn: async (data: { name: string; sport: string }) => 
+      await apiRequest("PATCH", "/api/team", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/team/info"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setEditingTeam(false);
+      toast({
+        title: "Settings saved",
+        description: "Team settings have been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save team settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const hasChanges = editingTeam && teamInfo && (
+    teamForm.name !== teamInfo.name || teamForm.sport !== teamInfo.sport
+  );
+
+  const handleSaveOrCancel = () => {
+    if (hasChanges) {
+      saveTeamSettings.mutate(teamForm);
+    } else {
+      setEditingTeam(!editingTeam);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[85vh]">
@@ -101,11 +134,25 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
             <Button 
               size="sm" 
               variant="ghost" 
-              className="rounded-lg h-8 px-2 font-bold text-[10px] uppercase tracking-wider text-blue-600 hover:bg-blue-100/50 shrink-0"
-              onClick={() => setEditingTeam(!editingTeam)}
+              className={cn(
+                "rounded-lg h-8 px-2 font-bold text-[10px] uppercase tracking-wider shrink-0",
+                hasChanges 
+                  ? "bg-green-600 text-white hover:bg-green-700" 
+                  : "text-blue-600 hover:bg-blue-100/50"
+              )}
+              onClick={handleSaveOrCancel}
+              disabled={saveTeamSettings.isPending}
             >
-              {editingTeam ? <X className="w-3 h-3 mr-1" /> : <Edit2 className="w-3 h-3 mr-1" />}
-              {editingTeam ? "Cancel" : "Edit"}
+              {saveTeamSettings.isPending ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              ) : hasChanges ? (
+                <Edit2 className="w-3 h-3 mr-1" />
+              ) : editingTeam ? (
+                <X className="w-3 h-3 mr-1" />
+              ) : (
+                <Edit2 className="w-3 h-3 mr-1" />
+              )}
+              {hasChanges ? "Save" : editingTeam ? "Cancel" : "Edit"}
             </Button>
           </div>
 
