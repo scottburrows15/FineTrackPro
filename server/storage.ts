@@ -30,6 +30,15 @@ import {
   type TeamMembership,
   type InsertTeamMembership,
   type TeamMembershipWithTeam,
+  type TeamWallet,
+  type InsertTeamWallet,
+  type Payout,
+  type InsertPayout,
+  type GcBillingRequest,
+  type InsertGcBillingRequest,
+  teamWallets,
+  payouts,
+  gcBillingRequests,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sum, count, sql, gte, inArray } from "drizzle-orm";
@@ -109,6 +118,29 @@ export interface IStorage {
   updateTeamMembership(id: string, updates: Partial<TeamMembership>): Promise<TeamMembership>;
   setActiveTeamMembership(userId: string, teamId: string, activeView?: string): Promise<TeamMembership>;
   deleteTeamMembership(id: string): Promise<void>;
+  
+  // Team Wallet operations
+  getTeamWallet(teamId: string): Promise<TeamWallet | undefined>;
+  createTeamWallet(teamId: string): Promise<TeamWallet>;
+  getOrCreateTeamWallet(teamId: string): Promise<TeamWallet>;
+  creditWallet(teamId: string, amountPence: number): Promise<TeamWallet>;
+  debitWallet(teamId: string, amountPence: number): Promise<TeamWallet>;
+  addPendingBalance(teamId: string, amountPence: number): Promise<TeamWallet>;
+  confirmPendingBalance(teamId: string, amountPence: number): Promise<TeamWallet>;
+  
+  // Payout operations
+  createPayout(payout: InsertPayout): Promise<Payout>;
+  getPayout(id: string): Promise<Payout | undefined>;
+  getTeamPayouts(teamId: string): Promise<Payout[]>;
+  updatePayout(id: string, updates: Partial<Payout>): Promise<Payout>;
+  
+  // GoCardless Billing Request operations
+  createGcBillingRequest(request: InsertGcBillingRequest): Promise<GcBillingRequest>;
+  getGcBillingRequest(id: string): Promise<GcBillingRequest | undefined>;
+  getGcBillingRequestByBillingRequestId(billingRequestId: string): Promise<GcBillingRequest | undefined>;
+  getGcBillingRequestByPaymentId(paymentId: string): Promise<GcBillingRequest | undefined>;
+  updateGcBillingRequest(id: string, updates: Partial<GcBillingRequest>): Promise<GcBillingRequest>;
+  getPlayerGcBillingRequests(playerId: string): Promise<GcBillingRequest[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1142,6 +1174,169 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTeamMembership(id: string): Promise<void> {
     await db.delete(teamMemberships).where(eq(teamMemberships.id, id));
+  }
+
+  // Team Wallet operations
+  async getTeamWallet(teamId: string): Promise<TeamWallet | undefined> {
+    const [wallet] = await db
+      .select()
+      .from(teamWallets)
+      .where(eq(teamWallets.teamId, teamId));
+    return wallet;
+  }
+
+  async createTeamWallet(teamId: string): Promise<TeamWallet> {
+    const [wallet] = await db
+      .insert(teamWallets)
+      .values({ teamId, availableBalance: 0, pendingBalance: 0 })
+      .returning();
+    return wallet;
+  }
+
+  async getOrCreateTeamWallet(teamId: string): Promise<TeamWallet> {
+    const existing = await this.getTeamWallet(teamId);
+    if (existing) return existing;
+    return await this.createTeamWallet(teamId);
+  }
+
+  async creditWallet(teamId: string, amountPence: number): Promise<TeamWallet> {
+    const wallet = await this.getOrCreateTeamWallet(teamId);
+    const [updated] = await db
+      .update(teamWallets)
+      .set({ 
+        availableBalance: wallet.availableBalance + amountPence,
+        updatedAt: new Date()
+      })
+      .where(eq(teamWallets.teamId, teamId))
+      .returning();
+    return updated;
+  }
+
+  async debitWallet(teamId: string, amountPence: number): Promise<TeamWallet> {
+    const wallet = await this.getOrCreateTeamWallet(teamId);
+    if (wallet.availableBalance < amountPence) {
+      throw new Error('Insufficient balance');
+    }
+    const [updated] = await db
+      .update(teamWallets)
+      .set({ 
+        availableBalance: wallet.availableBalance - amountPence,
+        updatedAt: new Date()
+      })
+      .where(eq(teamWallets.teamId, teamId))
+      .returning();
+    return updated;
+  }
+
+  async addPendingBalance(teamId: string, amountPence: number): Promise<TeamWallet> {
+    const wallet = await this.getOrCreateTeamWallet(teamId);
+    const [updated] = await db
+      .update(teamWallets)
+      .set({ 
+        pendingBalance: wallet.pendingBalance + amountPence,
+        updatedAt: new Date()
+      })
+      .where(eq(teamWallets.teamId, teamId))
+      .returning();
+    return updated;
+  }
+
+  async confirmPendingBalance(teamId: string, amountPence: number): Promise<TeamWallet> {
+    const wallet = await this.getOrCreateTeamWallet(teamId);
+    const [updated] = await db
+      .update(teamWallets)
+      .set({ 
+        pendingBalance: Math.max(0, wallet.pendingBalance - amountPence),
+        availableBalance: wallet.availableBalance + amountPence,
+        updatedAt: new Date()
+      })
+      .where(eq(teamWallets.teamId, teamId))
+      .returning();
+    return updated;
+  }
+
+  // Payout operations
+  async createPayout(payout: InsertPayout): Promise<Payout> {
+    const [newPayout] = await db
+      .insert(payouts)
+      .values(payout)
+      .returning();
+    return newPayout;
+  }
+
+  async getPayout(id: string): Promise<Payout | undefined> {
+    const [payout] = await db
+      .select()
+      .from(payouts)
+      .where(eq(payouts.id, id));
+    return payout;
+  }
+
+  async getTeamPayouts(teamId: string): Promise<Payout[]> {
+    return await db
+      .select()
+      .from(payouts)
+      .where(eq(payouts.teamId, teamId))
+      .orderBy(desc(payouts.createdAt));
+  }
+
+  async updatePayout(id: string, updates: Partial<Payout>): Promise<Payout> {
+    const [payout] = await db
+      .update(payouts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(payouts.id, id))
+      .returning();
+    return payout;
+  }
+
+  // GoCardless Billing Request operations
+  async createGcBillingRequest(request: InsertGcBillingRequest): Promise<GcBillingRequest> {
+    const [gcRequest] = await db
+      .insert(gcBillingRequests)
+      .values(request)
+      .returning();
+    return gcRequest;
+  }
+
+  async getGcBillingRequest(id: string): Promise<GcBillingRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(gcBillingRequests)
+      .where(eq(gcBillingRequests.id, id));
+    return request;
+  }
+
+  async getGcBillingRequestByBillingRequestId(billingRequestId: string): Promise<GcBillingRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(gcBillingRequests)
+      .where(eq(gcBillingRequests.billingRequestId, billingRequestId));
+    return request;
+  }
+
+  async getGcBillingRequestByPaymentId(paymentId: string): Promise<GcBillingRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(gcBillingRequests)
+      .where(eq(gcBillingRequests.paymentId, paymentId));
+    return request;
+  }
+
+  async updateGcBillingRequest(id: string, updates: Partial<GcBillingRequest>): Promise<GcBillingRequest> {
+    const [request] = await db
+      .update(gcBillingRequests)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(gcBillingRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async getPlayerGcBillingRequests(playerId: string): Promise<GcBillingRequest[]> {
+    return await db
+      .select()
+      .from(gcBillingRequests)
+      .where(eq(gcBillingRequests.playerId, playerId))
+      .orderBy(desc(gcBillingRequests.createdAt));
   }
 }
 
