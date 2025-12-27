@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate } from "@/lib/utils"; 
-import { ArrowLeft, Check, Zap, Loader2, Building2, ShieldCheck, Info, ExternalLink } from "lucide-react";
+import { ArrowLeft, Check, Zap, Loader2, Building2, ShieldCheck, Info, ExternalLink, AlertTriangle } from "lucide-react";
 import type { FineWithDetails, Notification } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
 import { useLocation } from "wouter";
@@ -56,6 +56,11 @@ export default function Payment() {
     sum + parseFloat(fine.amount), 0
   );
 
+  // Check if team has GoCardless connected
+  const { data: teamInfo } = useQuery<{ goCardlessConnected: boolean }>({
+    queryKey: ['/api/team/payment-status'],
+  });
+
   // Fetch payment preview when fines are selected
   const { data: preview, isLoading: isPreviewLoading } = useQuery<PaymentPreview>({
     queryKey: ['/api/payments/preview', selectedFineIds],
@@ -67,7 +72,7 @@ export default function Payment() {
       }
       return res.json();
     },
-    enabled: selectedFineIds.length > 0,
+    enabled: selectedFineIds.length > 0 && teamInfo?.goCardlessConnected === true,
   });
 
   // Create payment mutation
@@ -216,6 +221,23 @@ export default function Payment() {
           Back to Dashboard
         </Button>
 
+        {/* Payments Unavailable Alert */}
+        {teamInfo && !teamInfo.goCardlessConnected && (
+          <Card className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-1">Payments Not Available</h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Your team admin hasn't set up bank payments yet. Please contact them to enable this feature.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Open Banking Info Banner */}
         <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0">
           <CardContent className="p-4">
@@ -355,8 +377,8 @@ export default function Payment() {
         <div className="space-y-3">
           <Button
             onClick={handlePayNow}
-            disabled={selectedFineIds.length === 0 || createPaymentMutation.isPending || isPreviewLoading}
-            className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg"
+            disabled={selectedFineIds.length === 0 || createPaymentMutation.isPending || isPreviewLoading || !teamInfo?.goCardlessConnected}
+            className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50"
             data-testid="button-pay-now"
           >
             {createPaymentMutation.isPending ? (

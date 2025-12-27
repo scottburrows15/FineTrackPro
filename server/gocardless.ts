@@ -43,6 +43,29 @@ function isAuthenticated(req: any, res: Response, next: Function) {
   return res.status(401).json({ message: 'Unauthorized' });
 }
 
+// Check if team has payments enabled (for player payment page)
+router.get('/api/team/payment-status', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || !user.teamId) {
+      return res.status(400).json({ message: 'User not found or not in a team' });
+    }
+
+    const team = await storage.getTeam(user.teamId);
+    if (!team) {
+      return res.status(400).json({ message: 'Team not found' });
+    }
+
+    res.json({
+      goCardlessConnected: !!team.goCardlessAccessToken,
+      teamName: team.name,
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    res.status(500).json({ message: 'Failed to check payment status' });
+  }
+});
+
 // Calculate payment preview (for showing fees to player before payment)
 router.post('/api/payments/preview', isAuthenticated, async (req: any, res: Response) => {
   try {
@@ -479,29 +502,52 @@ router.get('/api/admin/gocardless/callback', async (req: Request, res: Response)
   try {
     const { code, state, error, error_description } = req.query;
 
-    // Handle OAuth errors
+    // Handle OAuth errors from GoCardless
     if (error) {
       console.error('GoCardless OAuth error:', error, error_description);
+      await storage.createAuditLog({
+        entityType: 'gocardless_oauth',
+        entityId: 'callback_error',
+        action: 'oauth_error',
+        userId: null,
+        changes: { error: String(error), description: String(error_description || '') },
+      });
       return res.redirect('/admin/settings?gocardless=error&message=' + encodeURIComponent(String(error_description || error)));
     }
 
-    if (!code || !state) {
+    // Validate required parameters
+    if (!code || typeof code !== 'string') {
+      console.error('OAuth callback missing code parameter');
       return res.redirect('/admin/settings?gocardless=error&message=Missing+authorization+code');
     }
 
-    // Find the team by state token
+    if (!state || typeof state !== 'string' || state.length !== 64) {
+      console.error('OAuth callback invalid state parameter:', { stateLength: state ? String(state).length : 0 });
+      return res.redirect('/admin/settings?gocardless=error&message=Invalid+session');
+    }
+
+    // Find the team by state token - this validates the state matches a pending OAuth flow
     const team = await storage.getTeamByGoCardlessState(String(state));
     if (!team) {
-      console.error('No team found with matching state token');
+      console.error('No team found with matching state token - possible CSRF or expired session');
+      await storage.createAuditLog({
+        entityType: 'gocardless_oauth',
+        entityId: 'callback_invalid_state',
+        action: 'invalid_state',
+        userId: null,
+        changes: { reason: 'No matching team found for state token' },
+      });
       return res.redirect('/admin/settings?gocardless=error&message=Invalid+or+expired+session');
     }
 
-    // Check if state has expired
+    // Check if state has expired (10 minute window)
     if (team.goCardlessOAuthStateExpiresAt && new Date() > team.goCardlessOAuthStateExpiresAt) {
+      // Clear the expired state
       await storage.updateTeam(team.id, {
         goCardlessOAuthState: null,
         goCardlessOAuthStateExpiresAt: null,
       });
+      console.error('OAuth state expired for team:', team.id);
       return res.redirect('/admin/settings?gocardless=error&message=Session+expired');
     }
 
