@@ -507,6 +507,9 @@ router.post('/api/admin/gocardless/connect', isAuthenticated, async (req: any, r
 
 // OAuth callback from GoCardless
 router.get('/api/admin/gocardless/callback', async (req: Request, res: Response) => {
+  // Log ALL query parameters for debugging
+  console.log('GoCardless callback received with query:', JSON.stringify(req.query));
+  
   try {
     const { code, state, error, error_description } = req.query;
 
