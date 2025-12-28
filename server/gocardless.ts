@@ -471,16 +471,24 @@ router.post('/api/admin/gocardless/connect', isAuthenticated, async (req: any, r
 
     const redirectUri = `${baseUrl}/api/admin/gocardless/callback`;
     
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: GOCARDLESS_CLIENT_ID,
-      redirect_uri: redirectUri,
-      scope: 'read_write',
-      state: state,
-      initial_view: 'signup', // Show signup for new merchants
-    });
+    // Build OAuth params - order matters for consistency
+    const params = new URLSearchParams();
+    params.append('client_id', GOCARDLESS_CLIENT_ID);
+    params.append('redirect_uri', redirectUri);
+    params.append('scope', 'read_write');
+    params.append('response_type', 'code');
+    params.append('initial_view', 'login');
+    params.append('state', state);
 
     const authorizeUrl = `${GOCARDLESS_OAUTH_BASE}/oauth/authorize?${params.toString()}`;
+    
+    // Log for debugging
+    console.log('GoCardless OAuth URL generated:', {
+      baseUrl: GOCARDLESS_OAUTH_BASE,
+      clientId: GOCARDLESS_CLIENT_ID ? `${GOCARDLESS_CLIENT_ID.substring(0, 8)}...` : 'NOT SET',
+      redirectUri,
+      fullUrl: authorizeUrl,
+    });
 
     await storage.createAuditLog({
       entityType: 'team',
