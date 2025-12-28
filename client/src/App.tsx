@@ -34,39 +34,43 @@ import Profile from "@/pages/profile";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Show loading or unauthenticated routes
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/join/:inviteCode" component={JoinTeam} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Authenticated routes
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/join/:inviteCode" component={JoinTeam} />
-        </>
-      ) : (
-        <>
-          {/* Legacy home route - keep for backward compatibility */}
-          <Route path="/" component={Home} />
-          
-          {/* Player routes */}
-          <Route path="/player/home" component={PlayerHome} />
-          <Route path="/player/fines" component={PlayerFines} />
-          <Route path="/player/stats" component={PlayerStats} />
-          <Route path="/player/notifications" component={PlayerNotifications} />
-          <Route path="/player/settings" component={PlayerSettings} />
-          
-          {/* Admin routes */}
-          <Route path="/admin/home" component={AdminHome} />
-          <Route path="/admin/fines" component={AdminFines} />
-          <Route path="/admin/analytics" component={AdminAnalytics} />
-          <Route path="/admin/notifications" component={AdminNotifications} />
-          <Route path="/admin/settings" component={AdminSettings} />
-          
-          {/* Shared routes */}
-          <Route path="/help" component={Help} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/payment" component={Payment} />
-          <Route path="/payments" component={Payments} />
-        </>
-      )}
+      {/* Legacy home route - keep for backward compatibility */}
+      <Route path="/" component={Home} />
+      
+      {/* Player routes */}
+      <Route path="/player/home" component={PlayerHome} />
+      <Route path="/player/fines" component={PlayerFines} />
+      <Route path="/player/stats" component={PlayerStats} />
+      <Route path="/player/notifications" component={PlayerNotifications} />
+      <Route path="/player/settings" component={PlayerSettings} />
+      
+      {/* Admin routes */}
+      <Route path="/admin/home" component={AdminHome} />
+      <Route path="/admin/fines" component={AdminFines} />
+      <Route path="/admin/analytics" component={AdminAnalytics} />
+      <Route path="/admin/notifications" component={AdminNotifications} />
+      <Route path="/admin/settings" component={AdminSettings} />
+      
+      {/* Shared routes */}
+      <Route path="/help" component={Help} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/payment" component={Payment} />
+      <Route path="/payments" component={Payments} />
+      
       <Route component={NotFound} />
     </Switch>
   );
