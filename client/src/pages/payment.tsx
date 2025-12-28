@@ -1,120 +1,122 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Building2, 
+  ShieldCheck, 
+  Loader2, 
+  Info,
+  AlertCircle,
+  Check,
+  ArrowLeft
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrency, formatDate } from "@/lib/utils"; 
-import { ArrowLeft, Check, Zap, Loader2, Building2, ShieldCheck, Info, ExternalLink, AlertTriangle } from "lucide-react";
-import type { FineWithDetails, Notification } from "@shared/schema";
-import AppLayout from "@/components/ui/app-layout";
-import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { useTeam } from "@/contexts/TeamContext";
+import type { Fine, User } from "@shared/schema";
+import AppLayout from "@/components/ui/app-layout";
 
-interface PaymentPreview {
-  fineAmountPounds: string;
-  foulPayFeePounds: string;
-  goCardlessFeePounds: string;
-  totalFeePounds: string;
-  totalChargePounds: string;
+interface TeamPaymentStatus {
+  goCardlessConnected: boolean;
+  teamName: string;
   passFeesToPlayer: boolean;
 }
 
-export default function Payment() {
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
+interface FeePreview {
+  subtotalPence: number;
+  feePence: number;
+  totalPence: number;
+  feePercentage: string;
+}
+
+export default function PaymentPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { activeTeam } = useTeam();
   const [selectedFineIds, setSelectedFineIds] = useState<string[]>([]);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  
-  const { data: fines, isLoading: isFinesLoading } = useQuery<FineWithDetails[]>({
+
+  const { data: user } = useQuery<User | null>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const { data: finesData, isLoading: finesLoading } = useQuery<Fine[]>({
     queryKey: ["/api/fines/my"],
   });
 
-  const { data: notifications = [] } = useQuery<Notification[]>({
-    queryKey: ["/api/notifications"],
-    enabled: !!user,
+  const { data: teamInfo, isLoading: teamInfoLoading } = useQuery<TeamPaymentStatus>({
+    queryKey: ["/api/team/payment-status"],
   });
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const unpaidFines = useMemo(() => {
+    if (!finesData) return [];
+    return finesData.filter(f => !f.isPaid);
+  }, [finesData]);
 
-  const unpaidFines = useMemo(() => 
-    Array.isArray(fines) ? fines.filter((fine: FineWithDetails) => !fine.isPaid) : [],
-    [fines]
-  );
-  
-  useEffect(() => {
-    if (unpaidFines.length > 0 && selectedFineIds.length === 0) {
-      setSelectedFineIds(unpaidFines.map(f => f.id));
-    }
-  }, [unpaidFines.length]);
+  const selectedFines = useMemo(() => {
+    return unpaidFines.filter(f => selectedFineIds.includes(f.id));
+  }, [unpaidFines, selectedFineIds]);
 
-  const selectedFines = unpaidFines.filter(f => selectedFineIds.includes(f.id));
-  const totalAmount = selectedFines.reduce((sum: number, fine: FineWithDetails) => 
-    sum + parseFloat(fine.amount), 0
-  );
+  const subtotalPence = useMemo(() => {
+    return selectedFines.reduce((sum, fine) => {
+      const amount = typeof fine.amount === 'string' ? parseFloat(fine.amount) : fine.amount;
+      return sum + Math.round(amount * 100);
+    }, 0);
+  }, [selectedFines]);
 
-  // Check if team has GoCardless connected
-  const { data: teamInfo } = useQuery<{ goCardlessConnected: boolean }>({
-    queryKey: ['/api/team/payment-status'],
+  const { data: feePreview, isLoading: isPreviewLoading } = useQuery<FeePreview>({
+    queryKey: ["/api/payments/preview-fee", subtotalPence],
+    enabled: subtotalPence > 0,
   });
 
-  // Fetch payment preview when fines are selected
-  const { data: preview, isLoading: isPreviewLoading } = useQuery<PaymentPreview>({
-    queryKey: ['/api/payments/preview', selectedFineIds],
-    queryFn: async () => {
-      const res = await apiRequest('POST', '/api/payments/preview', { fineIds: selectedFineIds });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to load payment preview');
-      }
-      return res.json();
-    },
-    enabled: selectedFineIds.length > 0 && teamInfo?.goCardlessConnected === true,
-  });
-
-  // Create payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/payments/create', { fineIds: selectedFineIds });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to create payment');
-      }
+      const res = await apiRequest("POST", "/api/payments/create-intent", {
+        fineIds: selectedFineIds,
+      });
       return res.json();
     },
     onSuccess: (data) => {
-      if (data.authorisationUrl) {
-        setIsRedirecting(true);
-        window.location.href = data.authorisationUrl;
+      if (data?.redirectUrl) {
+        window.location.href = data.redirectUrl;
       } else {
         toast({
           title: "Payment Created",
-          description: "Redirecting to your bank...",
+          description: "Follow your bank app to complete payment",
         });
       }
     },
     onError: (error: any) => {
       toast({
         title: "Payment Failed",
-        description: error.message || "Could not create payment. Please try again.",
+        description: error.message || "Please try again later",
         variant: "destructive",
       });
     },
   });
 
-  const toggleFineSelection = (fineId: string) => {
-    setSelectedFineIds(prev => {
-      const isSelected = prev.includes(fineId);
-      return isSelected 
-        ? prev.filter(id => id !== fineId)
-        : [...prev, fineId];
-    });
+  const formatCurrency = (pence: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(pence / 100);
   };
 
-  const toggleSelectAll = () => {
+  const toggleFine = (fineId: string) => {
+    setSelectedFineIds(prev => 
+      prev.includes(fineId) 
+        ? prev.filter(id => id !== fineId)
+        : [...prev, fineId]
+    );
+  };
+
+  const selectAll = () => {
     if (selectedFineIds.length === unpaidFines.length) {
       setSelectedFineIds([]);
     } else {
@@ -123,281 +125,204 @@ export default function Payment() {
   };
 
   const handlePayNow = () => {
+    if (selectedFineIds.length === 0) {
+      toast({
+        title: "No fines selected",
+        description: "Please select at least one fine to pay",
+        variant: "destructive",
+      });
+      return;
+    }
     createPaymentMutation.mutate();
   };
 
-  if (!user) {
-    return null;
-  }
+  const isLoading = finesLoading || teamInfoLoading;
 
-  // Loading state
-  if (isFinesLoading) {
+  if (isLoading) {
     return (
-      <AppLayout
-        user={user}
-        currentView="player"
-        pageTitle="Pay Fines"
-        unreadNotifications={unreadCount}
-        onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
-        canSwitchView={user.role === 'admin'}
-      >
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // No unpaid fines
-  if (unpaidFines.length === 0) {
-    return (
-      <AppLayout
-        user={user}
-        currentView="player"
-        pageTitle="Pay Fines"
-        unreadNotifications={unreadCount}
-        onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
-        canSwitchView={user.role === 'admin'}
-      >
-        <div className="max-w-lg mx-auto px-4 py-8">
-          <Card className="text-center p-8">
-            <Check className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">All Clear!</h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
-              You don't have any outstanding fines to pay.
-            </p>
-            <Button onClick={() => setLocation("/player/home")} data-testid="button-back-dashboard">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Card>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Redirecting state
-  if (isRedirecting) {
-    return (
-      <AppLayout
-        user={user}
-        currentView="player"
-        pageTitle="Pay Fines"
-        unreadNotifications={unreadCount}
-        onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
-        canSwitchView={user.role === 'admin'}
-      >
-        <div className="max-w-lg mx-auto px-4 py-8">
-          <Card className="text-center p-8">
-            <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Redirecting to Your Bank</h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Please wait while we connect you to your bank's secure payment page...
-            </p>
-          </Card>
+      <AppLayout user={user ?? null} pageTitle="Pay Fines" currentView="player">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout
-      user={user}
-      currentView="player"
-      pageTitle="Pay Fines"
-      unreadNotifications={unreadCount}
-      onViewChange={(view) => setLocation(view === 'player' ? '/player/home' : '/admin/home')}
-      canSwitchView={user.role === 'admin'}
-    >
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        {/* Back Button */}
-        <Button 
-          onClick={() => setLocation("/player/home")}
+    <AppLayout user={user ?? null} pageTitle="Pay Fines" currentView="player">
+      <div className="max-w-lg mx-auto pb-24">
+        <Button
           variant="ghost"
-          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white -ml-2"
-          data-testid="button-back"
+          size="sm"
+          onClick={() => setLocation("/player/home")}
+          className="mb-4"
+          data-testid="button-back-home"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
-        {/* Payments Unavailable Alert */}
-        {teamInfo && !teamInfo.goCardlessConnected && (
-          <Card className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-1">Payments Not Available</h3>
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Your team admin hasn't set up bank payments yet. Please contact them to enable this feature.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {!teamInfo?.goCardlessConnected && (
+          <Alert variant="destructive" className="mb-6" data-testid="alert-payments-unavailable">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Payments are not currently available. Your team admin needs to connect a payment provider first.
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* Open Banking Info Banner */}
-        <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-white/20 rounded-lg flex-shrink-0">
-                <Building2 className="w-5 h-5" />
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col items-center text-center">
+            <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+              <Building2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              Pay {teamInfo?.teamName || activeTeam?.team.name || "Team"}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Instant Bank Transfer</p>
+          </div>
+
+          <ScrollArea className="max-h-[50vh]">
+            <div className="p-4">
+              {unpaidFines.length === 0 ? (
+                <div className="text-center py-10 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                  <Check className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
+                  <p className="text-slate-600 dark:text-slate-400 font-medium">All fines paid!</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-500">You have no outstanding fines</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Select Fines to Pay
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={selectAll}
+                      className="text-xs h-7"
+                      data-testid="button-select-all"
+                    >
+                      {selectedFineIds.length === unpaidFines.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {unpaidFines.map((fine) => {
+                      const isSelected = selectedFineIds.includes(fine.id);
+                      const amount = typeof fine.amount === 'string' ? parseFloat(fine.amount) : fine.amount;
+                      
+                      return (
+                        <div 
+                          key={fine.id}
+                          onClick={() => toggleFine(fine.id)}
+                          className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                          data-testid={`fine-item-${fine.id}`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleFine(fine.id)}
+                            className="pointer-events-none"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                              {fine.description || "Fine"}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : "No date"}
+                            </p>
+                          </div>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                            {formatCurrency(Math.round(amount * 100))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
+
+          {selectedFineIds.length > 0 && (
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Subtotal ({selectedFineIds.length} fines)</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {formatCurrency(subtotalPence)}
+                  </span>
+                </div>
+
+                {teamInfo?.passFeesToPlayer && feePreview && feePreview.feePence > 0 && (
+                  <div className="flex justify-between text-sm items-center">
+                    <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                      <span>Processing Fee</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="w-3.5 h-3.5" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{feePreview.feePercentage} bank processing fee</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {formatCurrency(feePreview.feePence)}
+                    </span>
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-900 dark:text-white">Total</span>
+                  <span className="text-xl font-black text-slate-900 dark:text-white">
+                    {formatCurrency(feePreview?.totalPence || subtotalPence)}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-1">Secure Bank Payment</h3>
-                <p className="text-sm text-blue-100">
-                  Pay directly from your bank account using Open Banking. Fast, secure, and no card details needed. You'll be redirected to your bank to authorise the payment.
+
+              <div className="flex items-start gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-4">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-800 dark:text-emerald-300">
+                  Payments powered by <span className="font-bold">GoCardless</span>. 
+                  Bank-grade encryption protects your transaction.
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
 
-        {/* Fine Selection */}
-        <Card className="border-2 border-emerald-500/20">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-bold">
-                Select Fines ({unpaidFines.length})
-              </CardTitle>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={toggleSelectAll}
-                className="text-emerald-600 hover:text-emerald-700 font-semibold p-0 h-auto"
-                data-testid="button-select-all"
-              >
-                {selectedFineIds.length === unpaidFines.length ? 'Deselect All' : 'Select All'}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-3">
-              {unpaidFines.map((fine: FineWithDetails) => {
-                const isSelected = selectedFineIds.includes(fine.id);
-                return (
-                  <div 
-                    key={fine.id} 
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all 
-                      ${isSelected 
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    onClick={() => toggleFineSelection(fine.id)}
-                    data-testid={`fine-item-${fine.id}`}
-                  >
-                    <div className="pt-0.5">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleFineSelection(fine.id)}
-                        className={isSelected ? 'border-emerald-600 bg-emerald-600' : ''}
-                        data-testid={`checkbox-fine-${fine.id}`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
-                        <Zap className="w-3.5 h-3.5 text-red-500" />
-                        {fine.subcategory?.name || 'Fine'}
-                      </div>
-                      {fine.description && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{fine.description}</p>
-                      )}
-                      <p className="text-xs text-slate-400 mt-1">{formatDate(fine.createdAt)}</p>
-                    </div>
-                    <div className="font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(parseFloat(fine.amount))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Summary */}
-        {selectedFineIds.length > 0 && (
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              {isPreviewLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                </div>
-              ) : preview ? (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+            <Button
+              onClick={handlePayNow}
+              disabled={selectedFineIds.length === 0 || createPaymentMutation.isPending || isPreviewLoading || !teamInfo?.goCardlessConnected}
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50"
+              data-testid="button-pay-now"
+            >
+              {createPaymentMutation.isPending ? (
                 <>
-                  {/* Fines subtotal */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 dark:text-slate-400">Fines ({selectedFines.length})</span>
-                    <span className="font-medium" data-testid="text-fines-subtotal">£{preview.fineAmountPounds}</span>
-                  </div>
-
-                  {/* Fees section - only show if player pays fees */}
-                  {preview.passFeesToPlayer && parseFloat(preview.totalFeePounds) > 0 && (
-                    <>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Info className="w-3.5 h-3.5" />
-                            Processing fee
-                          </span>
-                          <span>£{preview.foulPayFeePounds}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-                          <span>Bank transfer fee</span>
-                          <span>£{preview.goCardlessFeePounds}</span>
-                        </div>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-
-                  {/* Total */}
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-lg font-semibold text-slate-900 dark:text-white">Total</span>
-                    <span className="text-xl font-bold text-emerald-600" data-testid="text-total-charge">
-                      £{preview.totalChargePounds}
-                    </span>
-                  </div>
-
-                  {!preview.passFeesToPlayer && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                      No additional fees - your team covers transaction costs
-                    </p>
-                  )}
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Connecting to Bank...
                 </>
               ) : (
-                <p className="text-center text-slate-500 py-2">Unable to load payment details</p>
+                <>
+                  <Building2 className="w-5 h-5 mr-2" />
+                  Pay with Bank
+                </>
               )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pay Button */}
-        <div className="space-y-3">
-          <Button
-            onClick={handlePayNow}
-            disabled={selectedFineIds.length === 0 || createPaymentMutation.isPending || isPreviewLoading || !teamInfo?.goCardlessConnected}
-            className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50"
-            data-testid="button-pay-now"
-          >
-            {createPaymentMutation.isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Connecting to Bank...
-              </>
-            ) : (
-              <>
-                <Building2 className="w-5 h-5 mr-2" />
-                Pay with Bank
-              </>
+            </Button>
+            {selectedFineIds.length === 0 && unpaidFines.length > 0 && (
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-2">
+                Select fines above to continue
+              </p>
             )}
-          </Button>
-
-          {/* Security Info */}
-          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 justify-center">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Secured by GoCardless Open Banking</span>
           </div>
         </div>
       </div>

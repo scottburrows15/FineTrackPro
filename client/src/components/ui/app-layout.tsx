@@ -37,8 +37,9 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const { activeView, canSwitchView: teamCanSwitchView } = useTeam();
   
-  // Use TeamContext.activeView as the source of truth, fallback to prop for backward compatibility
-  const currentView = activeView || propCurrentView || 'player';
+  // Use the prop currentView as the source of truth when provided (page knows which view it is),
+  // then fall back to TeamContext.activeView for the stored preference
+  const currentView = propCurrentView || activeView || 'player';
   const canSwitchView = propCanSwitchView ?? teamCanSwitchView;
 
   // Fetch independent notification counts for player and admin views
