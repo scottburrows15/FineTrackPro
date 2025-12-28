@@ -7,7 +7,8 @@ import {
   Info,
   AlertCircle,
   Check,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -150,7 +151,22 @@ export default function PaymentPage() {
 
   return (
     <AppLayout user={user ?? null} pageTitle="Pay Fines" currentView="player">
-      <div className="max-w-lg mx-auto pb-24">
+      {/* FIX 1: Mobile Overlap Fix. 
+        Using 'sticky top-0' and 'z-50' with background color ensures the alert pushes 
+        the UI down rather than floating over it.
+      */}
+      {!teamInfo?.goCardlessConnected && (
+        <div className="sticky top-0 z-50 p-4 bg-slate-50 dark:bg-slate-900 border-b border-red-100 dark:border-red-900/30">
+          <Alert variant="destructive" data-testid="alert-payments-unavailable">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Payments are not currently available. Your team admin needs to connect a payment provider first.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <div className="max-w-lg mx-auto pb-24 pt-4 px-4">
         <Button
           variant="ghost"
           size="sm"
@@ -161,15 +177,6 @@ export default function PaymentPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
-
-        {!teamInfo?.goCardlessConnected && (
-          <Alert variant="destructive" className="mb-6" data-testid="alert-payments-unavailable">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Payments are not currently available. Your team admin needs to connect a payment provider first.
-            </AlertDescription>
-          </Alert>
-        )}
 
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col items-center text-center">
@@ -207,7 +214,7 @@ export default function PaymentPage() {
                     </Button>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {unpaidFines.map((fine) => {
                       const isSelected = selectedFineIds.includes(fine.id);
                       const amount = typeof fine.amount === 'string' ? parseFloat(fine.amount) : fine.amount;
@@ -215,30 +222,54 @@ export default function PaymentPage() {
                       return (
                         <div 
                           key={fine.id}
-                          onClick={() => toggleFine(fine.id)}
-                          className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                          className={`group flex flex-col rounded-lg border transition-all ${
                             isSelected 
-                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                              ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10' 
                               : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
                           data-testid={`fine-item-${fine.id}`}
                         >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleFine(fine.id)}
-                            className="pointer-events-none"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                              {fine.description || "Fine"}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : "No date"}
-                            </p>
+                          {/* FIX 2 & 3: Included Fine Reason (Name) and Details toggle.
+                            The top part handles the checkbox and selection logic.
+                          */}
+                          <div 
+                            className="flex items-center gap-3 p-4 cursor-pointer"
+                            onClick={() => toggleFine(fine.id)}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleFine(fine.id)}
+                              className="pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {fine.reason || fine.description || "Fine"}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : "No date"}
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                              {formatCurrency(Math.round(amount * 100))}
+                            </span>
                           </div>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                            {formatCurrency(Math.round(amount * 100))}
-                          </span>
+
+                          {/* Expandable detail section for specific fine notes.
+                            Using standard details/summary for zero-hassle styling.
+                          */}
+                          {fine.description && (
+                            <details className="px-4 pb-3 border-t border-slate-100 dark:border-slate-700/50">
+                              <summary className="list-none text-[10px] font-bold text-slate-400 uppercase tracking-widest cursor-pointer flex items-center py-2 hover:text-emerald-600 transition-colors">
+                                <ChevronDown className="w-3 h-3 mr-1" />
+                                View Details
+                              </summary>
+                              <div className="pt-1 pb-2">
+                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                                  "{fine.description}"
+                                </p>
+                              </div>
+                            </details>
+                          )}
                         </div>
                       );
                     })}
@@ -291,7 +322,7 @@ export default function PaymentPage() {
 
               <div className="flex items-start gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-4">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-emerald-800 dark:text-emerald-300">
+                <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-snug">
                   Payments powered by <span className="font-bold">GoCardless</span>. 
                   Bank-grade encryption protects your transaction.
                 </p>
@@ -299,11 +330,11 @@ export default function PaymentPage() {
             </div>
           )}
 
-          <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
             <Button
               onClick={handlePayNow}
               disabled={selectedFineIds.length === 0 || createPaymentMutation.isPending || isPreviewLoading || !teamInfo?.goCardlessConnected}
-              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50"
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50 shadow-md shadow-emerald-100 dark:shadow-none"
               data-testid="button-pay-now"
             >
               {createPaymentMutation.isPending ? (
