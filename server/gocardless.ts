@@ -469,7 +469,7 @@ router.post('/api/admin/gocardless/connect', isAuthenticated, async (req: any, r
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
       : process.env.PRODUCTION_URL || 'http://localhost:5000';
 
-    const redirectUri = `http://localhost:3000/api/auth/gocardless/callback`;
+    const redirectUri = `${baseUrl}/api/admin/gocardless/callback`;
     
     const params = new URLSearchParams({
       response_type: 'code',
