@@ -209,7 +209,8 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 
     // Include the billing request ID in the redirect_uri since GoCardless only sends outcome=success/failure
     const redirectUri = `${baseUrl}/api/payments/callback?br=${billingRequest.id}`;
-    const exitUri = `${baseUrl}/player/pay`;
+    // Exit URI also needs to include billing request ID to revert pending status on cancel
+    const exitUri = `${baseUrl}/api/payments/callback?br=${billingRequest.id}&outcome=cancelled`;
     
     console.log('Creating billing request flow with:');
     console.log('  baseUrl:', baseUrl);
@@ -288,19 +289,21 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
 
     const fineIds = gcRequest.fineIds as string[];
 
-    // Handle failure outcome
-    if (outcome === 'failure') {
-      console.log('Payment failed - outcome is failure');
+    // Handle failure or cancelled outcome
+    if (outcome === 'failure' || outcome === 'cancelled') {
+      console.log(`Payment ${outcome} - reverting pending fines`);
       
       // Revert fines from pending_payment to unpaid
       await revertPendingPayment(fineIds);
       
       // Update our record
       await storage.updateGcBillingRequest(gcRequest.id, {
-        status: 'failed',
+        status: outcome === 'cancelled' ? 'cancelled' : 'failed',
       });
       
-      return res.redirect('/player/pay?error=payment_failed');
+      // Redirect with appropriate message
+      const errorMessage = outcome === 'cancelled' ? 'payment_cancelled' : 'payment_failed';
+      return res.redirect(`/player/pay?error=${errorMessage}`);
     }
 
     // Get the team to access GoCardless credentials
