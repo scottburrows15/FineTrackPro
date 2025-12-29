@@ -189,14 +189,27 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
       : process.env.PRODUCTION_URL || 'http://localhost:5000';
 
+    const redirectUri = `${baseUrl}/api/payments/callback`;
+    const exitUri = `${baseUrl}/player/pay`;
+    
+    console.log('Creating billing request flow with:');
+    console.log('  baseUrl:', baseUrl);
+    console.log('  redirect_uri:', redirectUri);
+    console.log('  exit_uri:', exitUri);
+    console.log('  billing_request:', billingRequest.id);
+
     const billingRequestFlow = await client.billingRequestFlows.create({
-      redirect_uri: `${baseUrl}/api/payments/callback`,
-      exit_uri: `${baseUrl}/player/pay`,
+      redirect_uri: redirectUri,
+      exit_uri: exitUri,
       links: {
         billing_request: billingRequest.id!,
       },
       auto_fulfil: true,
     });
+    
+    console.log('Billing request flow created:');
+    console.log('  flow_id:', billingRequestFlow.id);
+    console.log('  authorisation_url:', billingRequestFlow.authorisation_url);
 
     // Store the billing request in our database
     const gcRequest = await storage.createGcBillingRequest({
