@@ -102,17 +102,17 @@ router.post('/api/payments/preview', isAuthenticated, async (req: any, res: Resp
       fines.push(fine);
     }
 
-    // Calculate fees
-    const passFeesToPlayer = team.passFeesToPlayer ?? false;
-    const fees = calculatePaymentFees(totalFineAmountPence, passFeesToPlayer);
+    // Calculate fees - absorbFees is the opposite of passFeesToPlayer
+    const absorbFees = !(team.passFeesToPlayer ?? false);
+    const fees = calculatePaymentFees(totalFineAmountPence, absorbFees);
 
     res.json({
-      fineAmountPounds: formatPenceToPounds(fees.fineAmountPence),
+      subtotalPounds: formatPenceToPounds(fees.subtotalPence),
       foulPayFeePounds: formatPenceToPounds(fees.foulPayFeePence),
       goCardlessFeePounds: formatPenceToPounds(fees.goCardlessFeePence),
       totalFeePounds: formatPenceToPounds(fees.totalFeePence),
       totalChargePounds: formatPenceToPounds(fees.totalChargePence),
-      passFeesToPlayer,
+      absorbFees,
       breakdown: fees,
     });
   } catch (error) {
@@ -161,22 +161,25 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       validFines.push(fine);
     }
 
-    // Calculate fees
-    const passFeesToPlayer = team.passFeesToPlayer ?? false;
-    const fees = calculatePaymentFees(totalFineAmountPence, passFeesToPlayer);
+    // Calculate fees - absorbFees is the opposite of passFeesToPlayer
+    const absorbFees = !(team.passFeesToPlayer ?? false);
+    const fees = calculatePaymentFees(totalFineAmountPence, absorbFees);
 
     const client = getGoCardlessClient(team.goCardlessAccessToken);
 
-    // Create the billing request
+    // Build fine descriptions for the payment
+    const fineDescriptions = validFines.map(f => f.reason || f.description || 'Fine').join(', ');
+    const paymentDescription = `FoulPay: ${fineDescriptions}`.substring(0, 140);
+
+    // Create the billing request for Instant Bank Pay
+    // Note: For IBP, we use payment_request only (no mandate_request)
     const billingRequest = await client.billingRequests.create({
       payment_request: {
-        description: `FoulPay fine payment - ${validFines.length} fine(s)`,
+        description: paymentDescription,
         amount: fees.totalChargePence.toString(),
         currency: 'GBP',
-        app_fee: fees.foulPayFeePence.toString(),
-      },
-      mandate_request: {
-        scheme: 'bacs', // UK bank scheme
+        app_fee: fees.appFeePence.toString(),
+        scheme: 'faster_payments', // Use Faster Payments for IBP
       },
     });
 
@@ -187,10 +190,11 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 
     const billingRequestFlow = await client.billingRequestFlows.create({
       redirect_uri: `${baseUrl}/payments/callback`,
-      exit_uri: `${baseUrl}/player`,
+      exit_uri: `${baseUrl}/player/pay`,
       links: {
         billing_request: billingRequest.id!,
       },
+      auto_fulfil: true,
     });
 
     // Store the billing request in our database
@@ -199,7 +203,7 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       playerId: user.id,
       billingRequestId: billingRequest.id,
       billingRequestFlowId: billingRequestFlow.id,
-      fineAmount: fees.fineAmountPence,
+      fineAmount: fees.subtotalPence,
       foulPayFee: fees.foulPayFeePence,
       goCardlessFee: fees.goCardlessFeePence,
       totalCharged: fees.totalChargePence,
@@ -211,12 +215,12 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 
     res.json({
       billingRequestId: gcRequest.id,
-      authorisationUrl: billingRequestFlow.authorisation_url,
+      redirectUrl: billingRequestFlow.authorisation_url,
       totalCharge: formatPenceToPounds(fees.totalChargePence),
     });
   } catch (error: any) {
     console.error('Error creating GoCardless billing request:', error);
-    res.status(500).json({ message: error.message || 'Failed to create payment request' });
+    res.status(500).json({ error: error.message || 'Failed to create payment request' });
   }
 });
 

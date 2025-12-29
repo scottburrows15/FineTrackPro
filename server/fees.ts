@@ -1,108 +1,96 @@
 /**
  * FoulPay Fee Calculation Helper
  * All calculations use integer pence to avoid floating-point precision issues
+ * 
+ * Fee Structure:
+ * - FoulPay Fee: 2% if subtotal < £10, otherwise 1% + 10p
+ * - GoCardless IBP Fee: Flat 1% of subtotal (no flat pence addition)
  */
 
 export interface FeeCalculation {
-  fineAmountPence: number;        // Original fine amount in pence
+  subtotalPence: number;          // Subtotal of fines in pence (before fees)
   foulPayFeePence: number;        // FoulPay platform fee in pence
   goCardlessFeePence: number;     // GoCardless 1% fee in pence
   totalFeePence: number;          // Total fees (FoulPay + GoCardless)
-  totalChargePence: number;       // Amount charged to player (depends on passFeesToPlayer)
+  totalChargePence: number;       // Amount charged to player (depends on absorbFees)
+  appFeePence: number;            // Amount sent as app_fee to GoCardless (FoulPay fee)
   netWalletCreditPence: number;   // Amount credited to team wallet after fees
 }
 
 /**
  * Calculate FoulPay fee based on tiered structure:
- * - Fine <= £10.00 (1000 pence): FoulPay Fee = 2% flat
- * - Fine > £10.00 (1000 pence): FoulPay Fee = 1% + 10p
+ * - Subtotal < £10.00 (1000 pence): FoulPay Fee = 2% flat
+ * - Subtotal >= £10.00 (1000 pence): FoulPay Fee = 1% + 10p
  * 
- * @param fineAmountPence - Fine amount in pence (integer)
+ * @param subtotalPence - Subtotal in pence (integer)
  * @returns FoulPay fee in pence (integer, rounded up)
  */
-export function calculateFoulPayFee(fineAmountPence: number): number {
-  if (fineAmountPence <= 1000) {
-    // 2% flat for fines £10.00 or less
-    return Math.ceil(fineAmountPence * 0.02);
+export function calculateFoulPayFee(subtotalPence: number): number {
+  if (subtotalPence < 1000) {
+    // 2% flat for subtotals under £10.00
+    return Math.ceil(subtotalPence * 0.02);
   } else {
-    // 1% + 10p for fines over £10.00
-    return Math.ceil(fineAmountPence * 0.01) + 10;
+    // 1% + 10p for subtotals £10.00 or more
+    return Math.ceil(subtotalPence * 0.01) + 10;
   }
 }
 
 /**
- * Calculate GoCardless fee (1% of the transaction amount)
+ * Calculate GoCardless IBP fee (flat 1% of subtotal)
  * 
- * @param amountPence - Amount being charged in pence
+ * @param subtotalPence - Subtotal in pence
  * @returns GoCardless fee in pence (integer, rounded up)
  */
-export function calculateGoCardlessFee(amountPence: number): number {
-  return Math.ceil(amountPence * 0.01);
+export function calculateGoCardlessFee(subtotalPence: number): number {
+  return Math.ceil(subtotalPence * 0.01);
 }
 
 /**
- * Calculate all fees and totals based on whether fees are passed to the player
+ * Calculate all fees and totals based on whether team absorbs fees
  * 
- * GoCardless charges 1% on the TOTAL transaction amount, so we need to solve for T:
- * T = subtotal + 0.01 * T
- * T - 0.01T = subtotal
- * 0.99T = subtotal
- * T = subtotal / 0.99 (rounded up)
- * 
- * @param fineAmountPence - Total fine amount in pence
- * @param passFeesToPlayer - If true, player pays fees on top of fine. If false, fees deducted from fine.
+ * @param subtotalPence - Total fine amount in pence
+ * @param absorbFees - If true, team absorbs fees (player pays subtotal only). If false, player pays fees.
  * @returns Complete fee breakdown
  */
 export function calculatePaymentFees(
-  fineAmountPence: number, 
-  passFeesToPlayer: boolean
+  subtotalPence: number, 
+  absorbFees: boolean
 ): FeeCalculation {
-  // Calculate FoulPay fee based on the original fine amount
-  const foulPayFeePence = calculateFoulPayFee(fineAmountPence);
+  // Calculate fees based on the subtotal
+  const foulPayFeePence = calculateFoulPayFee(subtotalPence);
+  const goCardlessFeePence = calculateGoCardlessFee(subtotalPence);
+  const totalFeePence = foulPayFeePence + goCardlessFeePence;
   
-  if (passFeesToPlayer) {
-    // Player pays fees on top of fine
-    // Subtotal = fine + FoulPay fee (before GoCardless fee)
-    const subtotal = fineAmountPence + foulPayFeePence;
+  if (absorbFees) {
+    // Team absorbs fees - player pays exact subtotal
+    const totalChargePence = subtotalPence;
     
-    // GoCardless charges 1% on the total, so we solve for total:
-    // T = subtotal / 0.99 (rounded up to cover the fee)
-    const totalChargePence = Math.ceil(subtotal / 0.99);
-    
-    // GoCardless fee is the difference
-    const goCardlessFeePence = totalChargePence - subtotal;
-    
-    const totalFeePence = foulPayFeePence + goCardlessFeePence;
-    
-    // Team wallet receives the full fine amount (player covered all fees)
-    const netWalletCreditPence = fineAmountPence;
+    // Team wallet receives subtotal minus all fees
+    const netWalletCreditPence = subtotalPence - totalFeePence;
     
     return {
-      fineAmountPence,
+      subtotalPence,
       foulPayFeePence,
       goCardlessFeePence,
       totalFeePence,
       totalChargePence,
+      appFeePence: foulPayFeePence, // FoulPay fee is still sent as app_fee
       netWalletCreditPence,
     };
   } else {
-    // Team absorbs fees - player pays exact fine amount
-    const totalChargePence = fineAmountPence;
+    // Player pays fees on top of subtotal
+    const totalChargePence = subtotalPence + totalFeePence;
     
-    // GoCardless fee is 1% of what the player pays
-    const goCardlessFeePence = calculateGoCardlessFee(fineAmountPence);
-    
-    const totalFeePence = foulPayFeePence + goCardlessFeePence;
-    
-    // Team wallet receives fine minus all fees
-    const netWalletCreditPence = fineAmountPence - totalFeePence;
+    // Team wallet receives the full subtotal (player covered all fees)
+    const netWalletCreditPence = subtotalPence;
     
     return {
-      fineAmountPence,
+      subtotalPence,
       foulPayFeePence,
       goCardlessFeePence,
       totalFeePence,
       totalChargePence,
+      appFeePence: foulPayFeePence, // FoulPay fee sent as app_fee
       netWalletCreditPence,
     };
   }
@@ -134,13 +122,13 @@ export function poundsToPence(pounds: number | string): number {
  * Calculate fees for multiple fines being paid together
  * 
  * @param fineAmountsPence - Array of fine amounts in pence
- * @param passFeesToPlayer - If true, player pays fees on top
+ * @param absorbFees - If true, team absorbs fees (player pays subtotal only)
  * @returns Fee calculation for the combined total
  */
 export function calculateBulkPaymentFees(
   fineAmountsPence: number[],
-  passFeesToPlayer: boolean
+  absorbFees: boolean
 ): FeeCalculation {
-  const totalFineAmountPence = fineAmountsPence.reduce((sum, amount) => sum + amount, 0);
-  return calculatePaymentFees(totalFineAmountPence, passFeesToPlayer);
+  const subtotalPence = fineAmountsPence.reduce((sum, amount) => sum + amount, 0);
+  return calculatePaymentFees(subtotalPence, absorbFees);
 }
