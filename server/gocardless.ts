@@ -336,7 +336,10 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
       return res.redirect('/player/pay?error=payment_' + (billingRequest.status || 'failed'));
     }
   } catch (error: any) {
-    console.error('Error processing payment callback:', error);
+    console.error('=== CALLBACK ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', JSON.stringify(error, null, 2));
     return res.redirect('/player/pay?error=callback_error');
   }
 });
