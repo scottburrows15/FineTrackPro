@@ -1170,6 +1170,79 @@ router.get('/api/admin/payments/pending', isAuthenticated, async (req: any, res:
   }
 });
 
+// Manual force-complete a payment (for sandbox testing when GoCardless doesn't create events)
+router.post('/api/admin/payments/:billingRequestId/force-complete', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { billingRequestId } = req.params;
+    
+    // Find the billing request
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    if (!gcRequest) {
+      return res.status(404).json({ message: 'Billing request not found' });
+    }
+    
+    if (gcRequest.teamId !== user.teamId) {
+      return res.status(403).json({ message: 'Not authorized for this payment' });
+    }
+    
+    if (gcRequest.status === 'fulfilled') {
+      return res.status(400).json({ message: 'Payment already completed' });
+    }
+
+    console.log(`╔════════════════════════════════════════════════════════════════╗`);
+    console.log(`║  🔧 MANUAL FORCE-COMPLETE: ${billingRequestId}`);
+    console.log(`╠════════════════════════════════════════════════════════════════╣`);
+    console.log(`║  Admin: ${user.email}`);
+    console.log(`║  Amount: £${((gcRequest.totalCharged || 0) / 100).toFixed(2)}`);
+    console.log(`╚════════════════════════════════════════════════════════════════╝`);
+
+    const fineIds = gcRequest.fineIds as string[];
+    
+    // Mark fines as paid
+    const result = await markAsPaid({
+      fineIds,
+      paymentMethod: 'gocardless',
+      paymentReference: gcRequest.billingRequestId || undefined,
+      totalAmount: gcRequest.totalCharged || 0,
+      feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+      netAmount: gcRequest.netWalletCredit || 0,
+      teamId: gcRequest.teamId,
+      playerId: gcRequest.playerId,
+      skipWalletCredit: true,
+    });
+
+    if (result.success) {
+      // Update billing request status
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: 'fulfilled',
+      });
+      
+      // Credit wallet
+      if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+        await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
+        console.log(`✅ Credited wallet: £${(gcRequest.netWalletCredit / 100).toFixed(2)}`);
+      }
+
+      res.json({
+        success: true,
+        message: 'Payment manually completed',
+        finesUpdated: result.finesUpdated,
+        walletCredited: gcRequest.netWalletCredit || 0,
+      });
+    } else {
+      res.status(500).json({ message: 'Failed to mark fines as paid' });
+    }
+  } catch (error) {
+    console.error('Error force-completing payment:', error);
+    res.status(500).json({ message: 'Failed to force-complete payment' });
+  }
+});
+
 // Update team's pass_fees_to_player setting
 router.patch('/api/admin/team/fee-settings', isAuthenticated, async (req: any, res: Response) => {
   try {
