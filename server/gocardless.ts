@@ -283,7 +283,7 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
 
     // Check the billing request status via GoCardless API
     const client = getGoCardlessClient(team.goCardlessAccessToken);
-    const billingRequest = await client.billingRequests.get(billingRequestId);
+    const billingRequest = await client.billingRequests.find(billingRequestId);
     
     console.log('Billing request status:', billingRequest.status);
     console.log('Billing request details:', JSON.stringify(billingRequest, null, 2));
