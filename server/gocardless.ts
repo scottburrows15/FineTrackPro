@@ -361,8 +361,9 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
       
       // Redirect to success page
       return res.redirect('/payment-confirmed?success=true');
-    } else if (billingRequest.status === 'pending' || billingRequest.status === 'authorised') {
+    } else if (billingRequest.status === 'pending' || billingRequest.status === 'authorised' || billingRequest.status === 'fulfilling') {
       // Payment is still processing - keep fines in pending_payment status
+      // 'fulfilling' means GoCardless is actively completing the payment
       console.log('Payment still processing, status:', billingRequest.status);
       
       await storage.updateGcBillingRequest(gcRequest.id, {
