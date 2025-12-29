@@ -153,6 +153,7 @@ export interface IStorage {
   getGcBillingRequestByPaymentId(paymentId: string): Promise<GcBillingRequest | undefined>;
   updateGcBillingRequest(id: string, updates: Partial<GcBillingRequest>): Promise<GcBillingRequest>;
   getPlayerGcBillingRequests(playerId: string): Promise<GcBillingRequest[]>;
+  getPendingGcBillingRequests(teamId: string): Promise<GcBillingRequest[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1388,6 +1389,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(gcBillingRequests)
       .where(eq(gcBillingRequests.playerId, playerId))
+      .orderBy(desc(gcBillingRequests.createdAt));
+  }
+
+  async getPendingGcBillingRequests(teamId: string): Promise<GcBillingRequest[]> {
+    return await db
+      .select()
+      .from(gcBillingRequests)
+      .where(and(
+        eq(gcBillingRequests.teamId, teamId),
+        inArray(gcBillingRequests.status, ['pending', 'fulfilling'])
+      ))
       .orderBy(desc(gcBillingRequests.createdAt));
   }
 

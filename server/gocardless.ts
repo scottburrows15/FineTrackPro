@@ -1041,6 +1041,135 @@ router.delete('/api/admin/gocardless/disconnect', isAuthenticated, async (req: a
   }
 });
 
+// Sync pending payments with GoCardless
+// This checks the actual status of pending billing requests and updates them
+router.post('/api/admin/payments/sync', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const team = await storage.getTeam(user.teamId);
+    if (!team?.goCardlessAccessToken) {
+      return res.status(400).json({ message: 'GoCardless not connected' });
+    }
+
+    const client = getGoCardlessClient(team.goCardlessAccessToken);
+    
+    // Get all pending billing requests for this team
+    const pendingRequests = await storage.getPendingGcBillingRequests(team.id);
+    console.log(`Syncing ${pendingRequests.length} pending billing requests...`);
+    
+    let synced = 0;
+    let fulfilled = 0;
+    let failed = 0;
+    const results: any[] = [];
+
+    for (const gcRequest of pendingRequests) {
+      try {
+        // Fetch current status from GoCardless
+        const billingRequest = await client.billingRequests.find(gcRequest.billingRequestId);
+        
+        console.log(`Billing request ${gcRequest.billingRequestId}: status = ${billingRequest.status}`);
+        
+        if (billingRequest.status === 'fulfilled') {
+          // Payment completed - mark fines as paid
+          const fineIds = gcRequest.fineIds as string[];
+          
+          const result = await markAsPaid({
+            fineIds,
+            paymentMethod: 'gocardless',
+            paymentReference: gcRequest.billingRequestId || undefined,
+            totalAmount: gcRequest.totalCharged || 0,
+            feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+            netAmount: gcRequest.netWalletCredit || 0,
+            teamId: gcRequest.teamId,
+            playerId: gcRequest.playerId,
+            skipWalletCredit: true,
+          });
+
+          if (result.success) {
+            await storage.updateGcBillingRequest(gcRequest.id, {
+              status: 'fulfilled',
+            });
+            
+            if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+              await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
+            }
+            
+            fulfilled++;
+            results.push({ id: gcRequest.billingRequestId, status: 'fulfilled', finesUpdated: result.finesUpdated });
+          }
+        } else if (billingRequest.status === 'cancelled') {
+          const fineIds = gcRequest.fineIds as string[];
+          await revertPendingPayment(fineIds);
+          
+          await storage.updateGcBillingRequest(gcRequest.id, {
+            status: 'cancelled',
+          });
+          
+          failed++;
+          results.push({ id: gcRequest.billingRequestId, status: 'cancelled' });
+        } else {
+          // Still pending/authorised/fulfilling
+          results.push({ id: gcRequest.billingRequestId, status: billingRequest.status });
+        }
+        
+        synced++;
+      } catch (error: any) {
+        console.error(`Error syncing billing request ${gcRequest.billingRequestId}:`, error.message);
+        results.push({ id: gcRequest.billingRequestId, error: error.message });
+      }
+    }
+
+    res.json({
+      message: `Synced ${synced} payment(s)`,
+      synced,
+      fulfilled,
+      failed,
+      stillPending: synced - fulfilled - failed,
+      results,
+    });
+  } catch (error) {
+    console.error('Error syncing payments:', error);
+    res.status(500).json({ message: 'Failed to sync payments' });
+  }
+});
+
+// Get pending payments status for admin view
+router.get('/api/admin/payments/pending', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const pendingRequests = await storage.getPendingGcBillingRequests(user.teamId);
+    
+    // Enrich with player info
+    const enrichedRequests = await Promise.all(pendingRequests.map(async (req) => {
+      const player = await storage.getUser(req.playerId);
+      return {
+        id: req.id,
+        billingRequestId: req.billingRequestId,
+        playerName: player?.firstName && player?.lastName 
+          ? `${player.firstName} ${player.lastName}` 
+          : player?.email || 'Unknown',
+        amount: req.totalCharged,
+        fineCount: (req.fineIds as string[])?.length || 0,
+        status: req.status,
+        createdAt: req.createdAt,
+      };
+    }));
+
+    res.json(enrichedRequests);
+  } catch (error) {
+    console.error('Error fetching pending payments:', error);
+    res.status(500).json({ message: 'Failed to fetch pending payments' });
+  }
+});
+
 // Update team's pass_fees_to_player setting
 router.patch('/api/admin/team/fee-settings', isAuthenticated, async (req: any, res: Response) => {
   try {
