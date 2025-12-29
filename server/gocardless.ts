@@ -3,6 +3,8 @@ import { storage } from './storage';
 import { calculatePaymentFees, poundsToPence, formatPenceToPounds } from './fees';
 import type { Team } from '@shared/schema';
 import crypto from 'crypto';
+import * as gocardlessModule from 'gocardless-nodejs';
+import { Environments } from 'gocardless-nodejs/constants';
 
 const router = Router();
 
@@ -12,6 +14,9 @@ const GOCARDLESS_ENVIRONMENT = process.env.NODE_ENV === 'production' ? 'live' : 
 const GOCARDLESS_OAUTH_BASE = GOCARDLESS_ENVIRONMENT === 'live' 
   ? 'https://connect.gocardless.com'
   : 'https://connect-sandbox.gocardless.com';
+
+// Cast to the proper function type since the default export is a factory function
+const gocardless = gocardlessModule as unknown as (token: string, env: string, options?: object) => any;
 
 // Cache GoCardless clients per access token to support multiple teams
 const gocardlessClients = new Map<string, any>();
@@ -23,8 +28,6 @@ function getGoCardlessClient(accessToken: string) {
   }
 
   // Create a new client for this token
-  const gocardless = require('gocardless-nodejs');
-  const { Environments } = require('gocardless-nodejs/constants');
   const environment = process.env.NODE_ENV === 'production' 
     ? Environments.Live 
     : Environments.Sandbox;
