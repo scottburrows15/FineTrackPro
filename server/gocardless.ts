@@ -190,7 +190,7 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       : process.env.PRODUCTION_URL || 'http://localhost:5000';
 
     const billingRequestFlow = await client.billingRequestFlows.create({
-      redirect_uri: `${baseUrl}/payments/callback`,
+      redirect_uri: `${baseUrl}/api/payments/callback`,
       exit_uri: `${baseUrl}/player/pay`,
       links: {
         billing_request: billingRequest.id!,
@@ -226,7 +226,7 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 });
 
 // Payment callback handler - called when user returns from GoCardless
-router.get('/payments/callback', async (req: Request, res: Response) => {
+router.get('/api/payments/callback', async (req: Request, res: Response) => {
   try {
     // GoCardless returns billing_request in the query params
     const billingRequestId = req.query.billing_request as string;
