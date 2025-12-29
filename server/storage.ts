@@ -139,6 +139,7 @@ export interface IStorage {
   createGcBillingRequest(request: InsertGcBillingRequest): Promise<GcBillingRequest>;
   getGcBillingRequest(id: string): Promise<GcBillingRequest | undefined>;
   getGcBillingRequestByBillingRequestId(billingRequestId: string): Promise<GcBillingRequest | undefined>;
+  getGcBillingRequestByFlowId(flowId: string): Promise<GcBillingRequest | undefined>;
   getGcBillingRequestByPaymentId(paymentId: string): Promise<GcBillingRequest | undefined>;
   updateGcBillingRequest(id: string, updates: Partial<GcBillingRequest>): Promise<GcBillingRequest>;
   getPlayerGcBillingRequests(playerId: string): Promise<GcBillingRequest[]>;
@@ -1317,6 +1318,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(gcBillingRequests)
       .where(eq(gcBillingRequests.billingRequestId, billingRequestId));
+    return request;
+  }
+
+  async getGcBillingRequestByFlowId(flowId: string): Promise<GcBillingRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(gcBillingRequests)
+      .where(eq(gcBillingRequests.billingRequestFlowId, flowId));
     return request;
   }
 

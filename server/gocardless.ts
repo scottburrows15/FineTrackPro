@@ -241,19 +241,42 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 // Payment callback handler - called when user returns from GoCardless
 router.get('/api/payments/callback', async (req: Request, res: Response) => {
   try {
-    // GoCardless returns billing_request in the query params
-    const billingRequestId = req.query.billing_request as string;
+    console.log('=== PAYMENT CALLBACK RECEIVED ===');
+    console.log('Full URL:', req.originalUrl);
+    console.log('Query params:', JSON.stringify(req.query, null, 2));
     
-    console.log('Payment Callback Received for ID:', billingRequestId);
-    console.log('Full callback query params:', JSON.stringify(req.query));
+    // GoCardless may send different parameter names
+    // Try billing_request first, then billing_request_flow_id, then id
+    let billingRequestId = req.query.billing_request as string;
+    const billingRequestFlowId = req.query.billing_request_flow_id as string;
+    
+    console.log('billing_request:', billingRequestId);
+    console.log('billing_request_flow_id:', billingRequestFlowId);
 
-    if (!billingRequestId) {
-      console.error('Payment callback missing billing_request parameter');
+    // If we have a flow ID but no billing request ID, look up by flow ID
+    let gcRequest;
+    if (billingRequestFlowId && !billingRequestId) {
+      console.log('Looking up by billing_request_flow_id:', billingRequestFlowId);
+      gcRequest = await storage.getGcBillingRequestByFlowId(billingRequestFlowId);
+      if (gcRequest && gcRequest.billingRequestId) {
+        billingRequestId = gcRequest.billingRequestId;
+        console.log('Found billing request ID from flow:', billingRequestId);
+      }
+    } else if (billingRequestId) {
+      gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    }
+
+    if (!billingRequestId && !billingRequestFlowId) {
+      console.error('Payment callback missing both billing_request and billing_request_flow_id');
       return res.redirect('/player/pay?error=missing_billing_request');
     }
 
-    // Find our stored billing request record
-    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    if (!gcRequest) {
+      // Try one more lookup method - by flow ID from query
+      if (billingRequestFlowId) {
+        gcRequest = await storage.getGcBillingRequestByFlowId(billingRequestFlowId);
+      }
+    }
     
     if (!gcRequest) {
       console.error('No billing request found for ID:', billingRequestId);
