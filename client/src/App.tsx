@@ -41,6 +41,8 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/join/:inviteCode" component={JoinTeam} />
+        {/* Payment confirmed needs to be accessible during loading state since session may take time to restore after GoCardless redirect */}
+        <Route path="/payment-confirmed" component={PaymentConfirmed} />
         <Route component={NotFound} />
       </Switch>
     );
