@@ -186,6 +186,17 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
     // Note: For IBP, we use payment_request only (no mandate_request)
     let billingRequest;
     try {
+      console.log('--- CREATING BILLING REQUEST ---');
+      console.log('Request payload:', JSON.stringify({
+        payment_request: {
+          description: paymentDescription,
+          amount: fees.totalChargePence.toString(),
+          currency: 'GBP',
+          app_fee: fees.appFeePence.toString(),
+          scheme: 'faster_payments',
+        },
+      }, null, 2));
+      
       billingRequest = await client.billingRequests.create({
         payment_request: {
           description: paymentDescription,
@@ -195,9 +206,15 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
           scheme: 'faster_payments', // Use Faster Payments for IBP
         },
       });
+      
+      console.log('--- NEW BILLING REQUEST CREATED ---');
+      console.log('Full response:', JSON.stringify(billingRequest, null, 2));
+      console.log('Billing Request ID:', billingRequest.id);
+      console.log('Status:', billingRequest.status);
     } catch (gcError: any) {
       // Rollback pending_payment status if GoCardless API fails
-      console.error('GoCardless billing request creation failed, rolling back:', gcError);
+      console.error('--- BILLING REQUEST CREATION FAILED ---');
+      console.error('Error:', JSON.stringify(gcError, null, 2));
       await revertPendingPayment(validFineIds);
       throw gcError;
     }
@@ -425,31 +442,53 @@ function verifyWebhookSignature(body: string, signature: string, secret: string)
 // This serves as a safety net to process payments even if user closes browser after payment
 router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
   try {
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║           GOCARDLESS WEBHOOK RECEIVED                        ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('Timestamp:', new Date().toISOString());
+    
+    // Log the full incoming payload
+    console.log('--- INCOMING WEBHOOK DATA ---');
+    console.log(JSON.stringify(req.body, null, 2));
+    
     const signature = req.headers['webhook-signature'] as string;
     const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET;
 
-    console.log('=== GOCARDLESS WEBHOOK RECEIVED ===');
-    console.log('Has signature:', !!signature);
-    console.log('Has webhook secret:', !!webhookSecret);
+    console.log('--- SIGNATURE VALIDATION ---');
+    console.log('Has signature header:', !!signature);
+    console.log('Signature value:', signature ? signature.substring(0, 20) + '...' : 'NONE');
+    console.log('Has webhook secret configured:', !!webhookSecret);
 
     // Verify webhook signature if secret is configured
     if (webhookSecret && signature) {
       const rawBody = JSON.stringify(req.body);
+      console.log('Raw body length:', rawBody.length, 'bytes');
       const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
       if (!isValid) {
-        console.error('Invalid webhook signature');
+        console.error('❌ SIGNATURE VALIDATION FAILED');
+        console.error('Expected signature computed from body did not match header signature');
         return res.status(401).json({ message: 'Invalid signature' });
       }
-      console.log('Webhook signature verified');
+      console.log('✅ SIGNATURE VALIDATION PASSED');
     } else if (!webhookSecret) {
-      console.warn('GOCARDLESS_WEBHOOK_SECRET not configured - skipping signature verification');
+      console.warn('⚠️ GOCARDLESS_WEBHOOK_SECRET not configured - SKIPPING signature verification');
+    } else if (!signature) {
+      console.warn('⚠️ No webhook-signature header received from GoCardless');
     }
     
     const events = req.body.events || [];
-    console.log('Processing', events.length, 'events');
+    console.log('--- EVENTS TO PROCESS ---');
+    console.log('Number of events:', events.length);
 
     for (const event of events) {
-      console.log(`Processing GoCardless event: ${event.resource_type} - ${event.action}`);
+      console.log('');
+      console.log(`--- PROCESSING EVENT ${events.indexOf(event) + 1}/${events.length} ---`);
+      console.log('Event ID:', event.id);
+      console.log('Resource type:', event.resource_type);
+      console.log('Action:', event.action);
+      console.log('Links:', JSON.stringify(event.links, null, 2));
+      console.log('Details:', JSON.stringify(event.details, null, 2));
 
       switch (event.resource_type) {
         case 'billing_requests':
