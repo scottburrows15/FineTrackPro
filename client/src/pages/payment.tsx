@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useTeam } from "@/contexts/TeamContext";
-import type { Fine, User } from "@shared/schema";
+import type { FineWithDetails, User } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
 
 interface TeamPaymentStatus {
@@ -30,11 +30,24 @@ interface TeamPaymentStatus {
   passFeesToPlayer: boolean;
 }
 
-interface FeePreview {
+interface FeeBreakdown {
   subtotalPence: number;
-  feePence: number;
-  totalPence: number;
-  feePercentage: string;
+  foulPayFeePence: number;
+  goCardlessFeePence: number;
+  totalFeePence: number;
+  totalChargePence: number;
+  appFeePence: number;
+  netWalletCreditPence: number;
+}
+
+interface FeePreviewResponse {
+  subtotalPounds: string;
+  foulPayFeePounds: string;
+  goCardlessFeePounds: string;
+  totalFeePounds: string;
+  totalChargePounds: string;
+  absorbFees: boolean;
+  breakdown: FeeBreakdown;
 }
 
 export default function PaymentPage() {
@@ -47,7 +60,7 @@ export default function PaymentPage() {
     queryKey: ["/api/auth/user"],
   });
 
-  const { data: finesData, isLoading: finesLoading } = useQuery<Fine[]>({
+  const { data: finesData, isLoading: finesLoading } = useQuery<FineWithDetails[]>({
     queryKey: ["/api/fines/my"],
   });
 
@@ -71,16 +84,37 @@ export default function PaymentPage() {
     }, 0);
   }, [selectedFines]);
 
-  const { data: feePreview, isLoading: isPreviewLoading } = useQuery<FeePreview>({
-    queryKey: ["/api/payments/preview-fee", subtotalPence],
-    enabled: subtotalPence > 0,
+  const { data: feePreview, isLoading: isPreviewLoading } = useQuery<FeePreviewResponse>({
+    queryKey: ["/api/payments/preview", selectedFineIds],
+    queryFn: async () => {
+      const res = await apiRequest("POST", "/api/payments/preview", {
+        fineIds: selectedFineIds,
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Fee preview error:", errorText);
+        throw new Error("Failed to load fee preview");
+      }
+      return res.json();
+    },
+    enabled: selectedFineIds.length > 0,
   });
 
   const createPaymentMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/payments/create-intent", {
+      const res = await apiRequest("POST", "/api/payments/create", {
         fineIds: selectedFineIds,
       });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Payment creation error:", errorText);
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.error || errorJson.message || "Failed to create payment");
+        } catch {
+          throw new Error("Failed to create payment - server returned invalid response");
+        }
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -243,9 +277,12 @@ export default function PaymentPage() {
                             />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                {fine.reason || fine.description || "Fine"}
+                                {fine.subcategory?.name || fine.description || "Fine"}
                               </p>
                               <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {fine.subcategory?.category?.name && (
+                                  <span className="mr-2">{fine.subcategory.category.name}</span>
+                                )}
                                 {fine.createdAt ? new Date(fine.createdAt).toLocaleDateString() : "No date"}
                               </p>
                             </div>
@@ -289,7 +326,7 @@ export default function PaymentPage() {
                   </span>
                 </div>
 
-                {teamInfo?.passFeesToPlayer && feePreview && feePreview.feePence > 0 && (
+                {!feePreview?.absorbFees && feePreview && feePreview.breakdown.totalFeePence > 0 && (
                   <div className="flex justify-between text-sm items-center">
                     <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                       <span>Processing Fee</span>
@@ -299,13 +336,13 @@ export default function PaymentPage() {
                             <Info className="w-3.5 h-3.5" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>{feePreview.feePercentage} bank processing fee</p>
+                            <p>FoulPay: {feePreview.foulPayFeePounds} + Bank: {feePreview.goCardlessFeePounds}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
                     <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {formatCurrency(feePreview.feePence)}
+                      {feePreview.totalFeePounds}
                     </span>
                   </div>
                 )}
@@ -315,7 +352,7 @@ export default function PaymentPage() {
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-slate-900 dark:text-white">Total</span>
                   <span className="text-xl font-black text-slate-900 dark:text-white">
-                    {formatCurrency(feePreview?.totalPence || subtotalPence)}
+                    {feePreview?.totalChargePounds || formatCurrency(subtotalPence)}
                   </span>
                 </div>
               </div>

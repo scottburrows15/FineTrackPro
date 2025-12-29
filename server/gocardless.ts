@@ -168,7 +168,7 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
     const client = getGoCardlessClient(team.goCardlessAccessToken);
 
     // Build fine descriptions for the payment
-    const fineDescriptions = validFines.map(f => f.reason || f.description || 'Fine').join(', ');
+    const fineDescriptions = validFines.map(f => f.description || 'Fine').join(', ');
     const paymentDescription = `FoulPay: ${fineDescriptions}`.substring(0, 140);
 
     // Create the billing request for Instant Bank Pay
