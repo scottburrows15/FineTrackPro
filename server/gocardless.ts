@@ -189,7 +189,8 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
       : process.env.PRODUCTION_URL || 'http://localhost:5000';
 
-    const redirectUri = `${baseUrl}/api/payments/callback`;
+    // Include the billing request ID in the redirect_uri since GoCardless only sends outcome=success/failure
+    const redirectUri = `${baseUrl}/api/payments/callback?br=${billingRequest.id}`;
     const exitUri = `${baseUrl}/player/pay`;
     
     console.log('Creating billing request flow with:');
@@ -245,38 +246,27 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
     console.log('Full URL:', req.originalUrl);
     console.log('Query params:', JSON.stringify(req.query, null, 2));
     
-    // GoCardless may send different parameter names
-    // Try billing_request first, then billing_request_flow_id, then id
-    let billingRequestId = req.query.billing_request as string;
-    const billingRequestFlowId = req.query.billing_request_flow_id as string;
+    // GoCardless sends outcome=success/failure
+    // We include our billing request ID as 'br' in the redirect_uri
+    const outcome = req.query.outcome as string;
+    const billingRequestId = req.query.br as string || req.query.billing_request as string;
     
-    console.log('billing_request:', billingRequestId);
-    console.log('billing_request_flow_id:', billingRequestFlowId);
+    console.log('outcome:', outcome);
+    console.log('billing_request_id (br):', billingRequestId);
 
-    // If we have a flow ID but no billing request ID, look up by flow ID
-    let gcRequest;
-    if (billingRequestFlowId && !billingRequestId) {
-      console.log('Looking up by billing_request_flow_id:', billingRequestFlowId);
-      gcRequest = await storage.getGcBillingRequestByFlowId(billingRequestFlowId);
-      if (gcRequest && gcRequest.billingRequestId) {
-        billingRequestId = gcRequest.billingRequestId;
-        console.log('Found billing request ID from flow:', billingRequestId);
-      }
-    } else if (billingRequestId) {
-      gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    // Check if payment failed
+    if (outcome === 'failure') {
+      console.log('Payment failed - outcome is failure');
+      return res.redirect('/player/pay?error=payment_failed');
     }
 
-    if (!billingRequestId && !billingRequestFlowId) {
-      console.error('Payment callback missing both billing_request and billing_request_flow_id');
+    if (!billingRequestId) {
+      console.error('Payment callback missing billing request ID');
       return res.redirect('/player/pay?error=missing_billing_request');
     }
 
-    if (!gcRequest) {
-      // Try one more lookup method - by flow ID from query
-      if (billingRequestFlowId) {
-        gcRequest = await storage.getGcBillingRequestByFlowId(billingRequestFlowId);
-      }
-    }
+    // Look up our stored billing request record
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
     
     if (!gcRequest) {
       console.error('No billing request found for ID:', billingRequestId);
