@@ -36,9 +36,12 @@ import {
   type InsertPayout,
   type GcBillingRequest,
   type InsertGcBillingRequest,
+  type PaymentHistory,
+  type InsertPaymentHistory,
   teamWallets,
   payouts,
   gcBillingRequests,
+  paymentHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sum, count, sql, gte, inArray } from "drizzle-orm";
@@ -76,6 +79,7 @@ export interface IStorage {
   // Fine operations
   getUserFines(userId: string): Promise<FineWithDetails[]>;
   getTeamFines(teamId: string): Promise<FineWithDetails[]>;
+  getFine(id: string): Promise<Fine | undefined>;
   getFineById(id: string): Promise<Fine | undefined>;
   getFinesByPaymentIntentId(paymentIntentId: string): Promise<Fine[]>;
   createFine(fine: InsertFine): Promise<Fine>;
@@ -104,8 +108,14 @@ export interface IStorage {
   // Admin operations
   getUnpaidFines(teamId: string): Promise<FineWithDetails[]>;
   getTeamMembers(teamId: string): Promise<User[]>;
+  getTeamAdmins(teamId: string): Promise<User[]>;
   addPlayerToTeam(userId: string, teamId: string): Promise<User>;
   updateTeam(id: string, updates: Partial<Team>): Promise<Team>;
+  
+  // Payment history operations
+  createPaymentHistory(data: InsertPaymentHistory): Promise<PaymentHistory>;
+  getPaymentHistory(teamId: string): Promise<PaymentHistory[]>;
+  getPlayerPaymentHistory(playerId: string): Promise<PaymentHistory[]>;
   
   // Admin preferences
   getAdminPreferences(userId: string): Promise<AdminPreferences | undefined>;
@@ -407,6 +417,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFine(id: string): Promise<void> {
     await db.delete(fines).where(eq(fines.id, id));
+  }
+
+  async getFine(id: string): Promise<Fine | undefined> {
+    const [fine] = await db
+      .select()
+      .from(fines)
+      .where(eq(fines.id, id))
+      .limit(1);
+    return fine;
   }
 
   async getFineById(id: string): Promise<Fine | undefined> {
@@ -877,6 +896,24 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.teamId, teamId))
       .orderBy(users.firstName, users.lastName);
+  }
+
+  async getTeamAdmins(teamId: string): Promise<User[]> {
+    const memberships = await db
+      .select()
+      .from(teamMemberships)
+      .where(and(
+        eq(teamMemberships.teamId, teamId),
+        sql`${teamMemberships.role} IN ('admin', 'both')`
+      ));
+    
+    const adminUserIds = memberships.map(m => m.userId);
+    if (adminUserIds.length === 0) return [];
+    
+    return await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, adminUserIds));
   }
 
   async addPlayerToTeam(userId: string, teamId: string): Promise<User> {
@@ -1352,6 +1389,30 @@ export class DatabaseStorage implements IStorage {
       .from(gcBillingRequests)
       .where(eq(gcBillingRequests.playerId, playerId))
       .orderBy(desc(gcBillingRequests.createdAt));
+  }
+
+  async createPaymentHistory(data: InsertPaymentHistory): Promise<PaymentHistory> {
+    const [record] = await db
+      .insert(paymentHistory)
+      .values(data)
+      .returning();
+    return record;
+  }
+
+  async getPaymentHistory(teamId: string): Promise<PaymentHistory[]> {
+    return await db
+      .select()
+      .from(paymentHistory)
+      .where(eq(paymentHistory.teamId, teamId))
+      .orderBy(desc(paymentHistory.createdAt));
+  }
+
+  async getPlayerPaymentHistory(playerId: string): Promise<PaymentHistory[]> {
+    return await db
+      .select()
+      .from(paymentHistory)
+      .where(eq(paymentHistory.playerId, playerId))
+      .orderBy(desc(paymentHistory.createdAt));
   }
 }
 

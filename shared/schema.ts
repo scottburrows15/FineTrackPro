@@ -114,6 +114,7 @@ export const fines = pgTable("fines", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
   isPaid: boolean("is_paid").notNull().default(false),
+  paymentStatus: varchar("payment_status", { length: 20 }).notNull().default("unpaid"), // unpaid, pending_payment, paid
   paidAt: timestamp("paid_at"),
   paymentIntentId: varchar("payment_intent_id"),
   paymentMethod: varchar("payment_method").default("manual"), // For manual payments
@@ -122,6 +123,23 @@ export const fines = pgTable("fines", {
   paymentNotes: text("payment_notes"), // Admin notes about payment
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payment history table for audit trail
+export const paymentHistory = pgTable("payment_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  playerId: varchar("player_id").references(() => users.id).notNull(),
+  fineIds: jsonb("fine_ids").notNull(), // Array of fine IDs paid in this transaction
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(), // Total fine amount
+  feeAmount: decimal("fee_amount", { precision: 10, scale: 2 }).default("0"), // Fee charged
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(), // Amount credited to team
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(), // 'gocardless', 'manual', 'cash', 'bank_transfer'
+  paymentReference: varchar("payment_reference", { length: 100 }), // GoCardless BRQXXX or PMXXX ID
+  status: varchar("status", { length: 20 }).notNull().default("completed"), // completed, refunded
+  processedBy: varchar("processed_by").references(() => users.id), // For manual payments
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Audit log table
@@ -297,6 +315,11 @@ export const insertTeamMembershipSchema = createInsertSchema(teamMemberships).om
   updatedAt: true,
 });
 
+export const insertPaymentHistorySchema = createInsertSchema(paymentHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -316,6 +339,8 @@ export type AdminPreferences = typeof adminPreferences.$inferSelect;
 export type InsertAdminPreferences = z.infer<typeof insertAdminPreferencesSchema>;
 export type TeamMembership = typeof teamMemberships.$inferSelect;
 export type InsertTeamMembership = z.infer<typeof insertTeamMembershipSchema>;
+export type PaymentHistory = typeof paymentHistory.$inferSelect;
+export type InsertPaymentHistory = z.infer<typeof insertPaymentHistorySchema>;
 
 // Extended types with relations
 export type UserWithTeam = User & {

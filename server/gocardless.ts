@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { storage } from './storage';
 import { calculatePaymentFees, poundsToPence, formatPenceToPounds } from './fees';
+import { markAsPaid, setFinesPendingPayment, revertPendingPayment } from './paymentUtils';
 import type { Team } from '@shared/schema';
 import crypto from 'crypto';
 import gocardless from 'gocardless-nodejs';
@@ -144,23 +145,32 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
       return res.status(400).json({ message: 'fineIds array is required' });
     }
 
-    // Get fines and validate
+    // Get fines and validate ALL before changing status
     let totalFineAmountPence = 0;
     const validFines = [];
+    const validFineIds: string[] = [];
+    
     for (const fineId of fineIds) {
       const fine = await storage.getFineById(fineId);
       if (!fine) {
         return res.status(404).json({ message: `Fine ${fineId} not found` });
       }
-      if (fine.isPaid) {
+      if (fine.isPaid || fine.paymentStatus === 'paid') {
         return res.status(400).json({ message: `Fine ${fineId} is already paid` });
+      }
+      if (fine.paymentStatus === 'pending_payment') {
+        return res.status(400).json({ message: `Fine ${fineId} is already being processed` });
       }
       if (fine.playerId !== user.id) {
         return res.status(403).json({ message: `Fine ${fineId} does not belong to you` });
       }
       totalFineAmountPence += poundsToPence(fine.amount);
       validFines.push(fine);
+      validFineIds.push(fineId);
     }
+
+    // Set fines to pending_payment status only after all validation passes
+    await setFinesPendingPayment(validFineIds);
 
     // Calculate fees - absorbFees is the opposite of passFeesToPlayer
     const absorbFees = !(team.passFeesToPlayer ?? false);
@@ -174,15 +184,23 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
 
     // Create the billing request for Instant Bank Pay
     // Note: For IBP, we use payment_request only (no mandate_request)
-    const billingRequest = await client.billingRequests.create({
-      payment_request: {
-        description: paymentDescription,
-        amount: fees.totalChargePence.toString(),
-        currency: 'GBP',
-        app_fee: fees.appFeePence.toString(),
-        scheme: 'faster_payments', // Use Faster Payments for IBP
-      },
-    });
+    let billingRequest;
+    try {
+      billingRequest = await client.billingRequests.create({
+        payment_request: {
+          description: paymentDescription,
+          amount: fees.totalChargePence.toString(),
+          currency: 'GBP',
+          app_fee: fees.appFeePence.toString(),
+          scheme: 'faster_payments', // Use Faster Payments for IBP
+        },
+      });
+    } catch (gcError: any) {
+      // Rollback pending_payment status if GoCardless API fails
+      console.error('GoCardless billing request creation failed, rolling back:', gcError);
+      await revertPendingPayment(validFineIds);
+      throw gcError;
+    }
 
     // Create a billing request flow for the redirect URL
     const baseUrl = process.env.REPLIT_DEV_DOMAIN 
@@ -255,11 +273,6 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
     console.log('billing_request_id (br):', billingRequestId);
 
     // Check if payment failed
-    if (outcome === 'failure') {
-      console.log('Payment failed - outcome is failure');
-      return res.redirect('/player/pay?error=payment_failed');
-    }
-
     if (!billingRequestId) {
       console.error('Payment callback missing billing request ID');
       return res.redirect('/player/pay?error=missing_billing_request');
@@ -273,11 +286,29 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
       return res.redirect('/player/pay?error=billing_request_not_found');
     }
 
+    const fineIds = gcRequest.fineIds as string[];
+
+    // Handle failure outcome
+    if (outcome === 'failure') {
+      console.log('Payment failed - outcome is failure');
+      
+      // Revert fines from pending_payment to unpaid
+      await revertPendingPayment(fineIds);
+      
+      // Update our record
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: 'failed',
+      });
+      
+      return res.redirect('/player/pay?error=payment_failed');
+    }
+
     // Get the team to access GoCardless credentials
     const team = await storage.getTeam(gcRequest.teamId);
     
     if (!team || !team.goCardlessAccessToken) {
       console.error('Team not found or missing GoCardless token for billing request:', billingRequestId);
+      await revertPendingPayment(fineIds);
       return res.redirect('/player/pay?error=team_configuration_error');
     }
 
@@ -286,24 +317,29 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
     const billingRequest = await client.billingRequests.find(billingRequestId);
     
     console.log('Billing request status:', billingRequest.status);
-    console.log('Billing request details:', JSON.stringify(billingRequest, null, 2));
 
     // Check if the billing request is fulfilled
     if (billingRequest.status === 'fulfilled') {
-      // Get the fine IDs from our stored record
-      const fineIds = gcRequest.fineIds as string[];
-      
       console.log('Payment fulfilled! Marking fines as paid:', fineIds);
       
-      // Mark all fines as paid
-      for (const fineId of fineIds) {
-        await storage.updateFine(fineId, {
-          isPaid: true,
-          paidAt: new Date(),
-          paymentMethod: 'gocardless',
-          paymentIntentId: billingRequestId,
-        });
-        console.log('Marked fine as paid:', fineId);
+      // Use the universal markAsPaid function
+      // Pass teamId/playerId from billing request, not from fines
+      // Wallet credit is handled separately in this callback
+      const result = await markAsPaid({
+        fineIds,
+        paymentMethod: 'gocardless',
+        paymentReference: billingRequestId,
+        totalAmount: gcRequest.totalCharged || 0,
+        feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+        netAmount: gcRequest.netWalletCredit || 0,
+        teamId: gcRequest.teamId,
+        playerId: gcRequest.playerId,
+        skipWalletCredit: true, // Wallet credit handled below
+      });
+
+      if (!result.success) {
+        console.error('Failed to mark fines as paid:', result.error);
+        return res.redirect('/player/pay?error=payment_processing_failed');
       }
 
       // Update the billing request status in our database
@@ -314,19 +350,29 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
 
       // Credit the team wallet with the net amount
       if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
-        await storage.creditWallet(team.id, gcRequest.netWalletCredit);
+        await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
         console.log('Credited team wallet:', gcRequest.netWalletCredit, 'pence');
       }
 
+      console.log(`Payment completed: ${result.finesUpdated} fines marked as paid`);
+      
       // Redirect to success page
       return res.redirect('/payment-confirmed?success=true');
     } else if (billingRequest.status === 'pending' || billingRequest.status === 'authorised') {
-      // Payment is still processing
+      // Payment is still processing - keep fines in pending_payment status
       console.log('Payment still processing, status:', billingRequest.status);
+      
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: billingRequest.status,
+      });
+      
       return res.redirect('/payment-confirmed?pending=true');
     } else {
       // Payment failed or was cancelled
       console.log('Payment not successful, status:', billingRequest.status);
+      
+      // Revert fines from pending_payment to unpaid
+      await revertPendingPayment(fineIds);
       
       // Update our record
       await storage.updateGcBillingRequest(gcRequest.id, {
@@ -340,24 +386,44 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('Full error:', JSON.stringify(error, null, 2));
+    
+    // Try to revert pending payment status on error
+    try {
+      const billingRequestId = req.query.br as string;
+      if (billingRequestId) {
+        const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+        if (gcRequest) {
+          const fineIds = gcRequest.fineIds as string[];
+          await revertPendingPayment(fineIds);
+        }
+      }
+    } catch (revertError) {
+      console.error('Error reverting pending payment:', revertError);
+    }
+    
     return res.redirect('/player/pay?error=callback_error');
   }
 });
 
 // Webhook handler for GoCardless events
+// This serves as a safety net to process payments even if user closes browser after payment
 router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
   try {
     const signature = req.headers['webhook-signature'] as string;
     const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET;
 
-    // Note: In production, verify the webhook signature
-    // For now, we'll process the events
+    // Note: In production, verify the webhook signature using:
+    // const isValid = verifyWebhookSignature(req.body, signature, webhookSecret);
+    
     const events = req.body.events || [];
 
     for (const event of events) {
       console.log(`Processing GoCardless event: ${event.resource_type} - ${event.action}`);
 
       switch (event.resource_type) {
+        case 'billing_requests':
+          await handleBillingRequestEvent(event);
+          break;
         case 'payments':
           await handlePaymentEvent(event);
           break;
@@ -376,6 +442,84 @@ router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
   }
 });
 
+// Handle billing_requests.fulfilled - safety net for when user closes browser
+async function handleBillingRequestEvent(event: any) {
+  const billingRequestId = event.links?.billing_request;
+  const action = event.action;
+
+  if (!billingRequestId) return;
+
+  console.log(`Processing billing request event: ${billingRequestId} - ${action}`);
+
+  // Find the billing request by GoCardless billing request ID
+  const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+  if (!gcRequest) {
+    console.log(`No billing request found for ${billingRequestId}`);
+    return;
+  }
+
+  // Check if already processed
+  if (gcRequest.status === 'fulfilled' || gcRequest.status === 'confirmed') {
+    console.log(`Billing request ${billingRequestId} already processed`);
+    return;
+  }
+
+  if (action === 'fulfilled') {
+    const fineIds = gcRequest.fineIds as string[];
+    
+    // Check if fines are already marked as paid (callback may have processed this)
+    const firstFine = await storage.getFine(fineIds[0]);
+    if (firstFine?.isPaid) {
+      console.log(`Fines already paid for billing request ${billingRequestId}`);
+      return;
+    }
+
+    console.log(`Webhook: Processing fulfilled billing request ${billingRequestId}`);
+    
+    // Use the universal markAsPaid function
+    // Pass teamId/playerId from billing request, wallet credit handled separately
+    const result = await markAsPaid({
+      fineIds,
+      paymentMethod: 'gocardless',
+      paymentReference: billingRequestId,
+      totalAmount: gcRequest.totalCharged || 0,
+      feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+      netAmount: gcRequest.netWalletCredit || 0,
+      teamId: gcRequest.teamId,
+      playerId: gcRequest.playerId,
+      skipWalletCredit: true, // Wallet credit handled below
+    });
+
+    if (result.success) {
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: 'fulfilled',
+      });
+      
+      // Credit the team wallet with the net amount
+      if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+        await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
+        console.log('Webhook: Credited team wallet:', gcRequest.netWalletCredit, 'pence');
+      }
+      
+      console.log(`Webhook: Payment completed via webhook. ${result.finesUpdated} fines marked as paid.`);
+    } else {
+      console.error(`Webhook: Failed to mark fines as paid: ${result.error}`);
+    }
+  } else if (action === 'cancelled' || action === 'failed') {
+    const fineIds = gcRequest.fineIds as string[];
+    
+    // Revert pending payment status
+    await revertPendingPayment(fineIds);
+    
+    await storage.updateGcBillingRequest(gcRequest.id, {
+      status: action,
+      failureReason: event.details?.cause || 'Unknown',
+    });
+    
+    console.log(`Billing request ${billingRequestId} ${action}`);
+  }
+}
+
 async function handlePaymentEvent(event: any) {
   const paymentId = event.links?.payment;
   const action = event.action;
@@ -389,43 +533,56 @@ async function handlePaymentEvent(event: any) {
     return;
   }
 
+  // Check if already processed
+  if (gcRequest.status === 'confirmed' || gcRequest.status === 'fulfilled') {
+    console.log(`Payment ${paymentId} already processed`);
+    return;
+  }
+
   if (action === 'confirmed') {
-    // Payment confirmed - mark fines as paid and credit wallet
     const fineIds = gcRequest.fineIds as string[];
     
-    // Mark all fines as paid
-    for (const fineId of fineIds) {
-      await storage.updateFine(fineId, {
-        isPaid: true,
-        paidAt: new Date(),
-        paymentMethod: 'gocardless',
-        paymentIntentId: paymentId,
-      });
+    // Check if fines are already marked as paid
+    const firstFine = await storage.getFine(fineIds[0]);
+    if (firstFine?.isPaid) {
+      console.log(`Fines already paid for payment ${paymentId}`);
+      return;
     }
-
-    // Credit the team wallet with the net amount
-    await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
-
-    // Update billing request status
-    await storage.updateGcBillingRequest(gcRequest.id, {
-      status: 'confirmed',
-      confirmedAt: new Date(),
-    });
-
-    // Create notification for the player
-    const fines = await Promise.all(fineIds.map(id => storage.getFineById(id)));
-    const totalPaid = fines.reduce((sum, f) => f ? sum + poundsToPence(f.amount) : sum, 0);
     
-    await storage.createNotification({
-      userId: gcRequest.playerId,
-      title: 'Payment Confirmed',
-      message: `Your payment of ${formatPenceToPounds(totalPaid)} has been confirmed.`,
-      type: 'payment_confirmed',
-      relatedEntityId: gcRequest.id,
+    // Use the universal markAsPaid function
+    // Pass teamId/playerId from billing request, wallet credit handled separately
+    const result = await markAsPaid({
+      fineIds,
+      paymentMethod: 'gocardless',
+      paymentReference: paymentId,
+      totalAmount: gcRequest.totalCharged || 0,
+      feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+      netAmount: gcRequest.netWalletCredit || 0,
+      teamId: gcRequest.teamId,
+      playerId: gcRequest.playerId,
+      skipWalletCredit: true, // Wallet credit handled below
     });
 
-    console.log(`Payment ${paymentId} confirmed. ${fineIds.length} fines marked as paid.`);
+    if (result.success) {
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: 'confirmed',
+        confirmedAt: new Date(),
+      });
+      
+      // Credit the team wallet with the net amount
+      if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+        await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
+        console.log('Payment webhook: Credited team wallet:', gcRequest.netWalletCredit, 'pence');
+      }
+      
+      console.log(`Payment ${paymentId} confirmed. ${result.finesUpdated} fines marked as paid.`);
+    } else {
+      console.error(`Failed to process payment ${paymentId}: ${result.error}`);
+    }
   } else if (action === 'failed' || action === 'cancelled') {
+    const fineIds = gcRequest.fineIds as string[];
+    await revertPendingPayment(fineIds);
+    
     await storage.updateGcBillingRequest(gcRequest.id, {
       status: action,
       failureReason: event.details?.cause || 'Unknown',

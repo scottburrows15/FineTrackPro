@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Building2, 
@@ -70,12 +70,34 @@ export default function PaymentPage() {
 
   const unpaidFines = useMemo(() => {
     if (!finesData) return [];
-    return finesData.filter(f => !f.isPaid);
+    // Filter fines that are not paid and not in pending_payment status
+    return finesData.filter(f => !f.isPaid && f.paymentStatus !== 'paid');
   }, [finesData]);
 
+  const pendingPaymentFines = useMemo(() => {
+    if (!finesData) return [];
+    return finesData.filter(f => f.paymentStatus === 'pending_payment');
+  }, [finesData]);
+
+  const availableFines = useMemo(() => {
+    // Fines available for selection (not in pending_payment status)
+    return unpaidFines.filter(f => f.paymentStatus !== 'pending_payment');
+  }, [unpaidFines]);
+
   const selectedFines = useMemo(() => {
-    return unpaidFines.filter(f => selectedFineIds.includes(f.id));
-  }, [unpaidFines, selectedFineIds]);
+    // Only include fines that are both selected AND available (not pending_payment)
+    return availableFines.filter(f => selectedFineIds.includes(f.id));
+  }, [availableFines, selectedFineIds]);
+
+  // Clean up selectedFineIds when fines data changes (remove any pending fines)
+  useEffect(() => {
+    const availableIds = new Set(availableFines.map(f => f.id));
+    setSelectedFineIds(prev => {
+      const newIds = prev.filter(id => availableIds.has(id));
+      // Only update if something was actually removed
+      return newIds.length !== prev.length ? newIds : prev;
+    });
+  }, [availableFines]);
 
   const subtotalPence = useMemo(() => {
     return selectedFines.reduce((sum, fine) => {
@@ -144,6 +166,12 @@ export default function PaymentPage() {
   };
 
   const toggleFine = (fineId: string) => {
+    // Don't allow toggling fines that are in pending_payment status
+    const fine = unpaidFines.find(f => f.id === fineId);
+    if (fine?.paymentStatus === 'pending_payment') {
+      return;
+    }
+    
     setSelectedFineIds(prev => 
       prev.includes(fineId) 
         ? prev.filter(id => id !== fineId)
@@ -152,10 +180,10 @@ export default function PaymentPage() {
   };
 
   const selectAll = () => {
-    if (selectedFineIds.length === unpaidFines.length) {
+    if (selectedFineIds.length === availableFines.length) {
       setSelectedFineIds([]);
     } else {
-      setSelectedFineIds(unpaidFines.map(f => f.id));
+      setSelectedFineIds(availableFines.map(f => f.id));
     }
   };
 
@@ -243,42 +271,69 @@ export default function PaymentPage() {
                       onClick={selectAll}
                       className="text-xs h-7"
                       data-testid="button-select-all"
+                      disabled={availableFines.length === 0}
                     >
-                      {selectedFineIds.length === unpaidFines.length ? "Deselect All" : "Select All"}
+                      {selectedFineIds.length === availableFines.length && availableFines.length > 0 ? "Deselect All" : "Select All"}
                     </Button>
                   </div>
+
+                  {/* Show pending payment fines first with disabled state */}
+                  {pendingPaymentFines.length > 0 && (
+                    <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                          Processing Payment...
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-600 dark:text-amber-500">
+                        {pendingPaymentFines.length} fine(s) are being processed. This may take a few moments.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     {unpaidFines.map((fine) => {
                       const isSelected = selectedFineIds.includes(fine.id);
+                      const isPending = fine.paymentStatus === 'pending_payment';
                       const amount = typeof fine.amount === 'string' ? parseFloat(fine.amount) : fine.amount;
                       
                       return (
                         <div 
                           key={fine.id}
                           className={`group flex flex-col rounded-lg border transition-all ${
-                            isSelected 
-                              ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10' 
-                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                            isPending
+                              ? 'border-amber-300 bg-amber-50/50 dark:bg-amber-900/10 opacity-60'
+                              : isSelected 
+                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10' 
+                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
                           data-testid={`fine-item-${fine.id}`}
                         >
-                          {/* FIX 2 & 3: Included Fine Reason (Name) and Details toggle.
-                            The top part handles the checkbox and selection logic.
-                          */}
                           <div 
-                            className="flex items-center gap-3 p-4 cursor-pointer"
-                            onClick={() => toggleFine(fine.id)}
+                            className={`flex items-center gap-3 p-4 ${isPending ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            onClick={() => !isPending && toggleFine(fine.id)}
                           >
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleFine(fine.id)}
-                              className="pointer-events-none"
-                            />
+                            {isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                            ) : (
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleFine(fine.id)}
+                                className="pointer-events-none"
+                              />
+                            )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                {fine.subcategory?.name || fine.description || "Fine"}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                  {fine.subcategory?.name || fine.description || "Fine"}
+                                </p>
+                                {isPending && (
+                                  <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs">
+                                    Processing
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {fine.subcategory?.category?.name && (
                                   <span className="mr-2">{fine.subcategory.category.name}</span>
