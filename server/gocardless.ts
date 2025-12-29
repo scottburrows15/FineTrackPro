@@ -408,6 +408,18 @@ router.get('/api/payments/callback', async (req: Request, res: Response) => {
   }
 });
 
+// Verify GoCardless webhook signature
+function verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(body)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
 // Webhook handler for GoCardless events
 // This serves as a safety net to process payments even if user closes browser after payment
 router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
@@ -415,10 +427,25 @@ router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
     const signature = req.headers['webhook-signature'] as string;
     const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET;
 
-    // Note: In production, verify the webhook signature using:
-    // const isValid = verifyWebhookSignature(req.body, signature, webhookSecret);
+    console.log('=== GOCARDLESS WEBHOOK RECEIVED ===');
+    console.log('Has signature:', !!signature);
+    console.log('Has webhook secret:', !!webhookSecret);
+
+    // Verify webhook signature if secret is configured
+    if (webhookSecret && signature) {
+      const rawBody = JSON.stringify(req.body);
+      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+      if (!isValid) {
+        console.error('Invalid webhook signature');
+        return res.status(401).json({ message: 'Invalid signature' });
+      }
+      console.log('Webhook signature verified');
+    } else if (!webhookSecret) {
+      console.warn('GOCARDLESS_WEBHOOK_SECRET not configured - skipping signature verification');
+    }
     
     const events = req.body.events || [];
+    console.log('Processing', events.length, 'events');
 
     for (const event of events) {
       console.log(`Processing GoCardless event: ${event.resource_type} - ${event.action}`);
