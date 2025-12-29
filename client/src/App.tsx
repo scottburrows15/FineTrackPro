@@ -11,6 +11,7 @@ import Home from "@/pages/home";
 import JoinTeam from "@/pages/join-team";
 import Payment from "@/pages/payment";
 import Payments from "@/pages/payments";
+import PaymentConfirmed from "@/pages/payment-confirmed";
 import NotFound from "@/pages/not-found";
 
 // Player pages
@@ -70,6 +71,8 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/payment" component={Payment} />
       <Route path="/payments" component={Payments} />
+      <Route path="/payment-confirmed" component={PaymentConfirmed} />
+      <Route path="/player/pay" component={Payment} />
       
       <Route component={NotFound} />
     </Switch>

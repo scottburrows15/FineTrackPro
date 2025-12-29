@@ -225,6 +225,96 @@ router.post('/api/payments/create', isAuthenticated, async (req: any, res: Respo
   }
 });
 
+// Payment callback handler - called when user returns from GoCardless
+router.get('/payments/callback', async (req: Request, res: Response) => {
+  try {
+    // GoCardless returns billing_request in the query params
+    const billingRequestId = req.query.billing_request as string;
+    
+    console.log('Payment Callback Received for ID:', billingRequestId);
+    console.log('Full callback query params:', JSON.stringify(req.query));
+
+    if (!billingRequestId) {
+      console.error('Payment callback missing billing_request parameter');
+      return res.redirect('/player/pay?error=missing_billing_request');
+    }
+
+    // Find our stored billing request record
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    
+    if (!gcRequest) {
+      console.error('No billing request found for ID:', billingRequestId);
+      return res.redirect('/player/pay?error=billing_request_not_found');
+    }
+
+    // Get the team to access GoCardless credentials
+    const team = await storage.getTeam(gcRequest.teamId);
+    
+    if (!team || !team.goCardlessAccessToken) {
+      console.error('Team not found or missing GoCardless token for billing request:', billingRequestId);
+      return res.redirect('/player/pay?error=team_configuration_error');
+    }
+
+    // Check the billing request status via GoCardless API
+    const client = getGoCardlessClient(team.goCardlessAccessToken);
+    const billingRequest = await client.billingRequests.get(billingRequestId);
+    
+    console.log('Billing request status:', billingRequest.status);
+    console.log('Billing request details:', JSON.stringify(billingRequest, null, 2));
+
+    // Check if the billing request is fulfilled
+    if (billingRequest.status === 'fulfilled') {
+      // Get the fine IDs from our stored record
+      const fineIds = gcRequest.fineIds as string[];
+      
+      console.log('Payment fulfilled! Marking fines as paid:', fineIds);
+      
+      // Mark all fines as paid
+      for (const fineId of fineIds) {
+        await storage.updateFine(fineId, {
+          isPaid: true,
+          paidAt: new Date(),
+          paymentMethod: 'gocardless',
+          paymentIntentId: billingRequestId,
+        });
+        console.log('Marked fine as paid:', fineId);
+      }
+
+      // Update the billing request status in our database
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: 'fulfilled',
+        paymentId: billingRequest.payment_request?.links?.payment || null,
+      });
+
+      // Credit the team wallet with the net amount
+      if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+        await storage.creditWallet(team.id, gcRequest.netWalletCredit);
+        console.log('Credited team wallet:', gcRequest.netWalletCredit, 'pence');
+      }
+
+      // Redirect to success page
+      return res.redirect('/payment-confirmed?success=true');
+    } else if (billingRequest.status === 'pending' || billingRequest.status === 'authorised') {
+      // Payment is still processing
+      console.log('Payment still processing, status:', billingRequest.status);
+      return res.redirect('/payment-confirmed?pending=true');
+    } else {
+      // Payment failed or was cancelled
+      console.log('Payment not successful, status:', billingRequest.status);
+      
+      // Update our record
+      await storage.updateGcBillingRequest(gcRequest.id, {
+        status: billingRequest.status || 'failed',
+      });
+      
+      return res.redirect('/player/pay?error=payment_' + (billingRequest.status || 'failed'));
+    }
+  } catch (error: any) {
+    console.error('Error processing payment callback:', error);
+    return res.redirect('/player/pay?error=callback_error');
+  }
+});
+
 // Webhook handler for GoCardless events
 router.post('/api/webhooks/gocardless', async (req: Request, res: Response) => {
   try {
