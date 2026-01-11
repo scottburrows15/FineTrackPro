@@ -70,6 +70,15 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
     enabled: isOpen,
   });
 
+  const invalidateAllPaymentQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/wallet"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/funds-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/fines/team"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/stats/team"] });
+  };
+
   const simulateSuccessMutation = useMutation({
     mutationFn: async (billingRequestId: string) => {
       const res = await apiRequest("POST", `/api/admin/payments/${billingRequestId}/simulate-success`);
@@ -77,9 +86,7 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/wallet"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      invalidateAllPaymentQueries();
       toast({ title: "Success", description: "Payment simulated as successful." });
     },
     onError: () => {
@@ -94,8 +101,7 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      invalidateAllPaymentQueries();
       toast({ title: "Cancelled", description: "Payment simulated as cancelled." });
     },
     onError: () => {
@@ -110,8 +116,7 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      invalidateAllPaymentQueries();
       toast({ title: "Failed", description: "Payment simulated as failed." });
     },
     onError: () => {

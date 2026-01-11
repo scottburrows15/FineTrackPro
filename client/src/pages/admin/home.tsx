@@ -92,7 +92,7 @@ export default function AdminHome() {
     enabled: !!user,
   });
 
-  const { data: fundsSummary, isLoading: fundsSummaryLoading } = useQuery<{ inPot: number; settled: number }>({
+  const { data: fundsSummary, isLoading: fundsSummaryLoading } = useQuery<{ inPot: number; settled: number; pendingPaymentsCount?: number }>({
     queryKey: ["/api/admin/funds-summary"],
   });
 
@@ -272,7 +272,7 @@ export default function AdminHome() {
               },
               { 
                 title: "Pending", 
-                value: fundsSummaryLoading ? "-" : formatCurrency(fundsSummary?.settled || 0), 
+                value: fundsSummaryLoading ? "-" : `${formatCurrency(fundsSummary?.settled || 0)}${fundsSummary?.pendingPaymentsCount ? ` (${fundsSummary.pendingPaymentsCount})` : ''}`, 
                 icon: <Target className="w-4 h-4" />, 
                 color: "from-violet-500 to-purple-600",
                 bgColor: "bg-gradient-to-br from-violet-500 to-purple-600",

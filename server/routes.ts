@@ -881,12 +881,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get team wallet to return available and pending balances
       const wallet = await storage.getTeamWallet(user.teamId);
       
+      // Get count of pending payment billing requests
+      const pendingRequests = await storage.getPendingGcBillingRequests(user.teamId);
+      
       // In Pot = available balance (in pence, convert to pounds)
       // Pending = pending balance (in pence, convert to pounds)
       const inPot = wallet ? wallet.availableBalance / 100 : 0;
       const settled = wallet ? wallet.pendingBalance / 100 : 0;
+      const pendingPaymentsCount = pendingRequests.length;
 
-      res.json({ inPot, settled });
+      res.json({ inPot, settled, pendingPaymentsCount });
     } catch (error) {
       console.error("Error fetching funds summary:", error);
       res.status(500).json({ message: "Failed to fetch funds summary" });
