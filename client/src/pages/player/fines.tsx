@@ -21,7 +21,9 @@ import {
   Users,
   X,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Hourglass,
+  Loader2
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,8 +46,11 @@ export default function PlayerFines() {
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const unpaidFines = fines.filter(fine => !fine.isPaid).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  const allPaidFines = fines.filter(fine => fine.isPaid).sort((a, b) => new Date(b.paidAt || b.createdAt).getTime() - new Date(a.paidAt || a.createdAt).getTime());
+  // Separate fines: unpaid (can be paid now), pending_payment (awaiting confirmation), and paid
+  const payableFines = fines.filter(fine => !fine.isPaid && fine.paymentStatus !== 'pending_payment').sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+  const pendingPaymentFines = fines.filter(fine => fine.paymentStatus === 'pending_payment').sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+  const unpaidFines = payableFines; // alias for compatibility
+  const allPaidFines = fines.filter(fine => fine.isPaid).sort((a, b) => new Date(b.paidAt || b.createdAt!).getTime() - new Date(a.paidAt || a.createdAt!).getTime());
 
   const paidFines = useMemo(() => {
     let filtered = allPaidFines;
@@ -245,6 +250,57 @@ export default function PlayerFines() {
           </Card>
         )}
 
+        {/* Pending Payments Section - Greyed out fines awaiting confirmation */}
+        {pendingPaymentFines.length > 0 && (
+          <Card className="overflow-hidden shadow-md border-2 border-amber-300/50 bg-amber-50/30 dark:bg-amber-900/10">
+            <div className="p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+              <div className="flex items-center gap-2">
+                <Hourglass className="w-5 h-5" />
+                <div>
+                  <h3 className="font-bold text-base">Payment Processing</h3>
+                  <p className="text-xs text-amber-100 mt-0.5">
+                    {pendingPaymentFines.length} fine{pendingPaymentFines.length !== 1 ? 's' : ''} awaiting bank confirmation
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-4 py-3 space-y-2">
+              {pendingPaymentFines.map((fine) => (
+                <Card 
+                  key={fine.id} 
+                  className="p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-l-amber-400 opacity-70 cursor-not-allowed"
+                  data-testid={`card-pending-fine-${fine.id}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-slate-600 dark:text-slate-400 leading-tight flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                        {fine.subcategory?.name || 'Fine'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Issued {formatDate(fine.createdAt)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-200 text-[10px]">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </Badge>
+                      <p className="text-base font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {formatCurrency(parseFloat(fine.amount))}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center pt-2">
+                These fines are awaiting bank transfer confirmation and cannot be paid again.
+              </p>
+            </div>
+          </Card>
+        )}
 
         {/* 3. Payment History - Accordion Style */}
         {allPaidFines.length > 0 && (
