@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Wallet, ArrowDownToLine, Clock, CheckCircle2, 
-  AlertCircle, Loader2, Banknote, ToggleLeft, Info
+  AlertCircle, Loader2, Banknote, Info, Play, XCircle, Ban, ChevronDown, CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Team } from "@shared/schema";
@@ -38,10 +39,21 @@ interface WalletData {
   }>;
 }
 
+interface PendingPayment {
+  id: string;
+  billingRequestId: string;
+  playerName: string;
+  amount: number;
+  fineCount: number;
+  status: string;
+  createdAt: string;
+}
+
 export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalProps) {
   const { toast } = useToast();
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
 
   const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
@@ -51,6 +63,60 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
   const { data: walletData, isLoading: walletLoading } = useQuery<WalletData>({
     queryKey: ["/api/admin/wallet"],
     enabled: isOpen,
+  });
+
+  const { data: pendingPayments, isLoading: pendingLoading } = useQuery<PendingPayment[]>({
+    queryKey: ["/api/admin/payments/pending"],
+    enabled: isOpen,
+  });
+
+  const simulateSuccessMutation = useMutation({
+    mutationFn: async (billingRequestId: string) => {
+      const res = await apiRequest("POST", `/api/admin/payments/${billingRequestId}/simulate-success`);
+      if (!res.ok) throw new Error('Simulation failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      toast({ title: "Success", description: "Payment simulated as successful." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to simulate success.", variant: "destructive" });
+    },
+  });
+
+  const simulateCancelMutation = useMutation({
+    mutationFn: async (billingRequestId: string) => {
+      const res = await apiRequest("POST", `/api/admin/payments/${billingRequestId}/simulate-cancel`);
+      if (!res.ok) throw new Error('Simulation failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      toast({ title: "Cancelled", description: "Payment simulated as cancelled." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to simulate cancellation.", variant: "destructive" });
+    },
+  });
+
+  const simulateFailMutation = useMutation({
+    mutationFn: async (billingRequestId: string) => {
+      const res = await apiRequest("POST", `/api/admin/payments/${billingRequestId}/simulate-fail`);
+      if (!res.ok) throw new Error('Simulation failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/fines"] });
+      toast({ title: "Failed", description: "Payment simulated as failed." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to simulate failure.", variant: "destructive" });
+    },
   });
 
   const feeSettingsMutation = useMutation({
@@ -280,6 +346,75 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {pendingPayments && pendingPayments.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-500">
+                  <CreditCard className="w-3 h-3 inline mr-1" />
+                  Pending Payments ({pendingPayments.length})
+                </h3>
+                
+                <div className="space-y-2">
+                  {pendingPayments.map((payment) => (
+                    <Card key={payment.id} className="border-none shadow-sm bg-amber-50 dark:bg-amber-900/20 border-l-4 border-l-amber-400">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">
+                              {payment.playerName}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {payment.fineCount} fine{payment.fineCount > 1 ? 's' : ''} • £{(payment.amount / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {payment.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mt-3 flex-wrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                            onClick={() => simulateSuccessMutation.mutate(payment.billingRequestId)}
+                            disabled={simulateSuccessMutation.isPending}
+                          >
+                            <Play className="w-3 h-3 mr-1" />
+                            Success
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            onClick={() => simulateCancelMutation.mutate(payment.billingRequestId)}
+                            disabled={simulateCancelMutation.isPending}
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                            onClick={() => simulateFailMutation.mutate(payment.billingRequestId)}
+                            disabled={simulateFailMutation.isPending}
+                          >
+                            <Ban className="w-3 h-3 mr-1" />
+                            Fail
+                          </Button>
+                        </div>
+                        
+                        <p className="text-[9px] text-slate-400 mt-2 font-mono">
+                          ID: {payment.billingRequestId}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             )}
 
             {walletData?.recentPayouts && walletData.recentPayouts.length > 0 && (
