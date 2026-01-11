@@ -124,6 +124,28 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
     },
   });
 
+  const clearAllPendingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/payments/clear-all-pending");
+      if (!res.ok) throw new Error('Failed to clear pending payments');
+      return res.json();
+    },
+    onSuccess: (data: { clearedCount: number }) => {
+      invalidateAllPaymentQueries();
+      toast({ 
+        title: "Cleared", 
+        description: `${data.clearedCount} pending payment(s) cleared and fines reset.` 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to clear pending payments.", 
+        variant: "destructive" 
+      });
+    },
+  });
+
   const feeSettingsMutation = useMutation({
     mutationFn: async (passFeesToPlayer: boolean) => 
       apiRequest("PATCH", "/api/admin/team/fee-settings", { passFeesToPlayer }),
@@ -209,7 +231,7 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[480px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[85vh]">
+      <DialogContent className="max-w-[480px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[85vh] h-[85vh]">
         
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -242,8 +264,8 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
           )}
         </div>
 
-        <ScrollArea className="flex-1 bg-slate-50 dark:bg-slate-950">
-          <div className="p-5 space-y-6">
+        <ScrollArea className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950">
+          <div className="p-5 space-y-6 pb-8">
             
             <div className="space-y-3">
               <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Fee Settings</h3>
@@ -355,10 +377,28 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
 
             {pendingPayments && pendingPayments.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-500">
-                  <CreditCard className="w-3 h-3 inline mr-1" />
-                  Pending Payments ({pendingPayments.length})
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-500">
+                    <CreditCard className="w-3 h-3 inline mr-1" />
+                    Pending Payments ({pendingPayments.length})
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[9px] bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                    onClick={() => clearAllPendingMutation.mutate()}
+                    disabled={clearAllPendingMutation.isPending}
+                  >
+                    {clearAllPendingMutation.isPending ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Clear All
+                      </>
+                    )}
+                  </Button>
+                </div>
                 
                 <div className="space-y-2">
                   {pendingPayments.map((payment) => (

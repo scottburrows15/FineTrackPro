@@ -1362,6 +1362,66 @@ router.post('/api/admin/payments/:billingRequestId/simulate-fail', isAuthenticat
   }
 });
 
+// Clear all pending payments (for testing/cleanup)
+router.post('/api/admin/payments/clear-all-pending', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    console.log(`🧹 CLEARING ALL PENDING PAYMENTS for team: ${user.teamId}`);
+
+    // Get all pending billing requests for this team
+    const pendingRequests = await storage.getPendingGcBillingRequests(user.teamId);
+    let clearedCount = 0;
+
+    for (const gcRequest of pendingRequests) {
+      const fineIds = gcRequest.fineIds as string[];
+      // Revert fines back to unpaid status
+      await revertPendingPayment(fineIds);
+      // Mark billing request as cancelled
+      await storage.updateGcBillingRequest(gcRequest.id, { status: 'cancelled' });
+      clearedCount++;
+    }
+
+    // Also find and reset any orphaned fines in pending_payment status
+    const teamFines = await storage.getTeamFines(user.teamId);
+    const orphanedPendingFines = teamFines.filter((f: any) => 
+      f.paymentStatus === 'pending_payment' && 
+      (!f.gocardlessBillingRequestId || !pendingRequests.some(pr => pr.billingRequestId === f.gocardlessBillingRequestId))
+    );
+    
+    for (const fine of orphanedPendingFines) {
+      await storage.updateFine(fine.id, { 
+        paymentStatus: 'unpaid',
+        gocardlessBillingRequestId: null,
+      });
+    }
+
+    await storage.createAuditLog({
+      entityType: 'payment',
+      entityId: user.teamId,
+      action: 'clear_pending_payments',
+      userId: user.id,
+      changes: { 
+        billingRequestsCleared: clearedCount, 
+        orphanedFinesReset: orphanedPendingFines.length 
+      },
+    });
+
+    res.json({ 
+      success: true, 
+      clearedCount: clearedCount + orphanedPendingFines.length,
+      billingRequestsCleared: clearedCount,
+      orphanedFinesReset: orphanedPendingFines.length,
+    });
+  } catch (error) {
+    console.error('Error clearing pending payments:', error);
+    res.status(500).json({ message: 'Failed to clear pending payments' });
+  }
+});
+
 // Get payment stats for dashboard tiles
 router.get('/api/admin/payments/stats', isAuthenticated, async (req: any, res: Response) => {
   try {
