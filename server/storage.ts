@@ -82,6 +82,11 @@ export interface IStorage {
   getFine(id: string): Promise<Fine | undefined>;
   getFineById(id: string): Promise<Fine | undefined>;
   getFinesByPaymentIntentId(paymentIntentId: string): Promise<Fine[]>;
+  getFinesByBillingRequestId(billingRequestId: string): Promise<Fine[]>;
+  assignBillingRequestIdToFines(fineIds: string[], billingRequestId: string): Promise<void>;
+  resetPendingByBillingRequest(billingRequestId: string): Promise<number>;
+  getPendingPaymentFinesTotal(teamId: string): Promise<number>;
+  getPaidFinesNetTotal(teamId: string): Promise<number>;
   createFine(fine: InsertFine): Promise<Fine>;
   updateFine(id: string, updates: Partial<Fine>): Promise<Fine>;
   deleteFine(id: string): Promise<void>;
@@ -443,6 +448,60 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(fines)
       .where(eq(fines.paymentIntentId, paymentIntentId));
+  }
+
+  async getFinesByBillingRequestId(billingRequestId: string): Promise<Fine[]> {
+    return await db
+      .select()
+      .from(fines)
+      .where(eq(fines.gocardlessBillingRequestId, billingRequestId));
+  }
+
+  async assignBillingRequestIdToFines(fineIds: string[], billingRequestId: string): Promise<void> {
+    await db
+      .update(fines)
+      .set({
+        gocardlessBillingRequestId: billingRequestId,
+        paymentStatus: 'pending_payment',
+        updatedAt: new Date(),
+      })
+      .where(inArray(fines.id, fineIds));
+  }
+
+  async resetPendingByBillingRequest(billingRequestId: string): Promise<number> {
+    const result = await db
+      .update(fines)
+      .set({
+        gocardlessBillingRequestId: null,
+        paymentStatus: 'unpaid',
+        updatedAt: new Date(),
+      })
+      .where(eq(fines.gocardlessBillingRequestId, billingRequestId))
+      .returning();
+    return result.length;
+  }
+
+  async getPendingPaymentFinesTotal(teamId: string): Promise<number> {
+    const result = await db
+      .select({ total: sum(fines.amount) })
+      .from(fines)
+      .innerJoin(users, eq(fines.playerId, users.id))
+      .where(and(
+        eq(users.teamId, teamId),
+        eq(fines.paymentStatus, 'pending_payment')
+      ));
+    return Math.round(parseFloat(result[0]?.total || '0') * 100);
+  }
+
+  async getPaidFinesNetTotal(teamId: string): Promise<number> {
+    const result = await db
+      .select({ total: sum(paymentHistory.netAmount) })
+      .from(paymentHistory)
+      .where(and(
+        eq(paymentHistory.teamId, teamId),
+        eq(paymentHistory.status, 'completed')
+      ));
+    return Math.round(parseFloat(result[0]?.total || '0') * 100);
   }
 
   async getPlayerStats(userId: string): Promise<PlayerStats> {
