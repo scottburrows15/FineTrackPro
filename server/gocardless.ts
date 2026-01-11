@@ -1243,6 +1243,154 @@ router.post('/api/admin/payments/:billingRequestId/force-complete', isAuthentica
   }
 });
 
+// Simulate payment success (for testing)
+router.post('/api/admin/payments/:billingRequestId/simulate-success', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { billingRequestId } = req.params;
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    
+    if (!gcRequest || gcRequest.teamId !== user.teamId) {
+      return res.status(404).json({ message: 'Billing request not found' });
+    }
+    
+    if (gcRequest.status === 'fulfilled') {
+      return res.status(400).json({ message: 'Payment already completed' });
+    }
+
+    console.log(`🎮 SIMULATE SUCCESS: ${billingRequestId}`);
+
+    const fineIds = gcRequest.fineIds as string[];
+    const result = await markAsPaid({
+      fineIds,
+      paymentMethod: 'gocardless',
+      paymentReference: billingRequestId,
+      billingRequestId,
+      totalAmount: gcRequest.totalCharged || 0,
+      feeAmount: (gcRequest.foulPayFee || 0) + (gcRequest.goCardlessFee || 0),
+      foulPayFee: gcRequest.foulPayFee || 0,
+      goCardlessFee: gcRequest.goCardlessFee || 0,
+      netAmount: gcRequest.netWalletCredit || 0,
+      teamId: gcRequest.teamId,
+      playerId: gcRequest.playerId,
+      skipWalletCredit: true,
+    });
+
+    if (result.success) {
+      await storage.updateGcBillingRequest(gcRequest.id, { status: 'fulfilled' });
+      if (gcRequest.netWalletCredit && gcRequest.netWalletCredit > 0) {
+        await storage.creditWallet(gcRequest.teamId, gcRequest.netWalletCredit);
+      }
+      res.json({ success: true, message: 'Simulated success', finesUpdated: result.finesUpdated });
+    } else {
+      res.status(500).json({ message: 'Failed to process simulation' });
+    }
+  } catch (error) {
+    console.error('Error simulating success:', error);
+    res.status(500).json({ message: 'Failed to simulate success' });
+  }
+});
+
+// Simulate payment cancel (for testing)
+router.post('/api/admin/payments/:billingRequestId/simulate-cancel', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { billingRequestId } = req.params;
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    
+    if (!gcRequest || gcRequest.teamId !== user.teamId) {
+      return res.status(404).json({ message: 'Billing request not found' });
+    }
+
+    console.log(`🎮 SIMULATE CANCEL: ${billingRequestId}`);
+
+    const fineIds = gcRequest.fineIds as string[];
+    await revertPendingPayment(fineIds);
+    await storage.updateGcBillingRequest(gcRequest.id, { status: 'cancelled' });
+
+    res.json({ success: true, message: 'Simulated cancel', finesReverted: fineIds.length });
+  } catch (error) {
+    console.error('Error simulating cancel:', error);
+    res.status(500).json({ message: 'Failed to simulate cancel' });
+  }
+});
+
+// Simulate payment failure (for testing)
+router.post('/api/admin/payments/:billingRequestId/simulate-fail', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { billingRequestId } = req.params;
+    const gcRequest = await storage.getGcBillingRequestByBillingRequestId(billingRequestId);
+    
+    if (!gcRequest || gcRequest.teamId !== user.teamId) {
+      return res.status(404).json({ message: 'Billing request not found' });
+    }
+
+    console.log(`🎮 SIMULATE FAIL: ${billingRequestId}`);
+
+    const fineIds = gcRequest.fineIds as string[];
+    await revertPendingPayment(fineIds);
+    await storage.updateGcBillingRequest(gcRequest.id, { 
+      status: 'failed',
+      failureReason: 'Simulated failure for testing',
+    });
+
+    await storage.createAuditLog({
+      entityType: 'payment',
+      entityId: billingRequestId,
+      action: 'payment_failed',
+      userId: user.id,
+      changes: { reason: 'Simulated failure', fineIds },
+    });
+
+    res.json({ success: true, message: 'Simulated failure', finesReverted: fineIds.length });
+  } catch (error) {
+    console.error('Error simulating failure:', error);
+    res.status(500).json({ message: 'Failed to simulate failure' });
+  }
+});
+
+// Get payment stats for dashboard tiles
+router.get('/api/admin/payments/stats', isAuthenticated, async (req: any, res: Response) => {
+  try {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (!user || user.role !== 'admin' || !user.teamId) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const [wallet, pendingTotal, paidNetTotal, pendingRequests, paymentHistory] = await Promise.all([
+      storage.getTeamWallet(user.teamId),
+      storage.getPendingPaymentFinesTotal(user.teamId),
+      storage.getPaidFinesNetTotal(user.teamId),
+      storage.getPendingGcBillingRequests(user.teamId),
+      storage.getPaymentHistory(user.teamId),
+    ]);
+
+    res.json({
+      pendingAmountPence: pendingTotal,
+      paidNetAmountPence: paidNetTotal,
+      walletBalancePence: wallet?.availableBalance || 0,
+      pendingPaymentsCount: pendingRequests.length,
+      completedPaymentsCount: paymentHistory.length,
+    });
+  } catch (error) {
+    console.error('Error fetching payment stats:', error);
+    res.status(500).json({ message: 'Failed to fetch payment stats' });
+  }
+});
+
 // Update team's pass_fees_to_player setting
 router.patch('/api/admin/team/fee-settings', isAuthenticated, async (req: any, res: Response) => {
   try {
