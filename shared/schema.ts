@@ -117,6 +117,7 @@ export const fines = pgTable("fines", {
   paymentStatus: varchar("payment_status", { length: 20 }).notNull().default("unpaid"), // unpaid, pending_payment, paid
   paidAt: timestamp("paid_at"),
   paymentIntentId: varchar("payment_intent_id"),
+  gocardlessBillingRequestId: varchar("gocardless_billing_request_id", { length: 255 }), // Links fine to GC billing request
   paymentMethod: varchar("payment_method").default("manual"), // For manual payments
   paymentReference: varchar("payment_reference", { length: 50 }),
   transactionId: varchar("transaction_id"), // Bank ref, PayPal ID, etc.
@@ -131,12 +132,16 @@ export const paymentHistory = pgTable("payment_history", {
   teamId: varchar("team_id").references(() => teams.id).notNull(),
   playerId: varchar("player_id").references(() => users.id).notNull(),
   fineIds: jsonb("fine_ids").notNull(), // Array of fine IDs paid in this transaction
+  fineDetails: jsonb("fine_details"), // Itemized breakdown: [{id, title, amount}]
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(), // Total fine amount
-  feeAmount: decimal("fee_amount", { precision: 10, scale: 2 }).default("0"), // Fee charged
-  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(), // Amount credited to team
+  feeAmount: decimal("fee_amount", { precision: 10, scale: 2 }).default("0"), // Total fee charged
+  foulPayFee: decimal("foulpay_fee", { precision: 10, scale: 2 }).default("0"), // FoulPay portion
+  goCardlessFee: decimal("gocardless_fee", { precision: 10, scale: 2 }).default("0"), // GoCardless portion
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(), // Amount credited to team wallet
   paymentMethod: varchar("payment_method", { length: 50 }).notNull(), // 'gocardless', 'manual', 'cash', 'bank_transfer'
   paymentReference: varchar("payment_reference", { length: 100 }), // GoCardless BRQXXX or PMXXX ID
-  status: varchar("status", { length: 20 }).notNull().default("completed"), // completed, refunded
+  billingRequestId: varchar("billing_request_id", { length: 255 }), // Links to gc_billing_requests
+  status: varchar("status", { length: 20 }).notNull().default("completed"), // completed, refunded, failed
   processedBy: varchar("processed_by").references(() => users.id), // For manual payments
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
