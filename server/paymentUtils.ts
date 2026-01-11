@@ -1,18 +1,28 @@
 import { storage } from './storage';
-import type { Fine, PaymentHistory, InsertPaymentHistory } from '@shared/schema';
+import type { Fine, InsertPaymentHistory } from '@shared/schema';
+
+interface FineDetail {
+  id: string;
+  title: string;
+  amount: number; // in pence
+}
 
 interface MarkAsPaidOptions {
   fineIds: string[];
   paymentMethod: 'gocardless' | 'manual' | 'cash' | 'bank_transfer';
   paymentReference?: string;
+  billingRequestId?: string; // GoCardless billing request ID
   totalAmount: number; // In pence
-  feeAmount?: number; // In pence
+  feeAmount?: number; // In pence (total fees)
+  foulPayFee?: number; // In pence
+  goCardlessFee?: number; // In pence
   netAmount?: number; // In pence (credited to team wallet)
   processedBy?: string; // User ID for manual payments
   notes?: string;
   teamId?: string; // Team ID (use this instead of deriving from player)
   playerId?: string; // Player ID (use this instead of deriving from fines)
   skipWalletCredit?: boolean; // Skip wallet credit if already handled elsewhere
+  fineDetails?: FineDetail[]; // Itemized fine breakdown
 }
 
 interface MarkAsPaidResult {
@@ -27,14 +37,18 @@ export async function markAsPaid(options: MarkAsPaidOptions): Promise<MarkAsPaid
     fineIds,
     paymentMethod,
     paymentReference,
+    billingRequestId,
     totalAmount,
     feeAmount = 0,
+    foulPayFee = 0,
+    goCardlessFee = 0,
     netAmount,
     processedBy,
     notes,
     teamId: providedTeamId,
     playerId: providedPlayerId,
     skipWalletCredit = false,
+    fineDetails: providedFineDetails,
   } = options;
 
   try {
@@ -77,6 +91,19 @@ export async function markAsPaid(options: MarkAsPaidOptions): Promise<MarkAsPaid
 
     const now = new Date();
 
+    // Build fine details if not provided
+    let fineDetails: FineDetail[] = providedFineDetails || [];
+    if (fineDetails.length === 0) {
+      for (const fine of fines) {
+        const subcategory = await storage.getSubcategory(fine.subcategoryId);
+        fineDetails.push({
+          id: fine.id,
+          title: subcategory?.name || 'Fine',
+          amount: Math.round(parseFloat(fine.amount as string) * 100),
+        });
+      }
+    }
+
     // Update each fine status to paid
     for (const fine of fines) {
       await storage.updateFine(fine.id, {
@@ -85,6 +112,7 @@ export async function markAsPaid(options: MarkAsPaidOptions): Promise<MarkAsPaid
         paidAt: now,
         paymentMethod,
         paymentReference: paymentReference || null,
+        gocardlessBillingRequestId: null, // Clear the billing request link
         updatedAt: now,
       });
       console.log(`Marked fine ${fine.id} as paid via ${paymentMethod}`);
@@ -92,16 +120,22 @@ export async function markAsPaid(options: MarkAsPaidOptions): Promise<MarkAsPaid
 
     // Create payment history entry for audit trail
     const calculatedNetAmount = netAmount ?? (totalAmount - feeAmount);
+    const calculatedFoulPayFee = foulPayFee || (paymentMethod === 'gocardless' ? Math.round(feeAmount * 0.67) : 0);
+    const calculatedGoCardlessFee = goCardlessFee || (paymentMethod === 'gocardless' ? Math.round(feeAmount * 0.33) : 0);
     
     const paymentHistoryData: InsertPaymentHistory = {
       teamId,
       playerId,
       fineIds: fineIds,
+      fineDetails: fineDetails,
       totalAmount: (totalAmount / 100).toFixed(2), // Convert pence to pounds
       feeAmount: (feeAmount / 100).toFixed(2),
+      foulPayFee: (calculatedFoulPayFee / 100).toFixed(2),
+      goCardlessFee: (calculatedGoCardlessFee / 100).toFixed(2),
       netAmount: (calculatedNetAmount / 100).toFixed(2),
       paymentMethod,
       paymentReference: paymentReference || null,
+      billingRequestId: billingRequestId || null,
       status: 'completed',
       processedBy: processedBy || null,
       notes: notes || null,
