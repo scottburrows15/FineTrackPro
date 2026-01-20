@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import mobileAuthRoutes from "./mobileAuth";
 import multer from "multer";
 import path from "path";
 import express from "express";
@@ -45,6 +46,9 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // Mobile authentication routes (email/password + JWT)
+  app.use(mobileAuthRoutes);
 
   // Auth middleware
   await setupAuth(app);
