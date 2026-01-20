@@ -1,0 +1,344 @@
+import { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import {
+  useWallet,
+  usePendingPayments,
+  useSimulatePaymentSuccess,
+  useSimulatePaymentCancel,
+  useClearAllPending,
+} from '../../hooks/useApi';
+import type { PendingPayment } from '../../types';
+
+export default function WalletScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: wallet, isLoading: walletLoading, refetch: refetchWallet } = useWallet();
+  const { data: pendingPayments, isLoading: pendingLoading, refetch: refetchPending } = usePendingPayments();
+
+  const simulateSuccess = useSimulatePaymentSuccess();
+  const simulateCancel = useSimulatePaymentCancel();
+  const clearAllPending = useClearAllPending();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchWallet(), refetchPending()]);
+    setRefreshing(false);
+  }, [refetchWallet, refetchPending]);
+
+  const handleSimulateSuccess = (payment: PendingPayment) => {
+    Alert.alert(
+      'Simulate Success',
+      `Mark payment from ${payment.playerName} as successful?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: () => simulateSuccess.mutate(payment.billingRequestId),
+        },
+      ]
+    );
+  };
+
+  const handleSimulateCancel = (payment: PendingPayment) => {
+    Alert.alert(
+      'Cancel Payment',
+      `Cancel payment from ${payment.playerName}? Fines will be reset to unpaid.`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => simulateCancel.mutate(payment.billingRequestId),
+        },
+      ]
+    );
+  };
+
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear All Pending',
+      'This will reset all pending payments and orphaned fines. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: () => clearAllPending.mutate(),
+        },
+      ]
+    );
+  };
+
+  const isLoading = walletLoading || pendingLoading;
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#22c55e" />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22c55e" />
+      }
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Team Wallet</Text>
+      </View>
+
+      <View style={styles.balanceCard}>
+        <View style={styles.balanceRow}>
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceLabel}>Available</Text>
+            <Text style={styles.balanceValue}>{wallet?.availableBalancePounds || '£0.00'}</Text>
+          </View>
+          <View style={styles.balanceDivider} />
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceLabel}>Pending</Text>
+            <Text style={[styles.balanceValue, styles.pendingValue]}>
+              {wallet?.pendingBalancePounds || '£0.00'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {pendingPayments && pendingPayments.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              Pending Payments ({pendingPayments.length})
+            </Text>
+            <TouchableOpacity
+              style={styles.clearAllButton}
+              onPress={handleClearAll}
+              disabled={clearAllPending.isPending}
+            >
+              {clearAllPending.isPending ? (
+                <ActivityIndicator size="small" color="#dc2626" />
+              ) : (
+                <Text style={styles.clearAllText}>Clear All</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {pendingPayments.map((payment) => (
+            <View key={payment.id} style={styles.paymentCard}>
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentPlayer}>{payment.playerName}</Text>
+                <Text style={styles.paymentDetails}>
+                  {payment.fineCount} fine{payment.fineCount > 1 ? 's' : ''} • 
+                  £{(payment.amount / 100).toFixed(2)}
+                </Text>
+                <Text style={styles.paymentId}>
+                  ID: {payment.billingRequestId.slice(0, 12)}...
+                </Text>
+              </View>
+
+              <View style={styles.paymentActions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.successBtn]}
+                  onPress={() => handleSimulateSuccess(payment)}
+                  disabled={simulateSuccess.isPending}
+                >
+                  <Text style={styles.actionBtnText}>✓</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.cancelBtn]}
+                  onPress={() => handleSimulateCancel(payment)}
+                  disabled={simulateCancel.isPending}
+                >
+                  <Text style={styles.actionBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {(!pendingPayments || pendingPayments.length === 0) && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>💰</Text>
+          <Text style={styles.emptyTitle}>No Pending Payments</Text>
+          <Text style={styles.emptySubtitle}>
+            Payments will appear here when players initiate bank transfers
+          </Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    padding: 24,
+    paddingTop: 60,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  balanceCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#22c55e',
+    borderRadius: 20,
+    padding: 24,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  balanceItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  balanceDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  balanceLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  balanceValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    marginTop: 8,
+  },
+  pendingValue: {
+    color: 'rgba(255,255,255,0.9)',
+  },
+  section: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f59e0b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  clearAllButton: {
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#dc2626',
+  },
+  clearAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#dc2626',
+  },
+  paymentCard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentPlayer: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  paymentDetails: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginTop: 4,
+  },
+  paymentId: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 4,
+    fontFamily: 'monospace',
+  },
+  paymentActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successBtn: {
+    backgroundColor: '#22c55e',
+  },
+  cancelBtn: {
+    backgroundColor: '#dc2626',
+  },
+  actionBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+});
