@@ -27,6 +27,14 @@ FoulPay is a comprehensive fine management system designed specifically for UK s
 - ✅ **Frontend Payment Interface**: Modern React payment page with fine selection, payment intent creation, and bank transfer instructions
 - ✅ **Mock Provider Integration**: Complete Open Banking provider abstraction ready for production API integration (TrueLayer/Yapily/Plaid)
 
+### React Native Mobile App (January 2025)
+- ✅ **Expo Project Structure**: Complete React Native/Expo mobile app in `apps/mobile/` with TypeScript
+- ✅ **Mobile Authentication**: JWT-based email/password authentication system with secure bcrypt password hashing
+- ✅ **Navigation System**: React Navigation with bottom tabs and role-based routing (Player vs Admin)
+- ✅ **Player Screens**: Dashboard with fine stats, Fines list with multi-select payment, Settings
+- ✅ **Admin Screens**: Dashboard with team statistics, Wallet management with pending payment simulation
+- ✅ **API Integration**: TanStack Query hooks connecting to existing Express API endpoints
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
