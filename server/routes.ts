@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import mobileAuthRoutes from "./mobileAuth";
+import mobileAuthRoutes, { mobileWebSessionRoutes } from "./mobileAuth";
 import multer from "multer";
 import path from "path";
 import express from "express";
@@ -52,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+
+  // Mobile web session routes (requires session auth - must be after setupAuth)
+  app.use(mobileWebSessionRoutes);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

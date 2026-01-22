@@ -169,6 +169,10 @@ router.get('/api/auth/me', mobileAuthMiddleware, async (req: Request, res: Respo
   });
 });
 
+// Web session routes - these require Passport session middleware to be set up first
+// They should be registered AFTER setupAuth() is called
+const webSessionRouter = Router();
+
 // Schema for setting mobile password
 const setMobilePasswordSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -179,7 +183,7 @@ const setMobilePasswordSchema = z.object({
 });
 
 // Endpoint for web users to set a mobile password (requires web session auth)
-router.post('/api/auth/set-mobile-password', async (req: Request, res: Response) => {
+webSessionRouter.post('/api/auth/set-mobile-password', async (req: Request, res: Response) => {
   try {
     // Check if user is authenticated via web session
     if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
@@ -226,7 +230,7 @@ router.post('/api/auth/set-mobile-password', async (req: Request, res: Response)
 });
 
 // Check if current user has mobile access set up
-router.get('/api/auth/mobile-status', async (req: Request, res: Response) => {
+webSessionRouter.get('/api/auth/mobile-status', async (req: Request, res: Response) => {
   try {
     if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
@@ -252,4 +256,8 @@ router.get('/api/auth/mobile-status', async (req: Request, res: Response) => {
   }
 });
 
+// Export the JWT-based mobile auth routes (login/register/etc)
 export default router;
+
+// Export the web session routes separately - must be registered AFTER setupAuth
+export { webSessionRouter as mobileWebSessionRoutes };
