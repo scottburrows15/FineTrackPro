@@ -169,4 +169,87 @@ router.get('/api/auth/me', mobileAuthMiddleware, async (req: Request, res: Respo
   });
 });
 
+// Schema for setting mobile password
+const setMobilePasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// Endpoint for web users to set a mobile password (requires web session auth)
+router.post('/api/auth/set-mobile-password', async (req: Request, res: Response) => {
+  try {
+    // Check if user is authenticated via web session
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: 'Please sign in to the web app first' });
+    }
+
+    const parsed = setMobilePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ 
+        message: parsed.error.errors[0]?.message || 'Invalid password format' 
+      });
+    }
+
+    const { password } = parsed.data;
+    const userId = (req.user as any).claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Invalid session' });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ 
+        message: 'Your account needs an email address to enable mobile login. Please update your profile first.' 
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await storage.updateUserPasswordHash(userId, passwordHash);
+
+    res.json({ 
+      message: 'Mobile password set successfully! You can now log in to the mobile app using your email and this password.',
+      email: user.email
+    });
+  } catch (error) {
+    console.error('Set mobile password error:', error);
+    res.status(500).json({ message: 'Failed to set mobile password. Please try again.' });
+  }
+});
+
+// Check if current user has mobile access set up
+router.get('/api/auth/mobile-status', async (req: Request, res: Response) => {
+  try {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const userId = (req.user as any).claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Invalid session' });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      hasMobileAccess: !!user.passwordHash,
+      email: user.email || null,
+    });
+  } catch (error) {
+    console.error('Mobile status check error:', error);
+    res.status(500).json({ message: 'Failed to check mobile status' });
+  }
+});
+
 export default router;

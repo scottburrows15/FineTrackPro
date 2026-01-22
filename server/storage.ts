@@ -52,6 +52,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createMobileUser(data: { email: string; passwordHash: string; firstName: string }): Promise<User>;
+  updateUserPasswordHash(userId: string, passwordHash: string): Promise<void>;
   getUserWithTeam(id: string): Promise<UserWithTeam | undefined>;
   
   // Team operations
@@ -185,6 +186,13 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserPasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
