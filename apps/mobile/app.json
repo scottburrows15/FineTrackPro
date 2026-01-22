@@ -29,9 +29,6 @@
       "eas": {
         "projectId": "foulpay-mobile"
       }
-    },
-    "plugins": [
-      "expo-asset"
-    ]
+    }
   }
 }
