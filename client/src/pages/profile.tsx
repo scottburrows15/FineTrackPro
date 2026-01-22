@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getDisplayName } from "@/lib/userUtils";
 import { useTeam } from "@/contexts/TeamContext";
-import { User, Save, Upload, Camera, ArrowLeft, Users, Shield, Check, ChevronRight } from "lucide-react";
+import { User, Save, Upload, Camera, ArrowLeft, Users, Shield, Check, ChevronRight, Smartphone, Eye, EyeOff, CheckCircle, Loader2 } from "lucide-react";
 import type { User as UserType, Notification } from "@shared/schema";
 import AppLayout from "@/components/ui/app-layout";
 
@@ -45,6 +45,59 @@ export default function Profile() {
 
   const [previewImage, setPreviewImage] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [mobilePassword, setMobilePassword] = useState("");
+  const [mobileConfirmPassword, setMobileConfirmPassword] = useState("");
+  const [showMobilePassword, setShowMobilePassword] = useState(false);
+  const [showMobileConfirmPassword, setShowMobileConfirmPassword] = useState(false);
+
+  const { data: mobileStatus, refetch: refetchMobileStatus } = useQuery<{ hasMobileAccess: boolean; email: string | null }>({
+    queryKey: ["/api/auth/mobile-status"],
+    enabled: !!user,
+  });
+
+  const setMobilePasswordMutation = useMutation({
+    mutationFn: async (data: { password: string; confirmPassword: string }) => {
+      const res = await apiRequest("POST", "/api/auth/set-mobile-password", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Mobile access enabled",
+        description: data.message,
+      });
+      setMobilePassword("");
+      setMobileConfirmPassword("");
+      refetchMobileStatus();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set mobile password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSetMobilePassword = () => {
+    if (mobilePassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (mobilePassword !== mobileConfirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same",
+        variant: "destructive",
+      });
+      return;
+    }
+    setMobilePasswordMutation.mutate({ password: mobilePassword, confirmPassword: mobileConfirmPassword });
+  };
 
   // Initialize form when user data loads
   useEffect(() => {
@@ -516,6 +569,100 @@ export default function Profile() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Mobile App Access */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-lg font-semibold">Mobile App Access</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Set up a password to log into the FoulPay mobile app
+                </p>
+
+                {mobileStatus?.hasMobileAccess ? (
+                  <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-300">Mobile access enabled</p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Log in to the mobile app with: {mobileStatus.email}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Create a password to log into the FoulPay mobile app using your email address.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="mobile-password" className="text-sm">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="mobile-password"
+                            type={showMobilePassword ? "text" : "password"}
+                            value={mobilePassword}
+                            onChange={(e) => setMobilePassword(e.target.value)}
+                            placeholder="At least 8 characters"
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowMobilePassword(!showMobilePassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            {showMobilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="mobile-confirm-password" className="text-sm">Confirm Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="mobile-confirm-password"
+                            type={showMobileConfirmPassword ? "text" : "password"}
+                            value={mobileConfirmPassword}
+                            onChange={(e) => setMobileConfirmPassword(e.target.value)}
+                            placeholder="Re-enter password"
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowMobileConfirmPassword(!showMobileConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            {showMobileConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="button"
+                      onClick={handleSetMobilePassword}
+                      disabled={setMobilePasswordMutation.isPending || mobilePassword.length < 8}
+                      className="w-full sm:w-auto"
+                    >
+                      {setMobilePasswordMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Setting up...
+                        </>
+                      ) : (
+                        <>
+                          <Smartphone className="h-4 w-4 mr-2" />
+                          Enable Mobile Access
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
