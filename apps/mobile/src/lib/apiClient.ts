@@ -4,10 +4,12 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
+  timeout?: number;
 }
 
 class ApiClient {
   private authToken: string | null = null;
+  private defaultTimeout = 15000;
 
   setAuthToken(token: string | null) {
     this.authToken = token;
@@ -18,7 +20,7 @@ class ApiClient {
   }
 
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, headers = {} } = options;
+    const { method = 'GET', body, headers = {}, timeout = this.defaultTimeout } = options;
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -29,18 +31,32 @@ class ApiClient {
       requestHeaders['Authorization'] = `Bearer ${this.authToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method,
-      headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method,
+        headers: requestHeaders,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Request failed' }));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   get<T>(endpoint: string): Promise<T> {

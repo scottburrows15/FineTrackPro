@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../lib/apiClient';
 import { API_ENDPOINTS } from '../config/api';
+
+const TOKEN_KEY = 'auth_token';
 
 interface User {
   id: string;
@@ -33,11 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
       apiClient.setAuthToken(null);
+      await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
     }
   };
 
   useEffect(() => {
-    refreshUser().finally(() => setIsLoading(false));
+    const initAuth = async () => {
+      try {
+        const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        if (storedToken) {
+          apiClient.setAuthToken(storedToken);
+          await refreshUser();
+        }
+      } catch {
+        // SecureStore may not be available in all environments
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -46,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { email, password }
     );
     apiClient.setAuthToken(response.token);
+    await SecureStore.setItemAsync(TOKEN_KEY, response.token).catch(() => {});
     setUser(response.user);
   };
 
@@ -55,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { email, password, username }
     );
     apiClient.setAuthToken(response.token);
+    await SecureStore.setItemAsync(TOKEN_KEY, response.token).catch(() => {});
     setUser(response.user);
   };
 
@@ -65,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore logout errors
     }
     apiClient.setAuthToken(null);
+    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
     setUser(null);
   };
 
