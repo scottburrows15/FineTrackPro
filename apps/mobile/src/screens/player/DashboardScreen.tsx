@@ -1,21 +1,19 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { useMyFines, useTeamInfo } from '../../hooks/useApi';
+import { useMyFines, useTeamInfo, useNotifications } from '../../hooks/useApi';
+import { Card, Button, StatCard } from '../../components/ui';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../theme';
 
 export default function PlayerDashboardScreen() {
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   
   const { data: fines, isLoading: finesLoading, refetch: refetchFines } = useMyFines();
-  const { data: team, isLoading: teamLoading, refetch: refetchTeam } = useTeamInfo();
+  const { data: team, refetch: refetchTeam } = useTeamInfo();
+  const { data: notifications } = useNotifications();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -28,65 +26,103 @@ export default function PlayerDashboardScreen() {
   const paidFines = fines?.filter(f => f.paymentStatus === 'paid') || [];
 
   const totalOwed = unpaidFines.reduce((sum, f) => sum + parseFloat(f.amount), 0);
-  const pendingAmount = pendingFines.reduce((sum, f) => sum + parseFloat(f.amount), 0);
-
-  if (finesLoading || teamLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
-      </View>
-    );
-  }
+  const totalPaid = paidFines.reduce((sum, f) => sum + parseFloat(f.amount), 0);
+  const firstName = user?.username?.split(' ')[0] || 'Player';
 
   return (
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22c55e" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary[500]} />
       }
     >
       <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.username}>{user?.username || 'Player'}</Text>
-        {team && <Text style={styles.teamName}>{team.name}</Text>}
+        <View style={styles.headerGradient}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>Hi {firstName}! 👋</Text>
+              <Text style={styles.subGreeting}>
+                {totalOwed > 0 
+                  ? `You have £${totalOwed.toFixed(2)} in outstanding fines`
+                  : "You're all caught up!"}
+              </Text>
+            </View>
+            {totalOwed > 0 && (
+              <Button 
+                onPress={() => navigation.navigate('Fines')}
+                variant="primary"
+                size="sm"
+              >
+                Pay £{totalOwed.toFixed(2)}
+              </Button>
+            )}
+          </View>
+        </View>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, styles.owedCard]}>
-          <Text style={styles.statLabel}>Total Owed</Text>
-          <Text style={styles.statValue}>£{totalOwed.toFixed(2)}</Text>
-          <Text style={styles.statCount}>{unpaidFines.length} fine{unpaidFines.length !== 1 ? 's' : ''}</Text>
+      <View style={styles.statsGrid}>
+        <View style={styles.statRow}>
+          <View style={[styles.statCard, { backgroundColor: colors.primary[600] }]}>
+            <Text style={styles.statLabel}>Total Paid</Text>
+            <Text style={styles.statValue}>£{totalPaid.toFixed(2)}</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.red[600] }]}>
+            <Text style={styles.statLabel}>Outstanding</Text>
+            <Text style={styles.statValue}>£{totalOwed.toFixed(2)}</Text>
+          </View>
         </View>
-
-        <View style={[styles.statCard, styles.pendingCard]}>
-          <Text style={styles.statLabel}>Pending</Text>
-          <Text style={styles.statValue}>£{pendingAmount.toFixed(2)}</Text>
-          <Text style={styles.statCount}>{pendingFines.length} payment{pendingFines.length !== 1 ? 's' : ''}</Text>
+        <View style={styles.statRow}>
+          <View style={[styles.statCard, { backgroundColor: colors.purple[600] }]}>
+            <Text style={styles.statLabel}>League Position</Text>
+            <Text style={styles.statValue}>#-</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.amber[500] }]}>
+            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statValue}>{pendingFines.length}</Text>
+          </View>
         </View>
       </View>
 
-      <View style={[styles.statCard, styles.paidCard, styles.fullWidth]}>
-        <Text style={styles.statLabel}>Paid This Month</Text>
-        <Text style={styles.statValue}>{paidFines.length}</Text>
-        <Text style={styles.statCount}>fines cleared</Text>
+      <View style={styles.quickActions}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionRow}>
+          <TouchableOpacity 
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('Fines')}
+          >
+            <Text style={styles.actionIcon}>📋</Text>
+            <Text style={styles.actionText}>View Fines</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('Stats')}
+          >
+            <Text style={styles.actionIcon}>🏆</Text>
+            <Text style={styles.actionText}>My Stats</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {unpaidFines.length > 0 && (
-        <View style={styles.section}>
+        <View style={styles.recentSection}>
           <Text style={styles.sectionTitle}>Recent Fines</Text>
           {unpaidFines.slice(0, 3).map(fine => (
-            <View key={fine.id} style={styles.fineItem}>
-              <View>
-                <Text style={styles.fineCategory}>{fine.categoryName}</Text>
-                {fine.subcategoryName && (
-                  <Text style={styles.fineSubcategory}>{fine.subcategoryName}</Text>
-                )}
+            <Card key={fine.id} style={styles.fineCard}>
+              <View style={styles.fineRow}>
+                <View>
+                  <Text style={styles.fineCategory}>{fine.categoryName}</Text>
+                  {fine.subcategoryName && (
+                    <Text style={styles.fineSubcategory}>{fine.subcategoryName}</Text>
+                  )}
+                </View>
+                <Text style={styles.fineAmount}>£{parseFloat(fine.amount).toFixed(2)}</Text>
               </View>
-              <Text style={styles.fineAmount}>£{parseFloat(fine.amount).toFixed(2)}</Text>
-            </View>
+            </Card>
           ))}
         </View>
       )}
+
+      <View style={styles.bottomSpacer} />
     </ScrollView>
   );
 }
@@ -94,106 +130,122 @@ export default function PlayerDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.slate[900],
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing.lg,
+  },
+  headerGradient: {
+    backgroundColor: colors.slate[800],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerText: {
+    flex: 1,
+    marginRight: spacing.md,
   },
   greeting: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
-  username: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 4,
+  subGreeting: {
+    fontSize: fontSize.sm,
+    color: colors.slate[300],
   },
-  teamName: {
-    fontSize: 14,
-    color: '#22c55e',
-    marginTop: 4,
+  statsGrid: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
-  statsRow: {
+  statRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 20,
-  },
-  fullWidth: {
-    marginHorizontal: 16,
-    marginTop: 12,
-  },
-  owedCard: {
-    backgroundColor: '#dc2626',
-  },
-  pendingCard: {
-    backgroundColor: '#f59e0b',
-  },
-  paidCard: {
-    backgroundColor: '#22c55e',
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
   },
   statLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: fontWeight.medium,
+    marginBottom: spacing.xs,
   },
   statValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: 8,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
-  statCount: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
-  section: {
-    marginTop: 24,
-    paddingHorizontal: 16,
+  quickActions: {
+    padding: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 12,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
+    marginBottom: spacing.md,
   },
-  fineItem: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: colors.slate[800],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.slate[700],
+    minHeight: 80,
+  },
+  actionIcon: {
+    fontSize: 24,
+    marginBottom: spacing.sm,
+  },
+  actionText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.white,
+  },
+  recentSection: {
+    padding: spacing.lg,
+  },
+  fineCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  fineRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   fineCategory: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
   },
   fineSubcategory: {
-    fontSize: 13,
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
     marginTop: 2,
   },
   fineAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#dc2626',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.red[500],
+  },
+  bottomSpacer: {
+    height: 100,
   },
 });

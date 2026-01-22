@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { useMyFines, usePayFines } from '../../hooks/useApi';
+import { Card, Badge, Button } from '../../components/ui';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../theme';
 import type { FineWithDetails } from '../../types';
 
 export default function FinesScreen() {
@@ -56,7 +58,7 @@ export default function FinesScreen() {
     }
 
     try {
-      const result = await payMutation.mutateAsync(Array.from(selectedFines));
+      await payMutation.mutateAsync(Array.from(selectedFines));
       Alert.alert(
         'Payment Initiated',
         'You will be redirected to complete your bank payment.',
@@ -84,6 +86,7 @@ export default function FinesScreen() {
         ]}
         onPress={() => !isPending && toggleFineSelection(item.id)}
         disabled={isPending}
+        activeOpacity={0.7}
       >
         <View style={styles.fineContent}>
           <View style={styles.fineHeader}>
@@ -91,9 +94,7 @@ export default function FinesScreen() {
               {item.categoryName}
             </Text>
             {isPending && (
-              <View style={styles.pendingBadge}>
-                <Text style={styles.pendingBadgeText}>Pending</Text>
-              </View>
+              <Badge variant="warning">Pending</Badge>
             )}
           </View>
           {item.subcategoryName && (
@@ -122,7 +123,7 @@ export default function FinesScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color={colors.primary[500]} />
       </View>
     );
   }
@@ -132,47 +133,80 @@ export default function FinesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>My Fines</Text>
         <Text style={styles.subtitle}>
-          {unpaidFines.length} unpaid • {pendingFines.length} pending • {paidFines.length} paid
+          {unpaidFines.length} unpaid · {pendingFines.length} pending · {paidFines.length} paid
         </Text>
       </View>
 
-      {pendingFines.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Awaiting Bank Transfer</Text>
-          {pendingFines.map(fine => (
-            <View key={fine.id}>
-              {renderFineItem({ item: fine, isPending: true })}
-            </View>
-          ))}
-        </View>
-      )}
+      <FlatList
+        data={[]}
+        renderItem={() => null}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary[500]} />
+        }
+        ListHeaderComponent={
+          <>
+            {pendingFines.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Awaiting Bank Transfer</Text>
+                {pendingFines.map(fine => (
+                  <View key={fine.id}>
+                    {renderFineItem({ item: fine, isPending: true })}
+                  </View>
+                ))}
+              </View>
+            )}
 
-      {unpaidFines.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Unpaid Fines</Text>
-            <TouchableOpacity onPress={selectedFines.size > 0 ? clearSelection : selectAll}>
-              <Text style={styles.selectAllText}>
-                {selectedFines.size > 0 ? 'Clear' : 'Select All'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={unpaidFines}
-            renderItem={({ item }) => renderFineItem({ item })}
-            keyExtractor={item => item.id}
-            scrollEnabled={false}
-          />
-        </View>
-      )}
+            {unpaidFines.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Unpaid Fines</Text>
+                  <TouchableOpacity onPress={selectedFines.size > 0 ? clearSelection : selectAll}>
+                    <Text style={styles.selectAllText}>
+                      {selectedFines.size > 0 ? 'Clear' : 'Select All'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {unpaidFines.map(fine => (
+                  <View key={fine.id}>
+                    {renderFineItem({ item: fine })}
+                  </View>
+                ))}
+              </View>
+            )}
 
-      {unpaidFines.length === 0 && pendingFines.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🎉</Text>
-          <Text style={styles.emptyTitle}>All Clear!</Text>
-          <Text style={styles.emptySubtitle}>You have no outstanding fines</Text>
-        </View>
-      )}
+            {paidFines.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Paid Fines</Text>
+                {paidFines.slice(0, 5).map(fine => (
+                  <Card key={fine.id} style={styles.paidFineCard}>
+                    <View style={styles.fineRow}>
+                      <View>
+                        <Text style={styles.paidCategory}>{fine.categoryName}</Text>
+                        <Text style={styles.fineDate}>
+                          {new Date(fine.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.paidRight}>
+                        <Text style={styles.paidAmount}>£{parseFloat(fine.amount).toFixed(2)}</Text>
+                        <Badge variant="success">Paid</Badge>
+                      </View>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            )}
+
+            {unpaidFines.length === 0 && pendingFines.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyIcon}>🎉</Text>
+                <Text style={styles.emptyTitle}>All Clear!</Text>
+                <Text style={styles.emptySubtitle}>You have no outstanding fines</Text>
+              </View>
+            )}
+          </>
+        }
+        contentContainerStyle={styles.listContent}
+      />
 
       {selectedFines.size > 0 && (
         <View style={styles.payBar}>
@@ -182,17 +216,13 @@ export default function FinesScreen() {
             </Text>
             <Text style={styles.payBarTotal}>£{selectedTotal.toFixed(2)}</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.payButton, payMutation.isPending && styles.payButtonDisabled]}
+          <Button
             onPress={handlePaySelected}
+            loading={payMutation.isPending}
             disabled={payMutation.isPending}
           >
-            {payMutation.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.payButtonText}>Pay Now</Text>
-            )}
-          </TouchableOpacity>
+            Pay Now
+          </Button>
         </View>
       )}
     </View>
@@ -202,67 +232,69 @@ export default function FinesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.slate[900],
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.slate[900],
     justifyContent: 'center',
     alignItems: 'center',
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    padding: spacing.lg,
+    paddingTop: spacing['2xl'],
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    marginTop: 4,
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
+    marginTop: spacing.xs,
+  },
+  listContent: {
+    paddingBottom: 120,
   },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.slate[400],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   selectAllText: {
-    fontSize: 14,
-    color: '#22c55e',
-    fontWeight: '600',
+    fontSize: fontSize.sm,
+    color: colors.primary[500],
+    fontWeight: fontWeight.semibold,
   },
   fineItem: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.slate[800],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   pendingFineItem: {
-    backgroundColor: '#1e293b',
     opacity: 0.6,
   },
   selectedFineItem: {
-    borderColor: '#22c55e',
+    borderColor: colors.primary[500],
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
   },
   fineContent: {
@@ -271,121 +303,117 @@ const styles = StyleSheet.create({
   fineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   fineCategory: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
   },
   pendingText: {
-    color: '#64748b',
-  },
-  pendingBadge: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  pendingBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#fff',
+    color: colors.slate[500],
   },
   fineSubcategory: {
-    fontSize: 13,
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
     marginTop: 2,
   },
   fineDate: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 4,
+    fontSize: fontSize.xs,
+    color: colors.slate[500],
+    marginTop: spacing.xs,
   },
   fineRight: {
     alignItems: 'flex-end',
-    gap: 8,
+    gap: spacing.sm,
   },
   fineAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#dc2626',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.red[500],
   },
   pendingAmount: {
-    color: '#f59e0b',
+    color: colors.amber[500],
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: colors.slate[600],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxSelected: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   checkmark: {
-    color: '#fff',
-    fontWeight: '700',
+    color: colors.white,
+    fontWeight: fontWeight.bold,
+  },
+  paidFineCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  fineRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  paidCategory: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.slate[300],
+  },
+  paidRight: {
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+  },
+  paidAmount: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.slate[400],
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing['5xl'],
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    marginTop: 4,
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
+    marginTop: spacing.xs,
   },
   payBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.slate[800],
     borderTopWidth: 1,
-    borderTopColor: '#334155',
-    padding: 16,
-    paddingBottom: 32,
+    borderTopColor: colors.slate[700],
+    padding: spacing.lg,
+    paddingBottom: spacing['3xl'],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   payBarLabel: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
   },
   payBarTotal: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  payButton: {
-    backgroundColor: '#22c55e',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  payButtonDisabled: {
-    opacity: 0.6,
-  },
-  payButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
 });

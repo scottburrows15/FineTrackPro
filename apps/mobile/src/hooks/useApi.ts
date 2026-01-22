@@ -124,3 +124,91 @@ export function useClearAllPending() {
     },
   });
 }
+
+export function useMarkFinePaid() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (fineId: string) =>
+      apiClient.post(`/api/admin/fines/${fineId}/record-payment`, {
+        paymentMethod: 'manual',
+        transactionId: 'Mobile Admin Payment',
+        notes: 'Marked as paid by admin via mobile app',
+        amount: 0,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fines'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useDeleteFine() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (fineId: string) =>
+      apiClient.delete(`/api/admin/fines/${fineId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fines'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+}
+
+export function useIssueFine() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: {
+      playerId: string;
+      subcategoryId: string;
+      amount: string;
+      description?: string;
+    }) => apiClient.post('/api/admin/fines', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fines'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useBatchIssueFines() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: {
+      playerIds: string[];
+      subcategoryId: string;
+      amount: string;
+      description?: string;
+    }) => {
+      const results: { success: boolean; playerId: string; error?: string }[] = [];
+      for (const playerId of data.playerIds) {
+        try {
+          await apiClient.post('/api/admin/fines', {
+            playerId,
+            subcategoryId: data.subcategoryId,
+            amount: data.amount,
+            description: data.description,
+          });
+          results.push({ success: true, playerId });
+        } catch (error: any) {
+          results.push({ success: false, playerId, error: error.message });
+        }
+      }
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fines'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}

@@ -16,6 +16,8 @@ import {
   useSimulatePaymentCancel,
   useClearAllPending,
 } from '../../hooks/useApi';
+import { Card, Badge, Button } from '../../components/ui';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../theme';
 import type { PendingPayment } from '../../types';
 
 export default function WalletScreen() {
@@ -80,10 +82,10 @@ export default function WalletScreen() {
 
   const isLoading = walletLoading || pendingLoading;
 
-  if (isLoading) {
+  if (isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color={colors.primary[500]} />
       </View>
     );
   }
@@ -92,7 +94,7 @@ export default function WalletScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22c55e" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary[500]} />
       }
     >
       <View style={styles.header}>
@@ -127,7 +129,7 @@ export default function WalletScreen() {
               disabled={clearAllPending.isPending}
             >
               {clearAllPending.isPending ? (
-                <ActivityIndicator size="small" color="#dc2626" />
+                <ActivityIndicator size="small" color={colors.red[500]} />
               ) : (
                 <Text style={styles.clearAllText}>Clear All</Text>
               )}
@@ -135,15 +137,12 @@ export default function WalletScreen() {
           </View>
 
           {pendingPayments.map((payment) => (
-            <View key={payment.id} style={styles.paymentCard}>
+            <Card key={payment.id} style={styles.paymentCard}>
               <View style={styles.paymentInfo}>
                 <Text style={styles.paymentPlayer}>{payment.playerName}</Text>
                 <Text style={styles.paymentDetails}>
                   {payment.fineCount} fine{payment.fineCount > 1 ? 's' : ''} • 
                   £{(payment.amount / 100).toFixed(2)}
-                </Text>
-                <Text style={styles.paymentId}>
-                  ID: {payment.billingRequestId.slice(0, 12)}...
                 </Text>
               </View>
 
@@ -163,7 +162,7 @@ export default function WalletScreen() {
                   <Text style={styles.actionBtnText}>✕</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Card>
           ))}
         </View>
       )}
@@ -177,6 +176,8 @@ export default function WalletScreen() {
           </Text>
         </View>
       )}
+
+      <View style={styles.bottomSpacer} />
     </ScrollView>
   );
 }
@@ -184,28 +185,28 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.slate[900],
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.slate[900],
     justifyContent: 'center',
     alignItems: 'center',
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    padding: spacing.lg,
+    paddingTop: spacing['2xl'],
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   balanceCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#22c55e',
-    borderRadius: 20,
-    padding: 24,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
   },
   balanceRow: {
     flexDirection: 'row',
@@ -221,124 +222,118 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   balanceLabel: {
-    fontSize: 12,
+    fontSize: fontSize.xs,
     color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   balanceValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: 8,
+    fontSize: fontSize['3xl'],
+    fontWeight: fontWeight.extrabold,
+    color: colors.white,
+    marginTop: spacing.sm,
   },
   pendingValue: {
-    color: 'rgba(255,255,255,0.9)',
+    opacity: 0.9,
   },
   section: {
-    marginTop: 24,
-    paddingHorizontal: 16,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f59e0b',
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.amber[500],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   clearAllButton: {
     backgroundColor: 'rgba(220, 38, 38, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#dc2626',
+    borderColor: colors.red[600],
   },
   clearAllText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#dc2626',
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.red[500],
   },
   paymentCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
+    borderLeftColor: colors.amber[500],
   },
   paymentInfo: {
     flex: 1,
   },
   paymentPlayer: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
   },
   paymentDetails: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 4,
-  },
-  paymentId: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 4,
-    fontFamily: 'monospace',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
+    marginTop: spacing.xs,
   },
   paymentActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   actionBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   successBtn: {
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.primary[500],
   },
   cancelBtn: {
-    backgroundColor: '#dc2626',
+    backgroundColor: colors.red[600],
   },
   actionBtnText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    color: colors.white,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingVertical: spacing['5xl'],
+    paddingHorizontal: spacing['3xl'],
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    marginTop: 8,
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
+    marginTop: spacing.sm,
     textAlign: 'center',
+  },
+  bottomSpacer: {
+    height: 100,
   },
 });

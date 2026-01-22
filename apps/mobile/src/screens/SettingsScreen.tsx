@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTeamInfo } from '../hooks/useApi';
+import { Card, Badge, Button } from '../components/ui';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../theme';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -37,67 +39,81 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         
-        <View style={styles.infoCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
-            </Text>
-          </View>
-          <View style={styles.infoContent}>
-            <Text style={styles.username}>{user?.username}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>
-                {user?.role === 'admin' ? 'Admin' : 'Player'}
+        <Card style={styles.profileCard}>
+          <View style={styles.profileRow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.username}>{user?.username}</Text>
+              <Text style={styles.email}>{user?.email}</Text>
+              <Badge 
+                variant={user?.role === 'admin' ? 'success' : 'info'}
+                style={styles.roleBadge}
+              >
+                {user?.role === 'admin' ? 'Admin' : 'Player'}
+              </Badge>
+            </View>
           </View>
-        </View>
+        </Card>
       </View>
 
       {team && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Team</Text>
           
-          <View style={styles.menuItem}>
+          <Card style={styles.menuItem}>
             <Text style={styles.menuLabel}>Team Name</Text>
             <Text style={styles.menuValue}>{team.name}</Text>
-          </View>
+          </Card>
           
-          <View style={styles.menuItem}>
+          <Card style={styles.menuItem}>
             <Text style={styles.menuLabel}>Invite Code</Text>
-            <Text style={styles.menuValueMono}>{team.inviteCode}</Text>
-          </View>
+            <Text style={styles.menuValueCode}>{team.inviteCode}</Text>
+          </Card>
         </View>
       )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App</Text>
         
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuLabel}>Notifications</Text>
-          <Text style={styles.menuArrow}>›</Text>
+        <TouchableOpacity>
+          <Card style={styles.menuItem}>
+            <Text style={styles.menuLabel}>Notifications</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </Card>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuLabel}>About</Text>
-          <Text style={styles.menuArrow}>›</Text>
+        <TouchableOpacity>
+          <Card style={styles.menuItem}>
+            <Text style={styles.menuLabel}>About FoulPay</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </Card>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuLabel}>Privacy Policy</Text>
-          <Text style={styles.menuArrow}>›</Text>
+        <TouchableOpacity>
+          <Card style={styles.menuItem}>
+            <Text style={styles.menuLabel}>Privacy Policy</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </Card>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </TouchableOpacity>
+        <Button 
+          variant="danger" 
+          onPress={handleLogout}
+          fullWidth
+        >
+          Sign Out
+        </Button>
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>FoulPay v1.0.0</Text>
+        <Text style={styles.footerText}>FoulPay Mobile v1.0.0</Text>
+        <Text style={styles.footerSubtext}>Made for UK Sports Teams</Text>
       </View>
     </ScrollView>
   );
@@ -106,119 +122,103 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.slate[900],
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    padding: spacing.lg,
+    paddingTop: spacing['2xl'],
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.slate[500],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  infoCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 20,
+  profileCard: {
+    padding: spacing.lg,
+  },
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: spacing.lg,
   },
   avatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
-  infoContent: {
+  profileInfo: {
     flex: 1,
   },
   username: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   email: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
     marginTop: 2,
   },
   roleBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    marginTop: spacing.sm,
     alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#22c55e',
   },
   menuItem: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    padding: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   menuLabel: {
-    fontSize: 16,
-    color: '#fff',
+    fontSize: fontSize.base,
+    color: colors.white,
   },
   menuValue: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: fontSize.sm,
+    color: colors.slate[400],
   },
-  menuValueMono: {
-    fontSize: 14,
-    color: '#22c55e',
+  menuValueCode: {
+    fontSize: fontSize.sm,
+    color: colors.primary[500],
     fontFamily: 'monospace',
   },
   menuArrow: {
-    fontSize: 20,
-    color: '#64748b',
-  },
-  logoutButton: {
-    backgroundColor: '#dc2626',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: fontSize.xl,
+    color: colors.slate[500],
   },
   footer: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing['3xl'],
+    paddingBottom: spacing['5xl'],
   },
   footerText: {
-    fontSize: 12,
-    color: '#475569',
+    fontSize: fontSize.sm,
+    color: colors.slate[500],
+  },
+  footerSubtext: {
+    fontSize: fontSize.xs,
+    color: colors.slate[600],
+    marginTop: spacing.xs,
   },
 });
