@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import { 
@@ -22,26 +23,86 @@ import {
   Receipt,
   HelpCircle,
   ChevronRight,
-  Laptop
+  Laptop,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Loader2
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { useTheme } from "@/components/ui/theme-provider";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function PlayerSettings() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [fineReminders, setFineReminders] = useState(true);
   const [paymentNotifications, setPaymentNotifications] = useState(true);
 
+  const [mobilePassword, setMobilePassword] = useState("");
+  const [mobileConfirmPassword, setMobileConfirmPassword] = useState("");
+  const [showMobilePassword, setShowMobilePassword] = useState(false);
+  const [showMobileConfirmPassword, setShowMobileConfirmPassword] = useState(false);
+
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const { data: mobileStatus, refetch: refetchMobileStatus } = useQuery<{ hasMobileAccess: boolean; email: string | null }>({
+    queryKey: ["/api/auth/mobile-status"],
+    enabled: !!user,
+  });
+
+  const setMobilePasswordMutation = useMutation({
+    mutationFn: async (data: { password: string; confirmPassword: string }) => {
+      const res = await apiRequest("POST", "/api/auth/set-mobile-password", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Mobile access enabled",
+        description: data.message,
+      });
+      setMobilePassword("");
+      setMobileConfirmPassword("");
+      refetchMobileStatus();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set mobile password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSetMobilePassword = () => {
+    if (mobilePassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (mobilePassword !== mobileConfirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same",
+        variant: "destructive",
+      });
+      return;
+    }
+    setMobilePasswordMutation.mutate({ password: mobilePassword, confirmPassword: mobileConfirmPassword });
+  };
 
   const handleLogout = async () => {
     window.location.href = "/api/logout";
@@ -240,6 +301,101 @@ export default function PlayerSettings() {
                   </div>
                 </button>
               </div>
+            </Card>
+
+            {/* Mobile Access Settings */}
+            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Mobile App Access</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {mobileStatus?.hasMobileAccess 
+                      ? "Mobile access is enabled" 
+                      : "Set up a password to use the mobile app"}
+                  </p>
+                </div>
+              </div>
+
+              {mobileStatus?.hasMobileAccess ? (
+                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Mobile access enabled</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      Log in to the mobile app with: {mobileStatus.email}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Create a password to log into the FoulPay mobile app using your email address.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile-password" className="text-sm">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="mobile-password"
+                        type={showMobilePassword ? "text" : "password"}
+                        value={mobilePassword}
+                        onChange={(e) => setMobilePassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMobilePassword(!showMobilePassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showMobilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile-confirm-password" className="text-sm">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="mobile-confirm-password"
+                        type={showMobileConfirmPassword ? "text" : "password"}
+                        value={mobileConfirmPassword}
+                        onChange={(e) => setMobileConfirmPassword(e.target.value)}
+                        placeholder="Re-enter password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMobileConfirmPassword(!showMobileConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showMobileConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleSetMobilePassword}
+                    disabled={setMobilePasswordMutation.isPending || mobilePassword.length < 8}
+                    className="w-full"
+                  >
+                    {setMobilePasswordMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        <Smartphone className="h-4 w-4 mr-2" />
+                        Enable Mobile Access
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </Card>
 
             {/* Support & Actions */}
