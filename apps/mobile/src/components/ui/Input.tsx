@@ -29,7 +29,7 @@ export function Input({
       <View style={[styles.inputContainer, error && styles.inputError]}>
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
         <TextInput
-          style={[styles.input, leftIcon && styles.inputWithIcon, style]}
+          style={[styles.input, leftIcon ? styles.inputWithIcon : undefined, style]}
           placeholderTextColor={colors.slate[500]}
           {...props}
         />

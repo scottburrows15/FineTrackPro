@@ -1,9 +1,9 @@
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { colors, borderRadius, spacing } from '../../theme';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'gradient';
   gradientColors?: readonly [string, string];
 }

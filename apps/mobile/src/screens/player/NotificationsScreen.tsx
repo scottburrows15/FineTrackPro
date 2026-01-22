@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
   };
 
   const renderNotification = ({ item }: { item: Notification }) => (
-    <Card style={[styles.notificationCard, !item.isRead && styles.unreadCard]}>
+    <Card style={[styles.notificationCard, !item.isRead ? styles.unreadCard : undefined]}>
       <View style={styles.notificationRow}>
         <Text style={styles.notificationIcon}>{getNotificationIcon(item.type)}</Text>
         <View style={styles.notificationContent}>
