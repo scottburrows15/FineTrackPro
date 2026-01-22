@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://your-replit-app-url.replit.app';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://7568e0fe-6547-4521-a0e4-43b4a2e86806-00-7zuqx02rs3f8.kirk.replit.dev';
 
 export const API_ENDPOINTS = {
   auth: {
