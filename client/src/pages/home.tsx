@@ -2,6 +2,20 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import TeamOnboarding from "@/components/team-onboarding";
+import logoUrl from "@assets/foulpay-logo.png";
+
+function SplashScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <img 
+        src={logoUrl} 
+        alt="FoulPay" 
+        className="w-48 h-auto mb-6 animate-pulse"
+      />
+      <div className="animate-spin w-6 h-6 border-3 border-emerald-500 border-t-transparent rounded-full" />
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -19,11 +33,7 @@ export default function Home() {
   }, [user, setLocation]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   if (!user || !user.teamId) {
@@ -31,9 +41,5 @@ export default function Home() {
   }
 
   // Show loading while redirecting
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20">
-      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-    </div>
-  );
+  return <SplashScreen />;
 }
