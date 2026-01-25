@@ -1,0 +1,20 @@
+{
+  "name": "FoulPay - Sports Fines Management",
+  "short_name": "FoulPay",
+  "description": "Professional fine management system for UK sports teams",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#22c55e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["sports", "finance", "productivity"],
+  "prefer_related_applications": false
+}

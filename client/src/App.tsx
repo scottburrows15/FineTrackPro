@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import { TeamProvider } from "@/contexts/TeamContext";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import JoinTeam from "@/pages/join-team";
@@ -89,6 +90,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <InstallPrompt />
           </TooltipProvider>
         </TeamProvider>
       </QueryClientProvider>
