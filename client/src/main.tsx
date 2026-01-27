@@ -3,6 +3,15 @@ import App from "./App";
 import "./index.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
+// Detect PWA standalone mode and add class to body
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+  || (window.navigator as any).standalone 
+  || document.referrer.includes('android-app://');
+
+if (isStandalone) {
+  document.body.classList.add('pwa-standalone');
+}
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
