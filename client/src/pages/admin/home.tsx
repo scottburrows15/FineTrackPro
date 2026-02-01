@@ -72,7 +72,7 @@ export default function AdminHome() {
 
   // Queries
   const { data: team } = useQuery<Team>({
-    queryKey: ["/api/teams/current"],
+    queryKey: ["/api/team/info"],
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<TeamStats>({
@@ -456,12 +456,12 @@ function FineListItem({
       <div className="p-4 cursor-pointer" onClick={onToggle}>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3.5">
-            <Avatar className={cn("w-10 h-10 rounded-xl", fine.isPaid ? "ring-2 ring-emerald-50" : "ring-2 ring-slate-50")}>
+            <Avatar className={cn("w-10 h-10 rounded-full", fine.isPaid ? "ring-2 ring-emerald-100" : "ring-2 ring-slate-100")}>
               {fine.player?.profileImageUrl && (
-                <AvatarImage src={fine.player.profileImageUrl} alt={displayName} />
+                <AvatarImage src={fine.player.profileImageUrl} alt={displayName} className="rounded-full object-cover" />
               )}
               <AvatarFallback className={cn(
-                "rounded-xl text-xs font-black", 
+                "rounded-full text-xs font-black", 
                 fine.isPaid ? "bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600" : "bg-gradient-to-br from-slate-50 to-slate-100 text-slate-500"
               )}>
                 {initials}
