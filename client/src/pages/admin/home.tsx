@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -223,20 +224,20 @@ export default function AdminHome() {
     >
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         
-        {/* 1. TEAM HEADER (Stretched Full Width) */}
-        <div className="w-full flex items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex flex-col pl-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1.5">Team Code</span>
-            <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">{team?.inviteCode || "..."}</span>
-          </div>
+        {/* 1. TEAM HEADER (Pill Style) */}
+        <div className="flex items-center justify-between gap-2">
+          <Badge variant="outline" className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider bg-white border-slate-200">
+            <Users className="w-3 h-3 mr-1.5 text-blue-500" />
+            Team Code: {team?.inviteCode || "..."}
+          </Badge>
           <Button 
-            variant="ghost"
-            size="icon"
-            className="rounded-xl h-10 w-10 bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all active:scale-95"
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-slate-400 shrink-0"
             onClick={handleShare}
             aria-label="Share team invite"
           >
-            <Share2 className="w-5 h-5" />
+            <Share2 className="w-4 h-4" />
           </Button>
         </div>
 
