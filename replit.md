@@ -27,13 +27,13 @@ FoulPay is a comprehensive fine management system designed specifically for UK s
 - ✅ **Frontend Payment Interface**: Modern React payment page with fine selection, payment intent creation, and bank transfer instructions
 - ✅ **Mock Provider Integration**: Complete Open Banking provider abstraction ready for production API integration (TrueLayer/Yapily/Plaid)
 
-### React Native Mobile App (January 2025)
-- ✅ **Expo Project Structure**: Complete React Native/Expo mobile app in `apps/mobile/` with TypeScript
-- ✅ **Mobile Authentication**: JWT-based email/password authentication system with secure bcrypt password hashing
-- ✅ **Navigation System**: React Navigation with bottom tabs and role-based routing (Player vs Admin)
-- ✅ **Player Screens**: Dashboard with fine stats, Fines list with multi-select payment, Settings
-- ✅ **Admin Screens**: Dashboard with team statistics, Wallet management with pending payment simulation
-- ✅ **API Integration**: TanStack Query hooks connecting to existing Express API endpoints
+### PWA-Only Pivot (February 2026)
+- ✅ **Mobile App Removal**: Removed all mobile app download flows, password setup, and native app references - PWA-only strategy
+- ✅ **Subscription Removal**: Eliminated all subscription tiers, billing UI, and subscription management - all features now free
+- ✅ **Push Notifications (Web Push API)**: Full PWA push notification support with VAPID keys, service worker handlers, push_subscriptions DB table, server API routes, and usePushNotifications hook
+- ✅ **Settings Navigation**: Added Settings icon to bottom nav with role-based routing (Player→App Settings, Admin→Team Settings)
+- ✅ **Create Team Flow**: Added "Create a New Team" button to team switcher dropdown and profile page with dedicated /create-team route
+- ✅ **Notification Cleanup**: Removed email alerts and weekly digest toggles, keeping only push notification toggle driven by actual subscription state
 
 # User Preferences
 
