@@ -14,7 +14,6 @@ import ManualPaymentModal from "./manual-payment-modal";
 import EditPlayerModal from "./edit-player-modal";
 import AuditTrailModal from "./audit-trail-modal";
 import BulkFineModal from "./bulk-fine-modal";
-import SubscriptionManagementModal from "./subscription-management-modal";
 import UnifiedFineIssuer from "./unified-fine-issuer";
 import FineFilters from "./fine-filters";
 import { formatCurrency } from "@/lib/utils";
@@ -62,7 +61,6 @@ export default function AdminDashboard({ activeSection = 'home' }: AdminDashboar
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
   const [showBulkFineModal, setShowBulkFineModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showUnifiedFineIssuer, setShowUnifiedFineIssuer] = useState(false);
   const [selectedFineForPayment, setSelectedFineForPayment] = useState<FineWithDetails | undefined>(undefined);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<User | null>(null);
@@ -708,13 +706,6 @@ export default function AdminDashboard({ activeSection = 'home' }: AdminDashboar
           <BulkFineModal 
             isOpen={showBulkFineModal} 
             onClose={() => setShowBulkFineModal(false)} 
-          />
-        )}
-
-        {showSubscriptionModal && (
-          <SubscriptionManagementModal 
-            isOpen={showSubscriptionModal} 
-            onClose={() => setShowSubscriptionModal(false)} 
           />
         )}
 

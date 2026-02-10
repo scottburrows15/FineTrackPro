@@ -32,6 +32,7 @@ import AdminSettings from "@/pages/admin/settings";
 // Shared pages
 import Help from "@/pages/help";
 import Profile from "@/pages/profile";
+import CreateTeam from "@/pages/create-team";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -72,6 +73,7 @@ function Router() {
       {/* Shared routes */}
       <Route path="/help" component={Help} />
       <Route path="/profile" component={Profile} />
+      <Route path="/create-team" component={CreateTeam} />
       <Route path="/payment" component={Payment} />
       <Route path="/payments" component={Payments} />
       <Route path="/payment-confirmed" component={PaymentConfirmed} />

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Gavel, BarChart3, Home, Bell, Users, ChevronUp, Check } from "lucide-react";
+import { Gavel, BarChart3, Home, Bell, Users, ChevronUp, Check, Settings, PlusCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTeam } from "@/contexts/TeamContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -22,16 +23,16 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
   
   const navItems = currentView === 'player' 
     ? [
-        { id: 'fines', path: '/player/fines', icon: Gavel, label: 'Fines', color: 'text-red-500' },
-        { id: 'stats', path: '/player/stats', icon: BarChart3, label: 'Stats', color: 'text-emerald-500' },
         { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
+        { id: 'fines', path: '/player/fines', icon: Gavel, label: 'Fines', color: 'text-red-500' },
         { id: 'notifications', path: '/player/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
+        { id: 'settings', path: '/player/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
       ]
     : [
-        { id: 'fines', path: '/admin/fines', icon: Gavel, label: 'Issue', color: 'text-red-500' },
-        { id: 'analytics', path: '/admin/analytics', icon: BarChart3, label: 'Analytics', color: 'text-emerald-500' },
         { id: 'home', path: '/admin/home', icon: Home, label: 'Dashboard', color: 'text-blue-500' },
+        { id: 'fines', path: '/admin/fines', icon: Gavel, label: 'Issue', color: 'text-red-500' },
         { id: 'notifications', path: '/admin/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
+        { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Team', color: 'text-slate-500' },
       ];
 
   const handleTeamSelect = async (teamId: string) => {
@@ -191,6 +192,22 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   No teams found
                 </div>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setTeamMenuOpen(false);
+                  setLocation('/create-team');
+                }}
+                className="cursor-pointer"
+                data-testid="create-new-team"
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 shrink-0">
+                    <PlusCircle className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Create a New Team</span>
+                </div>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -602,3 +602,21 @@ export const insertGcBillingRequestSchema = createInsertSchema(gcBillingRequests
 });
 export type GcBillingRequest = typeof gcBillingRequests.$inferSelect;
 export type InsertGcBillingRequest = z.infer<typeof insertGcBillingRequestSchema>;
+
+// Push subscriptions table for PWA push notifications
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;

@@ -15,9 +15,6 @@ import {
   Moon, 
   Sun,
   LogOut,
-  Mail,
-  Smartphone,
-  Calendar,
   Receipt,
   HelpCircle,
   ChevronRight,
@@ -25,15 +22,14 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { useTheme } from "@/components/ui/theme-provider";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export default function PlayerSettings() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
+  const { isSupported, permission, isSubscribed, requestPermission, unsubscribe } = usePushNotifications();
   
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [fineReminders, setFineReminders] = useState(true);
   const [paymentNotifications, setPaymentNotifications] = useState(true);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
@@ -82,46 +78,27 @@ export default function PlayerSettings() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="email-notifications" className="font-medium text-sm">Email Notifications</Label>
-                      <p className="text-xs text-slate-500">Receive email updates</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="h-4 w-4 text-slate-500" />
+                    <Bell className="h-4 w-4 text-slate-500" />
                     <div>
                       <Label htmlFor="push-notifications" className="font-medium text-sm">Push Notifications</Label>
-                      <p className="text-xs text-slate-500">Get instant updates</p>
+                      <p className="text-xs text-slate-500">
+                        {!isSupported ? "Not supported on this device" :
+                         permission === "denied" ? "Blocked in browser settings" :
+                         isSubscribed ? "Enabled" : "Get instant updates"}
+                      </p>
                     </div>
                   </div>
                   <Switch
                     id="push-notifications"
-                    checked={pushNotifications}
-                    onCheckedChange={setPushNotifications}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="fine-reminders" className="font-medium text-sm">Fine Reminders</Label>
-                      <p className="text-xs text-slate-500">Unpaid fine alerts</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="fine-reminders"
-                    checked={fineReminders}
-                    onCheckedChange={setFineReminders}
+                    checked={isSubscribed}
+                    disabled={!isSupported || permission === "denied"}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        requestPermission();
+                      } else {
+                        unsubscribe();
+                      }
+                    }}
                   />
                 </div>
 

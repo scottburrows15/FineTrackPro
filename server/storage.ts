@@ -8,6 +8,7 @@ import {
   auditLog,
   adminPreferences,
   teamMemberships,
+  pushSubscriptions,
   type User,
   type UpsertUser,
   type Team,
@@ -38,6 +39,7 @@ import {
   type InsertGcBillingRequest,
   type PaymentHistory,
   type InsertPaymentHistory,
+  type PushSubscription,
   teamWallets,
   payouts,
   gcBillingRequests,
@@ -162,6 +164,11 @@ export interface IStorage {
   updateGcBillingRequest(id: string, updates: Partial<GcBillingRequest>): Promise<GcBillingRequest>;
   getPlayerGcBillingRequests(playerId: string): Promise<GcBillingRequest[]>;
   getPendingGcBillingRequests(teamId: string): Promise<GcBillingRequest[]>;
+
+  // Push subscription operations
+  savePushSubscription(userId: string, subscription: { endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription>;
+  removePushSubscription(endpoint: string): Promise<void>;
+  getPushSubscriptionsForUser(userId: string): Promise<PushSubscription[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1512,6 +1519,38 @@ export class DatabaseStorage implements IStorage {
       .from(paymentHistory)
       .where(eq(paymentHistory.playerId, playerId))
       .orderBy(desc(paymentHistory.createdAt));
+  }
+
+  async savePushSubscription(userId: string, subscription: { endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription> {
+    const [result] = await db
+      .insert(pushSubscriptions)
+      .values({
+        userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      })
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: {
+          userId,
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+      })
+      .returning();
+    return result;
+  }
+
+  async removePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async getPushSubscriptionsForUser(userId: string): Promise<PushSubscription[]> {
+    return await db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
   }
 }
 

@@ -18,21 +18,21 @@ import {
 } from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AdminPreferences, Team, Notification } from "@shared/schema";
+import type { Team, Notification } from "@shared/schema";
 import { 
-  Users, FileText, Crown, Shield, Calendar, 
-  LogOut, Bell, Mail, Smartphone, HelpCircle, 
+  Users, FileText, Shield, 
+  LogOut, Bell, HelpCircle, 
   ChevronRight, Settings2, AlertTriangle, Trash2, Loader2,
-  Settings, ChevronLeft, Wallet, CreditCard, Building2, Check, ExternalLink, Unlink
+  Settings, Wallet, CreditCard, Building2, Check, ExternalLink, Unlink
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
 import ManageCategoriesModal from "@/components/manage-categories-modal";
 import AuditTrailModal from "@/components/audit-trail-modal";
-import SubscriptionManagementModal from "@/components/subscription-management-modal";
 import AdminWalletModal from "@/components/admin-wallet-modal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 interface GoCardlessStatus {
   connected: boolean;
@@ -49,9 +49,7 @@ export default function AdminSettings() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
-  const [summaryNotifs, setSummaryNotifs] = useState(false);
+  const { isSupported: pushSupported, permission: pushPermission, isSubscribed: pushSubscribed, requestPermission: requestPushPermission, unsubscribe: unsubscribePush } = usePushNotifications();
 
   // Check for GoCardless callback params
   useEffect(() => {
@@ -74,11 +72,6 @@ export default function AdminSettings() {
     }
   }, []);
 
-  const { data: preferences } = useQuery<AdminPreferences>({
-    queryKey: ["/api/admin/preferences"],
-    enabled: !!user && user.role === 'admin',
-  });
-
   const { data: teamInfo } = useQuery<Team>({
     queryKey: ["/api/team/info"],
   });
@@ -93,19 +86,6 @@ export default function AdminSettings() {
     enabled: !!user,
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-
-  useEffect(() => {
-    if (preferences) {
-      setEmailAlerts(preferences.emailAlertsEnabled);
-      setPushNotifs(preferences.pushNotificationsEnabled);
-      setSummaryNotifs(preferences.summaryNotificationsEnabled);
-    }
-  }, [preferences]);
-
-  const saveMutation = useMutation({
-    mutationFn: async (prefs: any) => apiRequest("POST", "/api/admin/preferences", prefs),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/preferences"] }),
-  });
 
   const connectGcMutation = useMutation({
     mutationFn: async () => {
@@ -149,18 +129,6 @@ export default function AdminSettings() {
     },
   });
 
-  const updatePref = (key: string, val: boolean) => {
-    const newPrefs = {
-      emailAlertsEnabled: key === 'email' ? val : emailAlerts,
-      pushNotificationsEnabled: key === 'push' ? val : pushNotifs,
-      summaryNotificationsEnabled: key === 'summary' ? val : summaryNotifs,
-    };
-    if (key === 'email') setEmailAlerts(val);
-    if (key === 'push') setPushNotifs(val);
-    if (key === 'summary') setSummaryNotifs(val);
-    saveMutation.mutate(newPrefs);
-  };
-
   const handleLogout = () => { window.location.href = "/api/logout"; };
 
   const handleDeleteTeam = async () => {
@@ -186,9 +154,6 @@ export default function AdminSettings() {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Core Configuration</h2>
-            {teamInfo?.isTrialActive && (
-              <Badge className="bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400">Trial Active</Badge>
-            )}
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -344,37 +309,25 @@ export default function AdminSettings() {
             <div className="divide-y divide-slate-50 dark:divide-slate-700">
               <div className="p-5 space-y-6">
                 <ToggleRow 
-                  icon={Mail} 
-                  label="Email Alerts" 
-                  sub="Receipts for all settlements" 
-                  checked={emailAlerts} 
-                  onCheckedChange={(v) => updatePref('email', v)}
-                  loading={saveMutation.isPending}
-                />
-                <ToggleRow 
-                  icon={Smartphone} 
+                  icon={Bell} 
                   label="Push Notifications" 
-                  sub="Real-time app notifications" 
-                  checked={pushNotifs} 
-                  onCheckedChange={(v) => updatePref('push', v)}
-                  loading={saveMutation.isPending}
-                />
-                <ToggleRow 
-                  icon={Calendar} 
-                  label="Weekly Activity Digest" 
-                  sub="Club summary every Monday" 
-                  checked={summaryNotifs} 
-                  onCheckedChange={(v) => updatePref('summary', v)}
-                  loading={saveMutation.isPending}
+                  sub={!pushSupported ? "Not supported on this device" :
+                       pushPermission === "denied" ? "Blocked in browser settings" :
+                       pushSubscribed ? "Enabled" : "Real-time app notifications"}
+                  checked={pushSubscribed} 
+                  disabled={!pushSupported || pushPermission === "denied"}
+                  onCheckedChange={(v: boolean) => {
+                    if (v) {
+                      requestPushPermission();
+                    } else {
+                      unsubscribePush();
+                    }
+                  }}
+                  loading={false}
                 />
               </div>
 
               <div className="bg-slate-50/50 dark:bg-slate-900/10 py-2">
-                <SettingsLink 
-                  icon={Crown} 
-                  label="Subscription Plan" 
-                  onClick={() => setActiveModal('subscription')} 
-                />
                 <SettingsLink 
                   icon={Shield} 
                   label="System Audit Trail" 
@@ -431,7 +384,6 @@ export default function AdminSettings() {
       <ManageTeamModal isOpen={activeModal === 'team'} onClose={() => setActiveModal(null)} />
       <ManageCategoriesModal isOpen={activeModal === 'categories'} onClose={() => setActiveModal(null)} />
       <AuditTrailModal isOpen={activeModal === 'audit'} onClose={() => setActiveModal(null)} />
-      <SubscriptionManagementModal isOpen={activeModal === 'subscription'} onClose={() => setActiveModal(null)} />
       <AdminWalletModal isOpen={activeModal === 'wallet'} onClose={() => setActiveModal(null)} />
 
       {/* REWORKED DELETION MODAL */}
@@ -509,7 +461,7 @@ function SettingsLink({ icon: Icon, label, onClick }: any) {
   );
 }
 
-function ToggleRow({ icon: Icon, label, sub, checked, onCheckedChange, loading }: any) {
+function ToggleRow({ icon: Icon, label, sub, checked, onCheckedChange, loading, disabled }: any) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
@@ -523,7 +475,7 @@ function ToggleRow({ icon: Icon, label, sub, checked, onCheckedChange, loading }
       </div>
       <div className="flex items-center gap-3">
         {loading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
-        <Switch checked={checked} onCheckedChange={onCheckedChange} />
+        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
       </div>
     </div>
   );

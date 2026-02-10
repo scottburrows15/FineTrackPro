@@ -18,6 +18,46 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+self.addEventListener('push', (event) => {
+  let data = { title: 'FoulPay', body: 'You have a new notification', icon: '/logo.png', badge: '/whistle-icon.png', url: '/' };
+  
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      data: { url: data.url },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(urlToOpen);
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   

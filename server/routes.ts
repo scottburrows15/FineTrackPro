@@ -1917,15 +1917,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn('⚠️ Payment routes not available:', error instanceof Error ? error.message : 'Unknown error');
   }
 
-  // Mount subscription management routes
-  try {
-    const subscriptionRoutes = await import('./subscriptionRoutes');
-    app.use('/api/subscriptions', subscriptionRoutes.default);
-    console.log('✅ Subscription routes mounted successfully');
-  } catch (error) {
-    console.warn('⚠️ Subscription routes not available:', error instanceof Error ? error.message : 'Unknown error');
-  }
-
   // Mount GoCardless payment routes
   try {
     const gocardlessRoutes = await import('./gocardless');
@@ -1933,6 +1924,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('✅ GoCardless routes mounted successfully');
   } catch (error) {
     console.warn('⚠️ GoCardless routes not available:', error instanceof Error ? error.message : 'Unknown error');
+  }
+
+  // Mount push notification routes
+  try {
+    const pushRoutes = await import('./pushRoutes');
+    app.use(pushRoutes.default);
+    console.log('✅ Push notification routes mounted successfully');
+  } catch (error) {
+    console.warn('⚠️ Push notification routes not available:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   const httpServer = createServer(app);
