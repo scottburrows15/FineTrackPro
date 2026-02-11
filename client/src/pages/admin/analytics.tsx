@@ -29,16 +29,11 @@ import {
 } from "recharts";
 import { 
   PoundSterling, 
-  TrendingUp, 
-  TrendingDown,
   Users, 
   AlertCircle,
-  Skull,
   Calendar,
-  Flame,
   Clock,
   Target,
-  Zap,
   Medal,
   Trophy,
   CheckCircle,
@@ -64,6 +59,7 @@ interface TeamAnalytics {
   }>;
   categoryBreakdown: Array<{
     categoryName: string;
+    categoryColor: string;
     count: number;
     amount: number;
   }>;
@@ -211,11 +207,10 @@ export default function AdminAnalytics() {
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <StatCard 
                     title="Outstanding" 
-                    value={`${stats?.unpaidCount || 0} fines`}
+                    value={stats?.unpaidCount || 0}
                     icon={AlertCircle} 
                     iconBg="bg-gradient-to-br from-red-400 to-red-600"
-                    trend={(stats?.unpaidCount ?? 0) > 0 ? "Action Needed" : undefined}
-                    trendColor="text-red-600 bg-red-50" 
+                    subtitle="unpaid fines"
                   />
                   <StatCard 
                     title="Active Players" 
@@ -229,9 +224,7 @@ export default function AdminAnalytics() {
                     value={stats?.thisMonthFines || 0}
                     icon={Calendar}
                     iconBg="bg-gradient-to-br from-violet-400 to-violet-600"
-                    trend={(stats?.monthChange ?? 0) !== 0 ? `${(stats?.monthChange ?? 0) > 0 ? '+' : ''}${(stats?.monthChange ?? 0).toFixed(0)}%` : undefined}
-                    trendColor={stats && stats.monthChange > 0 ? "text-red-600 bg-red-50" : "text-green-600 bg-green-50"}
-                    trendIcon={stats && stats.monthChange > 0 ? TrendingUp : TrendingDown}
+                    subtitle="fines issued"
                   />
                   <StatCard 
                     title="Total Value" 
@@ -281,7 +274,7 @@ export default function AdminAnalytics() {
                                     dataKey="count"
                                   >
                                     {analytics.categoryBreakdown.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      <Cell key={`cell-${index}`} fill={entry.categoryColor || CHART_COLORS[index % CHART_COLORS.length]} />
                                     ))}
                                   </Pie>
                                   <Tooltip 
@@ -304,7 +297,7 @@ export default function AdminAnalytics() {
                                 <div key={cat.categoryName} className="flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-50/50">
                                   <div 
                                     className="w-2 sm:w-2.5 h-6 sm:h-8 rounded-full shrink-0" 
-                                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} 
+                                    style={{ backgroundColor: cat.categoryColor || CHART_COLORS[index % CHART_COLORS.length] }} 
                                   />
                                   <div className="min-w-0">
                                     <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase truncate">{cat.categoryName}</p>
@@ -390,102 +383,79 @@ export default function AdminAnalytics() {
                   </Tabs>
                 </Card>
 
-                {/* 4. PAYMENT VELOCITY */}
-                <Card className="border-0 shadow-lg rounded-2xl bg-white p-3 sm:p-4">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center">
-                      <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                    </div>
-                    <h3 className="font-bold text-slate-900 text-[10px] sm:text-xs uppercase tracking-wider">Payment Velocity</h3>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5 xs:gap-2 sm:gap-3">
-                    <VelocityCard 
-                      label="Paid" 
-                      value={analytics.paidFines} 
-                      total={analytics.totalFines}
-                      color="emerald"
-                    />
-                    <VelocityCard 
-                      label="Pending" 
-                      value={analytics.unpaidFines} 
-                      total={analytics.totalFines}
-                      color="amber"
-                    />
-                    <VelocityCard 
-                      label="Rate" 
-                      value={`${(analytics.paymentRate * 100).toFixed(0)}%`} 
-                      showProgress={false}
-                      color="blue"
-                    />
-                  </div>
-                </Card>
-
-                {/* 5. HALL OF SHAME */}
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="flex items-center justify-between px-1">
+                {/* 4. HALL OF SHAME */}
+                <Card className="border-0 shadow-lg rounded-2xl bg-white overflow-hidden">
+                  <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-50">
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center">
-                        <Skull className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-tight">Hall of Shame</h3>
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      <h3 className="font-bold text-slate-900 text-sm">Hall of Shame</h3>
                     </div>
-                    <Badge variant="secondary" className="text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5">
-                      Top {Math.min(5, analytics.topOffenders.length)}
-                    </Badge>
+                    <Badge variant="outline" className="text-[9px] sm:text-xs">Team Ranking</Badge>
                   </div>
                   
                   {analytics.topOffenders.length > 0 ? (
-                    <div className="bg-white border-0 rounded-2xl divide-y divide-slate-50 shadow-lg overflow-hidden">
-                      {analytics.topOffenders.slice(0, 5).map((player, index) => (
-                        <div 
-                          key={player.playerId} 
-                          className={cn(
-                            "flex items-center justify-between p-2.5 sm:p-4 transition-all gap-2",
-                            index === 0 && "bg-gradient-to-r from-red-50 to-orange-50"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <div className={cn(
-                              "w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm font-black shadow-sm shrink-0",
-                              index === 0 ? "bg-gradient-to-br from-amber-400 to-amber-500 text-white" : 
-                              index === 1 ? "bg-gradient-to-br from-slate-300 to-slate-400 text-white" :
-                              index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-500 text-white" :
-                              "bg-slate-100 text-slate-500"
-                            )}>
-                              {index === 0 ? <Flame className="w-4 h-4 sm:w-5 sm:h-5" /> : 
-                               index === 1 ? <Medal className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> :
-                               index === 2 ? <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : 
-                               index + 1}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-bold text-slate-900 leading-none truncate">{player.playerName}</p>
-                              <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5">
-                                <span className={cn(
-                                  "text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-md",
-                                  index === 0 ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-500"
-                                )}>
-                                  {player.fineCount} fines
-                                </span>
+                    <div className="p-3 sm:p-4 space-y-2">
+                      {analytics.topOffenders.slice(0, 8).map((player, index) => {
+                        const getMedalIcon = (position: number) => {
+                          switch (position) {
+                            case 0: return <Medal className="w-6 h-6 text-yellow-500" />;
+                            case 1: return <Medal className="w-6 h-6 text-slate-400" />;
+                            case 2: return <Medal className="w-6 h-6 text-orange-500" />;
+                            default: return (
+                              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-medium text-xs">
+                                {position + 1}
+                              </div>
+                            );
+                          }
+                        };
+
+                        const getBackgroundStyle = (position: number) => {
+                          switch (position) {
+                            case 0: return 'bg-yellow-50 border border-yellow-200';
+                            case 1: return 'bg-slate-100 border border-slate-200';
+                            case 2: return 'bg-orange-50 border border-orange-200';
+                            default: return 'bg-slate-50 border border-slate-100';
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={player.playerId}
+                            className={cn(
+                              "flex items-center justify-between p-3 rounded-lg",
+                              getBackgroundStyle(index)
+                            )}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="flex-shrink-0">
+                                {getMedalIcon(index)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate">
+                                  {player.playerName}
+                                </p>
+                                <p className="text-xs text-slate-600">
+                                  {player.fineCount} fine{player.fineCount !== 1 ? 's' : ''}
+                                </p>
                               </div>
                             </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm font-semibold text-slate-900">
+                                £{player.totalAmount.toFixed(2)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xs sm:text-sm font-black text-slate-900">£{player.totalAmount.toFixed(0)}</p>
-                            <p className="text-[9px] sm:text-[10px] text-slate-400">total</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
-                    <Card className="border-0 shadow-lg rounded-2xl p-6">
-                      <div className="text-center text-slate-400">
-                        <Trophy className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm font-medium">No offenders yet</p>
-                        <p className="text-xs">The hall of shame will populate as fines are issued</p>
-                      </div>
-                    </Card>
+                    <div className="p-6 text-center text-slate-400">
+                      <Trophy className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm font-medium">No offenders yet</p>
+                      <p className="text-xs">The hall of shame will populate as fines are issued</p>
+                    </div>
                   )}
-                </div>
+                </Card>
 
                 {/* 6. RECENT ACTIVITY */}
                 <div className="space-y-2 sm:space-y-3">
@@ -560,80 +530,27 @@ function StatCard({
   value, 
   icon: Icon, 
   iconBg,
-  trend, 
-  trendColor,
-  trendIcon: TrendIcon,
   subtitle
 }: { 
   title: string;
   value: string | number;
   icon: any;
   iconBg?: string;
-  trend?: string;
-  trendColor?: string;
-  trendIcon?: any;
   subtitle?: string;
 }) {
   return (
     <div className="p-3 sm:p-4 rounded-2xl border-0 shadow-lg flex flex-col justify-between min-h-[100px] sm:min-h-[110px] bg-white relative overflow-hidden">
       <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-slate-100/50 to-slate-50/30 rounded-full -translate-y-4 translate-x-4" />
-      <div className="flex justify-between items-start relative gap-1">
-        <div className={cn("p-1.5 sm:p-2 rounded-lg sm:rounded-xl shrink-0", iconBg || "bg-slate-100")}>
+      <div className="relative">
+        <div className={cn("p-1.5 sm:p-2 rounded-lg sm:rounded-xl shrink-0 w-fit", iconBg || "bg-slate-100")}>
           <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
         </div>
-        {trend && (
-          <span className={cn("text-[8px] sm:text-[9px] font-bold uppercase px-1 sm:px-1.5 py-0.5 rounded-md flex items-center gap-0.5 whitespace-nowrap", trendColor)}>
-            {TrendIcon && <TrendIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />}
-            {trend}
-          </span>
-        )}
       </div>
       <div className="relative mt-auto">
         <p className="text-[9px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest text-slate-400 font-bold mb-0.5">{title}</p>
         <p className="text-lg sm:text-xl font-black text-slate-900 tracking-tighter leading-tight">{value}</p>
         {subtitle && <p className="text-[8px] sm:text-[9px] text-slate-400 mt-0.5">{subtitle}</p>}
       </div>
-    </div>
-  );
-}
-
-function VelocityCard({ 
-  label, 
-  value, 
-  total,
-  color,
-  showProgress = true
-}: {
-  label: string;
-  value: string | number;
-  total?: number;
-  color: 'emerald' | 'amber' | 'blue';
-  showProgress?: boolean;
-}) {
-  const percentage = total ? (Number(value) / total) * 100 : 0;
-  const colorMap = {
-    emerald: 'from-emerald-400 to-emerald-600',
-    amber: 'from-amber-400 to-amber-600',
-    blue: 'from-blue-400 to-blue-600',
-  };
-  const bgMap = {
-    emerald: 'bg-emerald-50',
-    amber: 'bg-amber-50',
-    blue: 'bg-blue-50',
-  };
-
-  return (
-    <div className={cn("p-1.5 sm:p-3 rounded-lg sm:rounded-xl text-center", bgMap[color])}>
-      <p className="text-[7px] sm:text-[10px] font-bold text-slate-500 uppercase mb-0.5 leading-tight">{label}</p>
-      <p className="text-xs sm:text-lg font-black text-slate-900 leading-tight">{value}</p>
-      {showProgress && total && (
-        <div className="mt-1 sm:mt-2 h-0.5 sm:h-1 bg-white/50 rounded-full overflow-hidden">
-          <div 
-            className={cn("h-full rounded-full bg-gradient-to-r", colorMap[color])}
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -1098,6 +1098,7 @@ export class DatabaseStorage implements IStorage {
     const categoryBreakdownResult = await db
       .select({
         categoryName: fineCategories.name,
+        categoryColor: fineCategories.color,
         count: sql<number>`cast(count(*) as int)`,
         amount: sql<number>`cast(sum(cast(${fines.amount} as decimal)) as decimal)`,
       })
@@ -1106,11 +1107,12 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(fineSubcategories, eq(fines.subcategoryId, fineSubcategories.id))
       .innerJoin(fineCategories, eq(fineSubcategories.categoryId, fineCategories.id))
       .where(eq(users.teamId, teamId))
-      .groupBy(fineCategories.name)
+      .groupBy(fineCategories.name, fineCategories.color)
       .orderBy(sql`count(*) desc`);
 
     const categoryBreakdown = categoryBreakdownResult.map(row => ({
       categoryName: row.categoryName,
+      categoryColor: row.categoryColor,
       count: row.count,
       amount: Number(row.amount),
     }));
