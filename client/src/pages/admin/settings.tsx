@@ -132,8 +132,6 @@ export default function AdminSettings() {
 
   if (!user || user.role !== 'admin') return null;
 
-  const teamInitial = teamInfo?.name?.[0]?.toUpperCase() || "T";
-
   return (
     <AppLayout
       user={user}
@@ -144,20 +142,6 @@ export default function AdminSettings() {
       canSwitchView={true}
     >
       <div className="max-w-lg mx-auto px-4 py-6 pb-32">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg shrink-0">
-            {teamInitial}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">
-              {teamInfo?.name || "Your Team"}
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {teamInfo?.sport || "Team settings"}
-            </p>
-          </div>
-        </div>
-
         <section className="mb-6">
           <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Team Management</h3>
           <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">

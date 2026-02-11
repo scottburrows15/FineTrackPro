@@ -14,12 +14,13 @@ import {
   HelpCircle,
   ChevronRight,
   Laptop,
-  User,
   Palette
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/components/ui/theme-provider";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { getDisplayName } from "@/lib/userUtils";
 
 export default function PlayerSettings() {
   const { user } = useAuth();
@@ -35,7 +36,8 @@ export default function PlayerSettings() {
 
   if (!user) return null;
 
-  const initials = (user.firstName?.[0] || "") + (user.lastName?.[0] || "");
+  const displayName = getDisplayName(user);
+  const initials = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <AppLayout
@@ -50,9 +52,18 @@ export default function PlayerSettings() {
     >
       <div className="max-w-lg mx-auto px-4 py-6 pb-32">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg shrink-0">
-            {initials || <User className="w-6 h-6" />}
-          </div>
+          <Avatar className="h-14 w-14 shadow-md ring-1 ring-slate-200 dark:ring-slate-600">
+            {user.profileImageUrl && (
+              <AvatarImage
+                src={user.profileImageUrl}
+                alt={displayName}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">
               {user.firstName} {user.lastName}
