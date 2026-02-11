@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,17 +18,16 @@ import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Team, Notification } from "@shared/schema";
 import { 
-  Users, FileText, Shield, 
+  FileText, Shield, 
   LogOut, Bell, HelpCircle, 
-  ChevronRight, Settings2, AlertTriangle, Trash2, Loader2,
-  Settings, Wallet, CreditCard, Building2, Check, ExternalLink, Unlink
+  ChevronRight, AlertTriangle, Trash2, Loader2,
+  Settings, CreditCard, Building2, Check, ExternalLink, Unlink
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
 import ManageCategoriesModal from "@/components/manage-categories-modal";
 import AuditTrailModal from "@/components/audit-trail-modal";
 import AdminWalletModal from "@/components/admin-wallet-modal";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -51,7 +48,6 @@ export default function AdminSettings() {
 
   const { isSupported: pushSupported, permission: pushPermission, isSubscribed: pushSubscribed, requestPermission: requestPushPermission, unsubscribe: unsubscribePush } = usePushNotifications();
 
-  // Check for GoCardless callback params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gcStatus = params.get('gocardless');
@@ -129,15 +125,14 @@ export default function AdminSettings() {
     },
   });
 
-  const handleLogout = () => { window.location.href = "/api/logout"; };
-
   const handleDeleteTeam = async () => {
     setIsDeleting(true);
-    // API logic for team deletion
     setTimeout(() => { window.location.href = "/"; }, 2000);
   };
 
   if (!user || user.role !== 'admin') return null;
+
+  const teamInitial = teamInfo?.name?.[0]?.toUpperCase() || "T";
 
   return (
     <AppLayout
@@ -148,262 +143,194 @@ export default function AdminSettings() {
       onViewChange={(v) => setLocation(v === 'player' ? '/player/home' : '/admin/home')}
       canSwitchView={true}
     >
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8 pb-32">
-        
-        {/* --- 1. CORE CONFIGURATION --- */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Core Configuration</h2>
+      <div className="max-w-lg mx-auto px-4 py-6 pb-32">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg shrink-0">
+            {teamInitial}
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Unified Identity Card */}
-            <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
-              <button onClick={() => setActiveModal('team')} className="p-5 flex-1 text-left">
-                <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-200 dark:shadow-none">
-                  <Settings className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
-                  Club Identity <ChevronRight className="w-4 h-4 text-slate-300" />
-                </h3>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-                  Manage team name, sport, and roster members
-                </p>
-              </button>
-            </Card>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">
+              {teamInfo?.name || "Your Team"}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {teamInfo?.sport || "Team settings"}
+            </p>
+          </div>
+        </div>
 
-            {/* Fines Card */}
-            <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
-              <button onClick={() => setActiveModal('categories')} className="p-5 flex-1 text-left">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-200 dark:shadow-none">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
-                  Fine Rules <ChevronRight className="w-4 h-4 text-slate-300" />
-                </h3>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-                  Configure categories and set fine amounts
-                </p>
-              </button>
-            </Card>
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Team Management</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <SettingsRow
+              icon={Settings}
+              label="Club Identity"
+              subtitle="Team name, sport, and members"
+              onClick={() => setActiveModal('team')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={FileText}
+              label="Fine Rules"
+              subtitle="Categories and fine amounts"
+              onClick={() => setActiveModal('categories')}
+            />
           </div>
         </section>
 
-        {/* --- 2. PAYMENTS & WALLET --- */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <Wallet className="w-4 h-4 text-slate-400" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Payments & Wallet</h2>
-          </div>
-          
-          {/* GoCardless Connection Card */}
-          <Card className={cn(
-            "overflow-hidden border-2 shadow-sm bg-white dark:bg-slate-800",
-            gcStatus?.connected ? "border-emerald-200 dark:border-emerald-800" : "border-blue-200 dark:border-blue-800"
-          )}>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg",
-                      gcStatus?.connected 
-                        ? "bg-emerald-600 shadow-emerald-200 dark:shadow-none" 
-                        : "bg-blue-600 shadow-blue-200 dark:shadow-none"
-                    )}>
-                      <Building2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
-                        Open Banking
-                        {gcStatus?.connected && (
-                          <Badge className="bg-emerald-100 text-emerald-700 border-0 dark:bg-emerald-900/30 dark:text-emerald-400">
-                            <Check className="w-3 h-3 mr-1" /> Connected
-                          </Badge>
-                        )}
-                      </h3>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
-                        {gcStatus?.connected 
-                          ? "Players can pay via bank transfer" 
-                          : "Connect to receive payments"
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  {gcStatus?.connected ? (
-                    <div className="space-y-3">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Your team is connected to GoCardless and can receive instant bank payments from players.
-                      </p>
-                      {gcStatus.connectedAt && (
-                        <p className="text-xs text-slate-400">
-                          Connected on {new Date(gcStatus.connectedAt).toLocaleDateString()}
-                        </p>
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Payments</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Building2 className="w-5 h-5 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Open Banking</span>
+                      {gcStatus?.connected && (
+                        <Badge className="bg-emerald-100 text-emerald-700 border-0 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] px-1.5 py-0">
+                          <Check className="w-2.5 h-2.5 mr-0.5" /> Active
+                        </Badge>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => disconnectGcMutation.mutate()}
-                        disabled={disconnectGcMutation.isPending}
-                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-900/20"
-                        data-testid="button-disconnect-gocardless"
-                      >
-                        {disconnectGcMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Unlink className="w-4 h-4 mr-2" />
-                        )}
-                        Disconnect
-                      </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Connect your GoCardless account to receive instant bank payments. Players will pay directly from their bank - no cards needed.
-                      </p>
-                      <Button
-                        onClick={() => connectGcMutation.mutate()}
-                        disabled={connectGcMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                        data-testid="button-connect-gocardless"
-                      >
-                        {connectGcMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                        )}
-                        Connect GoCardless
-                      </Button>
-                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                      {gcStatus?.connected
+                        ? `Connected ${gcStatus.connectedAt ? new Date(gcStatus.connectedAt).toLocaleDateString() : ""}`
+                        : "Receive instant bank payments"}
+                    </p>
+                  </div>
+                </div>
+                {gcStatus?.connected ? (
+                  <button
+                    onClick={() => disconnectGcMutation.mutate()}
+                    disabled={disconnectGcMutation.isPending}
+                    className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {disconnectGcMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => connectGcMutation.mutate()}
+                    disabled={connectGcMutation.isPending}
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {connectGcMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+                    Connect
+                  </button>
+                )}
+              </div>
+            </div>
+            <Divider />
+            <SettingsRow
+              icon={CreditCard}
+              label="Team Wallet"
+              subtitle="Balance and withdrawals"
+              onClick={() => setActiveModal('wallet')}
+            />
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Preferences</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-slate-400 shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Push Notifications</span>
+                  {(!pushSupported || pushPermission === "denied") && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                      {!pushSupported ? "Not supported" : "Blocked in browser"}
+                    </p>
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Team Wallet Card */}
-          <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
-            <button onClick={() => setActiveModal('wallet')} className="p-5 flex-1 text-left">
-              <div className="w-10 h-10 rounded-2xl bg-green-600 flex items-center justify-center mb-4 shadow-lg shadow-green-200 dark:shadow-none">
-                <CreditCard className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
-                Team Wallet <ChevronRight className="w-4 h-4 text-slate-300" />
-              </h3>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-                View balance, withdraw funds, and manage fee settings
-              </p>
-            </button>
-          </Card>
-        </section>
-
-        {/* --- 3. PREFERENCES & LOGS --- */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <Settings2 className="w-4 h-4 text-slate-400" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Preferences & Logs</h2>
-          </div>
-
-          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-800">
-            <div className="divide-y divide-slate-50 dark:divide-slate-700">
-              <div className="p-5 space-y-6">
-                <ToggleRow 
-                  icon={Bell} 
-                  label="Push Notifications" 
-                  sub={!pushSupported ? "Not supported on this device" :
-                       pushPermission === "denied" ? "Blocked in browser settings" :
-                       pushSubscribed ? "Enabled" : "Real-time app notifications"}
-                  checked={pushSubscribed} 
-                  disabled={!pushSupported || pushPermission === "denied"}
-                  onCheckedChange={(v: boolean) => {
-                    if (v) {
-                      requestPushPermission();
-                    } else {
-                      unsubscribePush();
-                    }
-                  }}
-                  loading={false}
-                />
-              </div>
-
-              <div className="bg-slate-50/50 dark:bg-slate-900/10 py-2">
-                <SettingsLink 
-                  icon={Shield} 
-                  label="System Audit Trail" 
-                  onClick={() => setActiveModal('audit')} 
-                />
-                <SettingsLink 
-                  icon={HelpCircle} 
-                  label="FoulPay Support" 
-                  onClick={() => setLocation("/help")} 
-                />
-              </div>
+              <Switch
+                checked={pushSubscribed}
+                disabled={!pushSupported || pushPermission === "denied"}
+                onCheckedChange={(v) => {
+                  if (v) requestPushPermission();
+                  else unsubscribePush();
+                }}
+              />
             </div>
-          </Card>
-        </section>
-
-        {/* --- 3. DANGER ZONE --- */}
-        <section className="space-y-4 pt-4">
-          <div className="flex items-center gap-2 px-1 text-red-500">
-            <AlertTriangle className="w-4 h-4" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em]">Danger Zone</h2>
           </div>
-
-          <Card className="border border-red-100 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/5">
-            <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="space-y-1">
-                <h3 className="font-bold text-red-900 dark:text-red-400">Terminate {teamInfo?.name}</h3>
-                <p className="text-xs text-red-700/60 dark:text-red-400/60">
-                  Wipe all club history and member data.
-                </p>
-              </div>
-              <Button 
-                variant="destructive" 
-                className="font-bold bg-red-600 hover:bg-red-700 h-10 px-6 rounded-xl shadow-md shadow-red-200 dark:shadow-none"
-                onClick={() => setActiveModal('delete-confirm')}
-              >
-                Delete Team
-              </Button>
-            </CardContent>
-          </Card>
         </section>
 
-        <div className="pt-10 text-center">
-          <Button variant="ghost" className="text-slate-400 font-bold hover:text-red-500 transition-colors" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Other</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <SettingsRow
+              icon={Shield}
+              label="Audit Trail"
+              onClick={() => setActiveModal('audit')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={HelpCircle}
+              label="Help & Support"
+              onClick={() => setLocation("/help")}
+            />
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-red-100 dark:border-red-900/30">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-5 h-5 text-red-400 shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">Delete Team</span>
+                  <p className="text-xs text-red-400/70 dark:text-red-500/70 mt-0.5">This action cannot be undone</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveModal('delete-confirm')}
+                className="text-xs font-medium text-red-500 hover:text-red-600 flex items-center gap-1"
+              >
+                Delete <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-4">
+          <button
+            onClick={() => { window.location.href = "/api/logout"; }}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-500 dark:text-red-400 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
             Sign Out
-          </Button>
-          <p className="mt-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
-            FoulPay • v1.0.0
+          </button>
+          <p className="text-center text-[11px] text-slate-300 dark:text-slate-600 mt-3">
+            FoulPay v1.0.0
           </p>
         </div>
       </div>
 
-      {/* --- MODALS --- */}
       <ManageTeamModal isOpen={activeModal === 'team'} onClose={() => setActiveModal(null)} />
       <ManageCategoriesModal isOpen={activeModal === 'categories'} onClose={() => setActiveModal(null)} />
       <AuditTrailModal isOpen={activeModal === 'audit'} onClose={() => setActiveModal(null)} />
       <AdminWalletModal isOpen={activeModal === 'wallet'} onClose={() => setActiveModal(null)} />
 
-      {/* REWORKED DELETION MODAL */}
       <Dialog open={activeModal === 'delete-confirm'} onOpenChange={() => setActiveModal(null)}>
         <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
           <div className="bg-red-600 p-6 text-white">
             <AlertTriangle className="w-12 h-12 mb-4 opacity-50" />
-            <DialogTitle className="text-2xl font-black leading-tight">Terminal Action</DialogTitle>
+            <DialogTitle className="text-2xl font-bold leading-tight">Delete Team</DialogTitle>
             <DialogDescription className="text-red-100 font-medium opacity-90 mt-2">
-              You are about to permanently delete <span className="underline decoration-2 underline-offset-4">{teamInfo?.name}</span>.
+              You are about to permanently delete <span className="underline underline-offset-4">{teamInfo?.name}</span> and all its data.
             </DialogDescription>
           </div>
           <div className="p-6 space-y-4 bg-white dark:bg-slate-900">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirmation Required</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Type team name to confirm</Label>
               <Input 
-                placeholder="Type team name to confirm" 
+                placeholder={teamInfo?.name || "Team name"} 
                 value={deleteConfirmInput}
                 onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                className="h-12 border-red-100 focus-visible:ring-red-500 font-bold text-base"
+                className="h-11 border-red-100 focus-visible:ring-red-500 font-medium"
               />
             </div>
             <div className="flex flex-col gap-2 pt-2">
@@ -411,12 +338,12 @@ export default function AdminSettings() {
                 variant="destructive" 
                 disabled={deleteConfirmInput !== teamInfo?.name || isDeleting}
                 onClick={handleDeleteTeam}
-                className="h-12 font-black text-sm rounded-xl uppercase tracking-wider"
+                className="h-11 font-semibold rounded-lg"
               >
                 {isDeleting ? <Loader2 className="animate-spin" /> : "Confirm Deletion"}
               </Button>
-              <Button variant="ghost" onClick={() => setActiveModal(null)} className="h-12 font-bold text-slate-500">
-                Go Back
+              <Button variant="ghost" onClick={() => setActiveModal(null)} className="h-11 text-slate-500">
+                Cancel
               </Button>
             </div>
           </div>
@@ -426,57 +353,31 @@ export default function AdminSettings() {
   );
 }
 
-// --- SHARED UI COMPONENTS ---
-
-function ActionCard({ title, desc, icon: Icon, color, onClick }: any) {
+function SettingsRow({ icon: Icon, label, subtitle, onClick }: {
+  icon: any;
+  label: string;
+  subtitle?: string;
+  onClick?: () => void;
+}) {
   return (
-    <Card className="overflow-hidden border-none shadow-sm bg-white dark:bg-slate-800 flex flex-col group active:scale-[0.98] transition-all">
-      <button onClick={onClick} className="p-5 flex-1 text-left">
-        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg dark:shadow-none", color)}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        <h3 className="font-black text-slate-900 dark:text-white text-base mb-1 flex items-center gap-2">
-          {title} <ChevronRight className="w-4 h-4 text-slate-300" />
-        </h3>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-          {desc}
-        </p>
-      </button>
-    </Card>
-  );
-}
-
-function SettingsLink({ icon: Icon, label, onClick }: any) {
-  return (
-    <button 
+    <button
       onClick={onClick}
-      className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-6"
+      className="w-full flex items-center justify-between px-4 py-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
     >
-      <div className="flex items-center gap-4 text-slate-700 dark:text-slate-300">
-        <Icon className="w-5 h-5 opacity-40" />
-        <span className="text-sm font-bold tracking-tight">{label}</span>
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className="w-5 h-5 text-slate-400 shrink-0" />
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+          {subtitle && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{subtitle}</p>
+          )}
+        </div>
       </div>
-      <ChevronRight className="w-4 h-4 text-slate-300" />
+      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
     </button>
   );
 }
 
-function ToggleRow({ icon: Icon, label, sub, checked, onCheckedChange, loading, disabled }: any) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-slate-400" />
-        </div>
-        <div>
-          <Label className="text-sm font-black text-slate-900 dark:text-white block leading-tight mb-0.5">{label}</Label>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{sub}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        {loading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
-        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
-      </div>
-    </div>
-  );
+function Divider() {
+  return <div className="h-px bg-slate-100 dark:bg-slate-700 mx-4" />;
 }

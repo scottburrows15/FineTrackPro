@@ -1,24 +1,21 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import { 
   Bell, 
   CreditCard, 
-  Palette, 
   Moon, 
   Sun,
   LogOut,
   Receipt,
   HelpCircle,
   ChevronRight,
-  Laptop
+  Laptop,
+  User,
+  Palette
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -29,8 +26,6 @@ export default function PlayerSettings() {
   const [, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
   const { isSupported, permission, isSubscribed, requestPermission, unsubscribe } = usePushNotifications();
-  
-  const [paymentNotifications, setPaymentNotifications] = useState(true);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -38,13 +33,9 @@ export default function PlayerSettings() {
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const handleLogout = async () => {
-    window.location.href = "/api/logout";
-  };
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
+  const initials = (user.firstName?.[0] || "") + (user.lastName?.[0] || "");
 
   return (
     <AppLayout
@@ -57,204 +48,179 @@ export default function PlayerSettings() {
       }}
       canSwitchView={user.role === 'admin'}
     >
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
-
-        {/* Settings Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Left Column */}
-          <div className="space-y-4">
-            {/* Notifications Settings */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <Bell className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Notifications</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your alerts</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bell className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="push-notifications" className="font-medium text-sm">Push Notifications</Label>
-                      <p className="text-xs text-slate-500">
-                        {!isSupported ? "Not supported on this device" :
-                         permission === "denied" ? "Blocked in browser settings" :
-                         isSubscribed ? "Enabled" : "Get instant updates"}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={isSubscribed}
-                    disabled={!isSupported || permission === "denied"}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        requestPermission();
-                      } else {
-                        unsubscribe();
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <Label htmlFor="payment-notifications" className="font-medium text-sm">Payment Confirmations</Label>
-                      <p className="text-xs text-slate-500">Payment status updates</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="payment-notifications"
-                    checked={paymentNotifications}
-                    onCheckedChange={setPaymentNotifications}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Payment Settings */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Payments</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your payment methods</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/payment")}
-                >
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-4 w-4" />
-                    <span>Payment Methods</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/player/fines")}
-                >
-                  <div className="flex items-center gap-3">
-                    <Receipt className="h-4 w-4" />
-                    <span>Payment History</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
+      <div className="max-w-lg mx-auto px-4 py-6 pb-32">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg shrink-0">
+            {initials || <User className="w-6 h-6" />}
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-4">
-            {/* Theme Settings */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                  <Palette className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Appearance</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Choose your theme</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => setTheme("light")}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    theme === "light" 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Sun className="h-5 w-5 text-slate-700" />
-                    <span className="text-xs font-medium">Light</span>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setTheme("dark")}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    theme === "dark" 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Moon className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-                    <span className="text-xs font-medium">Dark</span>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setTheme("system")}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    theme === "system" 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Laptop className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-                    <span className="text-xs font-medium">System</span>
-                  </div>
-                </button>
-              </div>
-            </Card>
-
-            {/* Support & Actions */}
-            <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="space-y-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12"
-                  onClick={() => setLocation("/help")}
-                >
-                  <div className="flex items-center gap-3">
-                    <HelpCircle className="h-4 w-4" />
-                    <span>Help & Support</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
-                <Separator />
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start h-12 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Sign Out
-                </Button>
-              </div>
-            </Card>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">
+              {user.firstName} {user.lastName}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+              {user.email || "Player"}
+            </p>
           </div>
+          <button
+            onClick={() => setLocation("/profile")}
+            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 whitespace-nowrap flex items-center gap-1"
+          >
+            Edit profile <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* App Version */}
-        <div className="text-center py-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">General</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <SettingsRow
+              icon={Bell}
+              label="Push Notifications"
+              trailing={
+                <Switch
+                  checked={isSubscribed}
+                  disabled={!isSupported || permission === "denied"}
+                  onCheckedChange={(checked) => {
+                    if (checked) requestPermission();
+                    else unsubscribe();
+                  }}
+                />
+              }
+              subtitle={
+                !isSupported ? "Not supported on this device" :
+                permission === "denied" ? "Blocked in browser settings" :
+                isSubscribed ? "Enabled" : undefined
+              }
+            />
+            <Divider />
+            <SettingsRow
+              icon={CreditCard}
+              label="Payment Methods"
+              onClick={() => setLocation("/payment")}
+            />
+            <Divider />
+            <SettingsRow
+              icon={Receipt}
+              label="Payment History"
+              onClick={() => setLocation("/player/fines")}
+            />
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Appearance</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Palette className="w-5 h-5 text-slate-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Theme</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <ThemeOption
+                  icon={Sun}
+                  label="Light"
+                  active={theme === "light"}
+                  onClick={() => setTheme("light")}
+                />
+                <ThemeOption
+                  icon={Moon}
+                  label="Dark"
+                  active={theme === "dark"}
+                  onClick={() => setTheme("dark")}
+                />
+                <ThemeOption
+                  icon={Laptop}
+                  label="System"
+                  active={theme === "system"}
+                  onClick={() => setTheme("system")}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Other</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+            <SettingsRow
+              icon={HelpCircle}
+              label="Help & Support"
+              onClick={() => setLocation("/help")}
+            />
+          </div>
+        </section>
+
+        <div className="mt-8">
+          <button
+            onClick={() => { window.location.href = "/api/logout"; }}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-500 dark:text-red-400 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+          <p className="text-center text-[11px] text-slate-300 dark:text-slate-600 mt-3">
             FoulPay v1.0.0
           </p>
         </div>
       </div>
     </AppLayout>
   );
+}
+
+function SettingsRow({ icon: Icon, label, onClick, trailing, subtitle }: {
+  icon: any;
+  label: string;
+  onClick?: () => void;
+  trailing?: ReactNode;
+  subtitle?: string;
+}) {
+  const content = (
+    <div className="flex items-center justify-between px-4 py-3.5">
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className="w-5 h-5 text-slate-400 shrink-0" />
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+          {subtitle && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      {trailing || (onClick && <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />)}
+    </div>
+  );
+
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="w-full text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        {content}
+      </button>
+    );
+  }
+  return content;
+}
+
+function ThemeOption({ icon: Icon, label, active, onClick }: {
+  icon: any;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-all ${
+        active
+          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+          : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"
+      }`}
+    >
+      <Icon className={`w-4 h-4 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+      <span className={`text-xs font-medium ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"}`}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="h-px bg-slate-100 dark:bg-slate-700 mx-4" />;
 }
