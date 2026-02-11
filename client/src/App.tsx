@@ -17,8 +17,6 @@ import NotFound from "@/pages/not-found";
 
 // Player pages
 import PlayerHome from "@/pages/player/home";
-import PlayerFines from "@/pages/player/fines";
-import PlayerStats from "@/pages/player/stats";
 import PlayerNotifications from "@/pages/player/notifications";
 import PlayerSettings from "@/pages/player/settings";
 
@@ -58,8 +56,8 @@ function Router() {
       
       {/* Player routes */}
       <Route path="/player/home" component={PlayerHome} />
-      <Route path="/player/fines" component={PlayerFines} />
-      <Route path="/player/stats" component={PlayerStats} />
+      <Route path="/player/fines" component={PlayerHome} />
+      <Route path="/player/stats" component={PlayerHome} />
       <Route path="/player/notifications" component={PlayerNotifications} />
       <Route path="/player/settings" component={PlayerSettings} />
       

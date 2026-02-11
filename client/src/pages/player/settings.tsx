@@ -112,7 +112,7 @@ export default function PlayerSettings() {
             <SettingsRow
               icon={Receipt}
               label="Payment History"
-              onClick={() => setLocation("/player/fines")}
+              onClick={() => setLocation("/player/home")}
             />
           </div>
         </section>

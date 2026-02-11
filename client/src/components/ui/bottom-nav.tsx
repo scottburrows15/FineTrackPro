@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Gavel, BarChart3, Home, Bell, Users, ChevronUp, Check, Settings, PlusCircle } from "lucide-react";
+import { BarChart3, Home, Bell, Users, ChevronUp, Check, Settings, PlusCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTeam } from "@/contexts/TeamContext";
 import {
@@ -23,16 +23,15 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
   
   const navItems = currentView === 'player' 
     ? [
-        { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
-        { id: 'fines', path: '/player/fines', icon: Gavel, label: 'Fines', color: 'text-red-500' },
         { id: 'notifications', path: '/player/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
+        { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
         { id: 'settings', path: '/player/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
       ]
     : [
-        { id: 'home', path: '/admin/home', icon: Home, label: 'Dashboard', color: 'text-blue-500' },
-        { id: 'fines', path: '/admin/fines', icon: Gavel, label: 'Issue', color: 'text-red-500' },
         { id: 'notifications', path: '/admin/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
-        { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Team', color: 'text-slate-500' },
+        { id: 'analytics', path: '/admin/analytics', icon: BarChart3, label: 'Stats', color: 'text-indigo-500' },
+        { id: 'home', path: '/admin/home', icon: Home, label: 'Dashboard', color: 'text-blue-500' },
+        { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
       ];
 
   const handleTeamSelect = async (teamId: string) => {
@@ -53,9 +52,6 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
-            
-            // Fix: Explicitly check if badge is greater than 0 using null coalescing
-            // This prevents '0' being rendered as text when count is 0
             const showBadge = item.id === 'notifications' && (item.badge ?? 0) > 0;
             
             return (
@@ -108,7 +104,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
             );
           })}
           
-          {/* Team Switcher - replaces settings cog */}
+          {/* Team Switcher */}
           <DropdownMenu open={teamMenuOpen} onOpenChange={setTeamMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button

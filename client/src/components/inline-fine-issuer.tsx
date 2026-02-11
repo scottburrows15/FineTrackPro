@@ -215,7 +215,7 @@ export default function ProfessionalFineIssuer() {
 
   // --- Render ---
   return (
-    <div className="relative flex flex-col h-[calc(100dvh-135px)] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+    <div className="relative flex flex-col h-[calc(100dvh-160px)] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       
       {/* Header: Search + Distinct Clear Button */}
       <div className="shrink-0 px-4 py-3 z-10 flex gap-2">

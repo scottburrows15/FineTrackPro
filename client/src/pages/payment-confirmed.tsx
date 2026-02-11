@@ -56,7 +56,7 @@ export default function PaymentConfirmed() {
           
           <div className="flex flex-col gap-3">
             <Button 
-              onClick={() => setLocation('/player/fines')}
+              onClick={() => setLocation('/player/home')}
               className="w-full"
               data-testid="button-view-fines"
             >
