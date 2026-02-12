@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import TopBar from "@/components/ui/top-bar";
 import BottomNav from "@/components/ui/bottom-nav";
-import FloatingGavel from "@/components/ui/floating-gavel";
 import { useTeam } from "@/contexts/TeamContext";
 import type { User as UserType } from "@shared/schema";
 
@@ -70,9 +69,6 @@ export default function AppLayout({
       <main className="pt-[88px] pb-[72px] sm:pb-[80px]">
         {children}
       </main>
-
-      {/* Floating Gavel - Admin only */}
-      {currentView === 'admin' && <FloatingGavel />}
 
       {/* Bottom Navigation - Fixed at bottom */}
       <BottomNav

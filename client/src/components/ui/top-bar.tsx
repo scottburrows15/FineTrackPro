@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Gavel } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
@@ -17,10 +17,12 @@ interface TopBarProps {
 }
 
 export default function TopBar({ user, currentView, pageTitle, onViewChange, canSwitchView }: TopBarProps) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { switchView, canSwitchView: teamCanSwitchView } = useTeam();
   
   const effectiveCanSwitchView = canSwitchView ?? teamCanSwitchView;
+
+  const showGavel = currentView === 'admin' && location !== '/admin/fines';
 
   const getInitials = (user: UserType | null) => {
     if (!user) return "?";
@@ -45,7 +47,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
     <>
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="px-4 py-2">
-          {/* First Row: Logo and User Controls */}
+          {/* First Row: Logo and Icon Controls */}
           <div className="flex items-center justify-between mb-2">
             {/* Logo */}
             <div className="flex-shrink-0">
@@ -56,8 +58,22 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
               />
             </div>
 
-            {/* User Controls - Help, Theme, Profile */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Right Icons - evenly distributed to align above the profile switcher */}
+            <div className="flex items-center justify-between flex-shrink-0" style={{ width: '160px' }}>
+              {showGavel && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLocation("/admin/fines")}
+                  className="h-8 w-8 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                  aria-label="Issue a fine"
+                  data-testid="top-bar-gavel-button"
+                >
+                  <Gavel className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </Button>
+              )}
+              {!showGavel && <div className="h-8 w-8" />}
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -100,10 +116,10 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
             </h1>
 
             {effectiveCanSwitchView ? (
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0" style={{ width: '160px' }}>
                 <button
                   onClick={() => handleViewSwitch('player')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors text-center ${
                     currentView === 'player' 
                       ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -114,7 +130,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 </button>
                 <button
                   onClick={() => handleViewSwitch('admin')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors text-center ${
                     currentView === 'admin' 
                       ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -125,7 +141,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1 flex-shrink-0">
+              <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg py-1 flex-shrink-0" style={{ width: '160px' }}>
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400 capitalize">
                   {currentView}
                 </span>
