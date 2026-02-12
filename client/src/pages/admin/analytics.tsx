@@ -397,26 +397,16 @@ export default function AdminAnalytics() {
                     <div className="p-3 sm:p-4 space-y-2">
                       {analytics.topOffenders.slice(0, 8).map((player, index) => {
                         const getMedalIcon = (position: number) => {
-                          const medalColors: Record<number, string> = {
-                            0: 'text-yellow-500',
-                            1: 'text-slate-400',
-                            2: 'text-orange-500',
-                          };
-                          if (position <= 2) {
-                            return (
-                              <div className="relative">
-                                <Medal className={`w-6 h-6 ${medalColors[position]}`} />
-                                <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-bold ${position === 0 ? 'text-yellow-800' : position === 1 ? 'text-slate-600' : 'text-orange-800'} mt-[1px]`}>
-                                  {position + 1}
-                                </span>
+                          switch (position) {
+                            case 0: return <Medal className="w-6 h-6 text-yellow-500" />;
+                            case 1: return <Medal className="w-6 h-6 text-slate-400" />;
+                            case 2: return <Medal className="w-6 h-6 text-orange-500" />;
+                            default: return (
+                              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-medium text-xs">
+                                {position + 1}
                               </div>
                             );
                           }
-                          return (
-                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-medium text-xs">
-                              {position + 1}
-                            </div>
-                          );
                         };
 
                         const getBackgroundStyle = (position: number) => {
