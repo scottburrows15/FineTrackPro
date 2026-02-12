@@ -564,14 +564,14 @@ function EditFineModal({
   isLoading: boolean;
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [hasPopulated, setHasPopulated] = useState(false);
+  const [lastFineId, setLastFineId] = useState<string | null>(null);
 
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
     defaultValues: {
-      amount: fine?.amount || "",
-      description: fine?.description || "",
-      subcategoryId: fine?.subcategoryId || "",
+      amount: "",
+      description: "",
+      subcategoryId: "",
     },
   });
 
@@ -580,26 +580,35 @@ function EditFineModal({
     return subcategories.filter(sub => sub.categoryId === selectedCategoryId);
   }, [selectedCategoryId, subcategories]);
 
+  const isNewFine = fine && fine.id !== lastFineId;
+  const needsCategorySet = fine && subcategories.length > 0 && !selectedCategoryId;
+
   useEffect(() => {
     if (!fine) {
-      setHasPopulated(false);
+      setLastFineId(null);
+      setSelectedCategoryId("");
+      form.reset({ amount: "", description: "", subcategoryId: "" });
       return;
     }
-    if (fine && !hasPopulated) {
+    if (isNewFine) {
+      setLastFineId(fine.id);
       form.reset({
         amount: fine.amount,
         description: fine.description || "",
         subcategoryId: fine.subcategoryId,
       });
-      if (subcategories.length > 0) {
-        const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
-        if (currentSubcategory) {
-          setSelectedCategoryId(currentSubcategory.categoryId);
-        }
-        setHasPopulated(true);
+      setSelectedCategoryId("");
+    }
+  }, [fine?.id]);
+
+  useEffect(() => {
+    if (needsCategorySet && fine) {
+      const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
+      if (currentSubcategory) {
+        setSelectedCategoryId(currentSubcategory.categoryId);
       }
     }
-  }, [fine, subcategories, hasPopulated]);
+  }, [needsCategorySet, subcategories.length]);
 
   if (!fine) return null;
 
