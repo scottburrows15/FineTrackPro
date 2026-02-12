@@ -47,12 +47,12 @@ export default function Landing() {
           <div className="order-2 md:order-1">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 mb-6">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium" style={{ color: '#48C0A3' }}>Free for all teams</span>
+              <span className="text-sm font-medium" style={{ color: '#48C0A3' }}>Free to use for all teams</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] mb-6" style={{ color: '#374151' }}>
-              Foul Play.{' '}
-              <span style={{ color: '#48C0A3' }}>Easy Pay.</span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] mb-6" style={{ color: '#48C0A3' }}>
+              Foul Play{' '}
+              <span style={{ color: '#374151' }}>Easy Pay</span>
             </h1>
 
             <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
@@ -331,7 +331,7 @@ export default function Landing() {
             Ready to sort your fines?
           </h2>
           <p className="text-gray-500 text-lg mb-8 max-w-xl mx-auto">
-            Get your team set up in minutes. No card required, no hidden fees.
+            Get your team set up in minutes. Small GoCardless transaction fees apply &mdash; choose to absorb them or pass them to players.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
