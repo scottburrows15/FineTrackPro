@@ -555,6 +555,7 @@ function EditFineModal({
   const initialDescription = fine?.description || "";
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>(initialSubcategoryId);
 
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
@@ -607,6 +608,7 @@ function EditFineModal({
                   value={selectedCategoryId} 
                   onValueChange={(value) => {
                     setSelectedCategoryId(value);
+                    setSelectedSubcategoryId("");
                     form.setValue("subcategoryId", "");
                   }}
                 >
@@ -621,28 +623,25 @@ function EditFineModal({
                 </Select>
               </div>
 
-              <FormField
-                control={form.control}
-                name="subcategoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs uppercase font-bold text-slate-400 tracking-wider">Subcategory</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {filteredSubcategories.map((sub) => (
-                          <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <FormLabel className="text-xs uppercase font-bold text-slate-400 tracking-wider">Subcategory</FormLabel>
+                <Select 
+                  value={selectedSubcategoryId} 
+                  onValueChange={(value) => {
+                    setSelectedSubcategoryId(value);
+                    form.setValue("subcategoryId", value);
+                  }}
+                >
+                  <SelectTrigger className="h-12 rounded-xl mt-1.5 border-slate-100 bg-slate-50/50 font-bold text-slate-700">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubcategories.map((sub) => (
+                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <FormField
