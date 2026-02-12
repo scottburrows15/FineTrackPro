@@ -6,11 +6,9 @@ import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import { 
   Bell, 
-  CreditCard, 
   Moon, 
   Sun,
   LogOut,
-  Receipt,
   HelpCircle,
   ChevronRight,
   Laptop,
@@ -101,18 +99,6 @@ export default function PlayerSettings() {
                 permission === "denied" ? "Blocked in browser settings" :
                 isSubscribed ? "Enabled" : undefined
               }
-            />
-            <Divider />
-            <SettingsRow
-              icon={CreditCard}
-              label="Payment Methods"
-              onClick={() => setLocation("/payment")}
-            />
-            <Divider />
-            <SettingsRow
-              icon={Receipt}
-              label="Payment History"
-              onClick={() => setLocation("/player/home")}
             />
           </div>
         </section>
