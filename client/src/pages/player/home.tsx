@@ -124,16 +124,16 @@ export default function PlayerHome() {
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
         {/* Greeting + Pay Button + Expandable Fines */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl text-white overflow-hidden">
+        <Card className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
           <div className="p-4">
             <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold mb-1 truncate">
+                <h2 className="text-lg font-semibold mb-1 truncate text-slate-900 dark:text-white">
                   Hi {firstName}! 👋
                 </h2>
-                <div className="text-slate-200 text-sm truncate">
+                <div className="text-slate-500 dark:text-slate-400 text-sm truncate">
                   {statsLoading ? (
-                    <Skeleton className="h-4 w-40 bg-slate-600" />
+                    <Skeleton className="h-4 w-40 bg-slate-200 dark:bg-slate-700" />
                   ) : totalOutstanding > 0 ? (
                     `You have £${totalOutstanding.toFixed(2)} in outstanding fines`
                   ) : (
@@ -156,7 +156,7 @@ export default function PlayerHome() {
             {payableFines.length > 0 && (
               <button
                 onClick={() => setShowFines(!showFines)}
-                className="mt-3 flex items-center gap-1 text-xs text-slate-300 hover:text-white transition-colors"
+                className="mt-3 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
               >
                 {showFines ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 {showFines ? 'Hide' : 'See'} {payableFines.length} outstanding fine{payableFines.length !== 1 ? 's' : ''}
@@ -169,26 +169,26 @@ export default function PlayerHome() {
               {payableFines.map((fine) => (
                 <div
                   key={fine.id}
-                  className="flex items-center justify-between p-3 bg-white/10 rounded-lg backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-all"
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
                   onClick={() => toggleFineExpansion(fine.id)}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-white flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
                       <span className="truncate">{fine.subcategory?.name || 'Fine Issued'}</span>
                     </div>
-                    <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
                       <User className="h-3 w-3" />
                       {fine.issuedByUser?.firstName || 'Admin'} • {formatDate(fine.createdAt)}
                     </div>
                     {expandedFineId === fine.id && fine.description && (
-                      <p className="text-xs text-slate-300 mt-1.5 pt-1.5 border-t border-white/20">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-600">
                         {fine.description}
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-base font-bold text-white">
+                    <span className="text-base font-bold text-red-600 dark:text-red-400">
                       {formatCurrency(parseFloat(fine.amount))}
                     </span>
                     {expandedFineId === fine.id ? (
@@ -201,7 +201,7 @@ export default function PlayerHome() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Stats Overview - 3 columns */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
