@@ -590,7 +590,7 @@ function EditFineModal({
         subcategoryId: fine.subcategoryId,
       });
     }
-  }, [fine?.id, subcategories, form]);
+  }, [fine?.id, subcategories.length]);
 
   if (!fine) return null;
 
