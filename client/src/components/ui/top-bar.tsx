@@ -17,12 +17,12 @@ interface TopBarProps {
 }
 
 export default function TopBar({ user, currentView, pageTitle, onViewChange, canSwitchView }: TopBarProps) {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { switchView, canSwitchView: teamCanSwitchView } = useTeam();
   
   const effectiveCanSwitchView = canSwitchView ?? teamCanSwitchView;
 
-  const showGavel = currentView === 'admin' && location !== '/admin/fines';
+  const showGavel = currentView === 'admin';
 
   const getInitials = (user: UserType | null) => {
     if (!user) return "?";
