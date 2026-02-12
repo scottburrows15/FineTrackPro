@@ -370,18 +370,19 @@ export default function AdminHome() {
       </div>
 
       {/* Edit Fine Modal */}
-      <EditFineModal
-        fine={editingFine}
-        onClose={() => setEditingFine(null)}
-        onSubmit={(data) => {
-          if (editingFine) {
+      {editingFine && (
+        <EditFineModal
+          key={editingFine.id}
+          fine={editingFine}
+          onClose={() => setEditingFine(null)}
+          onSubmit={(data) => {
             editFineMutation.mutate({ fineId: editingFine.id, data });
-          }
-        }}
-        categories={categories}
-        subcategories={subcategories}
-        isLoading={editFineMutation.isPending}
-      />
+          }}
+          categories={categories}
+          subcategories={subcategories}
+          isLoading={editFineMutation.isPending}
+        />
+      )}
     </AppLayout>
   );
 }
@@ -563,15 +564,17 @@ function EditFineModal({
   subcategories: FineSubcategory[];
   isLoading: boolean;
 }) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [lastFineId, setLastFineId] = useState<string | null>(null);
+  const currentSubcategory = subcategories.find(sub => sub.id === fine?.subcategoryId);
+  const initialCategoryId = currentSubcategory?.categoryId || "";
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
 
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
     defaultValues: {
-      amount: "",
-      description: "",
-      subcategoryId: "",
+      amount: fine?.amount || "",
+      description: fine?.description || "",
+      subcategoryId: fine?.subcategoryId || "",
     },
   });
 
@@ -580,35 +583,14 @@ function EditFineModal({
     return subcategories.filter(sub => sub.categoryId === selectedCategoryId);
   }, [selectedCategoryId, subcategories]);
 
-  const isNewFine = fine && fine.id !== lastFineId;
-  const needsCategorySet = fine && subcategories.length > 0 && !selectedCategoryId;
-
   useEffect(() => {
-    if (!fine) {
-      setLastFineId(null);
-      setSelectedCategoryId("");
-      form.reset({ amount: "", description: "", subcategoryId: "" });
-      return;
-    }
-    if (isNewFine) {
-      setLastFineId(fine.id);
-      form.reset({
-        amount: fine.amount,
-        description: fine.description || "",
-        subcategoryId: fine.subcategoryId,
-      });
-      setSelectedCategoryId("");
-    }
-  }, [fine?.id]);
-
-  useEffect(() => {
-    if (needsCategorySet && fine) {
-      const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
-      if (currentSubcategory) {
-        setSelectedCategoryId(currentSubcategory.categoryId);
+    if (fine && subcategories.length > 0 && !selectedCategoryId) {
+      const sub = subcategories.find(s => s.id === fine.subcategoryId);
+      if (sub) {
+        setSelectedCategoryId(sub.categoryId);
       }
     }
-  }, [needsCategorySet, subcategories.length]);
+  }, [subcategories.length]);
 
   if (!fine) return null;
 
