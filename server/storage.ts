@@ -74,6 +74,7 @@ export interface IStorage {
   reorderCategories(categoryIds: string[]): Promise<void>;
   
   // Fine subcategory operations
+  getAllSubcategories(): Promise<FineSubcategory[]>;
   getCategorySubcategories(categoryId: string): Promise<FineSubcategory[]>;
   getSubcategory(id: string): Promise<FineSubcategory | undefined>;
   createFineSubcategory(subcategory: InsertFineSubcategory): Promise<FineSubcategory>;
@@ -329,6 +330,13 @@ export class DatabaseStorage implements IStorage {
         .set({ sortOrder: i })
         .where(eq(fineCategories.id, categoryIds[i]));
     }
+  }
+
+  async getAllSubcategories(): Promise<FineSubcategory[]> {
+    return await db
+      .select()
+      .from(fineSubcategories)
+      .orderBy(fineSubcategories.sortOrder);
   }
 
   async getCategorySubcategories(categoryId: string): Promise<FineSubcategory[]> {
