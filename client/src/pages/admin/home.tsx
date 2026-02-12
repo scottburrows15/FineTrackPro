@@ -168,15 +168,13 @@ export default function AdminHome() {
     },
   });
 
-  // Fetch categories for edit modal
+  // Fetch categories and subcategories (always loaded so edit modal has data immediately)
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
-    enabled: !!editingFine,
   });
 
   const { data: subcategories = [] } = useQuery<FineSubcategory[]>({
     queryKey: ["/api/subcategories"],
-    enabled: !!editingFine,
   });
 
   // Share Logic
