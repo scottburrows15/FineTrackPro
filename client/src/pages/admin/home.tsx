@@ -31,7 +31,6 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { FineWithDetails, TeamStats, Notification, FineSubcategory, Team } from "@shared/schema";
 import {
   Search,
-  PlusCircle,
   Edit,
   Check,
   Trash2,
@@ -264,23 +263,13 @@ export default function AdminHome() {
         {/* 3. FINES LIST SECTION */}
         <div className="space-y-4">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center px-1">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-200">
                   <Sparkles className="w-3 h-3 text-white" />
                 </div>
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Recent Fines</h3>
               </div>
-              
-              {/* Button updated to Blue */}
-              <Button 
-                size="sm" 
-                onClick={() => setLocation("/admin/fines")}
-                className="h-9 rounded-full bg-blue-600 text-white hover:bg-blue-700 text-[10px] font-bold uppercase tracking-wide px-4 shadow-lg shadow-blue-200 transition-all active:scale-95"
-              >
-                <PlusCircle className="w-3.5 h-3.5 mr-1.5" />
-                New Fine
-              </Button>
             </div>
 
             {/* Search */}
@@ -397,14 +386,12 @@ function StatCard({ label, value, icon: Icon, color }: any) {
   };
 
   return (
-    <div className="flex flex-col p-3 rounded-2xl bg-white shadow-lg shadow-slate-200/50 border-0 h-28 relative overflow-hidden">
-      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradients[color as keyof typeof gradients]} flex items-center justify-center mb-auto shadow-md`}>
+    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white shadow-lg shadow-slate-200/50 border-0 h-28 relative overflow-hidden text-center">
+      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradients[color as keyof typeof gradients]} flex items-center justify-center shadow-md mb-2`}>
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <div className="mt-2">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{label}</p>
-        <p className="text-lg font-black text-slate-900 tracking-tighter leading-tight mt-0.5">{value}</p>
-      </div>
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{label}</p>
+      <p className="text-lg font-black text-slate-900 tracking-tighter leading-tight mt-0.5">{value}</p>
     </div>
   );
 }
@@ -562,17 +549,19 @@ function EditFineModal({
   subcategories: FineSubcategory[];
   isLoading: boolean;
 }) {
-  const currentSubcategory = subcategories.find(sub => sub.id === fine?.subcategoryId);
-  const initialCategoryId = currentSubcategory?.categoryId || "";
+  const initialCategoryId = fine?.subcategory?.category?.id || "";
+  const initialSubcategoryId = fine?.subcategoryId || "";
+  const initialAmount = fine?.amount ? String(fine.amount) : "";
+  const initialDescription = fine?.description || "";
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
 
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
     defaultValues: {
-      amount: fine?.amount || "",
-      description: fine?.description || "",
-      subcategoryId: fine?.subcategoryId || "",
+      amount: initialAmount,
+      description: initialDescription,
+      subcategoryId: initialSubcategoryId,
     },
   });
 
@@ -580,15 +569,6 @@ function EditFineModal({
     if (!selectedCategoryId) return subcategories;
     return subcategories.filter(sub => sub.categoryId === selectedCategoryId);
   }, [selectedCategoryId, subcategories]);
-
-  useEffect(() => {
-    if (fine && subcategories.length > 0 && !selectedCategoryId) {
-      const sub = subcategories.find(s => s.id === fine.subcategoryId);
-      if (sub) {
-        setSelectedCategoryId(sub.categoryId);
-      }
-    }
-  }, [subcategories.length]);
 
   if (!fine) return null;
 
