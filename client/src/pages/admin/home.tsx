@@ -564,13 +564,14 @@ function EditFineModal({
   isLoading: boolean;
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [hasPopulated, setHasPopulated] = useState(false);
 
   const form = useForm<EditFineFormData>({
     resolver: zodResolver(editFineSchema),
     defaultValues: {
-      amount: "",
-      description: "",
-      subcategoryId: "",
+      amount: fine?.amount || "",
+      description: fine?.description || "",
+      subcategoryId: fine?.subcategoryId || "",
     },
   });
 
@@ -580,17 +581,25 @@ function EditFineModal({
   }, [selectedCategoryId, subcategories]);
 
   useEffect(() => {
-    if (fine && subcategories.length > 0) {
-      const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
-      const categoryId = currentSubcategory?.categoryId || "";
-      setSelectedCategoryId(categoryId);
+    if (!fine) {
+      setHasPopulated(false);
+      return;
+    }
+    if (fine && !hasPopulated) {
       form.reset({
         amount: fine.amount,
         description: fine.description || "",
         subcategoryId: fine.subcategoryId,
       });
+      if (subcategories.length > 0) {
+        const currentSubcategory = subcategories.find(sub => sub.id === fine.subcategoryId);
+        if (currentSubcategory) {
+          setSelectedCategoryId(currentSubcategory.categoryId);
+        }
+        setHasPopulated(true);
+      }
     }
-  }, [fine?.id, subcategories.length]);
+  }, [fine, subcategories, hasPopulated]);
 
   if (!fine) return null;
 
