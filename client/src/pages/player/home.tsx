@@ -20,14 +20,12 @@ import {
   Award,
   Clock,
   CheckCircle,
-  AlertCircle,
   User,
   ChevronDown,
   ChevronUp,
   Filter,
   X,
   Zap,
-  ArrowRight,
   Hourglass,
   Loader2,
   Trophy,
@@ -47,6 +45,7 @@ export default function PlayerHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [showPaidFines, setShowPaidFines] = useState(false);
+  const [showFines, setShowFines] = useState(false);
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -124,34 +123,84 @@ export default function PlayerHome() {
     >
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
-        {/* Greeting + Pay Button */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-4 text-white">
-          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold mb-1 truncate">
-                Hi {firstName}! 👋
-              </h2>
-              <div className="text-slate-200 text-sm truncate">
-                {statsLoading ? (
-                  <Skeleton className="h-4 w-40 bg-slate-600" />
-                ) : totalOutstanding > 0 ? (
-                  `You have £${totalOutstanding.toFixed(2)} in outstanding fines`
-                ) : (
-                  "You're all caught up!"
-                )}
+        {/* Greeting + Pay Button + Expandable Fines */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl text-white overflow-hidden">
+          <div className="p-4">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-semibold mb-1 truncate">
+                  Hi {firstName}! 👋
+                </h2>
+                <div className="text-slate-200 text-sm truncate">
+                  {statsLoading ? (
+                    <Skeleton className="h-4 w-40 bg-slate-600" />
+                  ) : totalOutstanding > 0 ? (
+                    `You have £${totalOutstanding.toFixed(2)} in outstanding fines`
+                  ) : (
+                    "You're all caught up!"
+                  )}
+                </div>
               </div>
+              {totalOutstanding > 0 && (
+                <Button
+                  onClick={() => setLocation("/payment")}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap flex-shrink-0"
+                  size="sm"
+                >
+                  <PoundSterling className="mr-1 h-4 w-4" />
+                  Pay £{totalOutstanding.toFixed(2)}
+                </Button>
+              )}
             </div>
-            {totalOutstanding > 0 && (
-              <Button
-                onClick={() => setLocation("/payment")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap flex-shrink-0"
-                size="sm"
+
+            {payableFines.length > 0 && (
+              <button
+                onClick={() => setShowFines(!showFines)}
+                className="mt-3 flex items-center gap-1 text-xs text-slate-300 hover:text-white transition-colors"
               >
-                <PoundSterling className="mr-1 h-4 w-4" />
-                Pay £{totalOutstanding.toFixed(2)}
-              </Button>
+                {showFines ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {showFines ? 'Hide' : 'See'} {payableFines.length} outstanding fine{payableFines.length !== 1 ? 's' : ''}
+              </button>
             )}
           </div>
+
+          {showFines && payableFines.length > 0 && (
+            <div className="px-4 pb-4 space-y-2 animate-in fade-in slide-in-from-top-2">
+              {payableFines.map((fine) => (
+                <div
+                  key={fine.id}
+                  className="flex items-center justify-between p-3 bg-white/10 rounded-lg backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-all"
+                  onClick={() => toggleFineExpansion(fine.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                      <span className="truncate">{fine.subcategory?.name || 'Fine Issued'}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1.5">
+                      <User className="h-3 w-3" />
+                      {fine.issuedByUser?.firstName || 'Admin'} • {formatDate(fine.createdAt)}
+                    </div>
+                    {expandedFineId === fine.id && fine.description && (
+                      <p className="text-xs text-slate-300 mt-1.5 pt-1.5 border-t border-white/20">
+                        {fine.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-base font-bold text-white">
+                      {formatCurrency(parseFloat(fine.amount))}
+                    </span>
+                    {expandedFineId === fine.id ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Stats Overview - 3 columns */}
@@ -193,7 +242,7 @@ export default function PlayerHome() {
               <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg mb-2">
                 <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mb-2">League Position</p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mb-2">Hall of Shame</p>
               {statsLoading ? (
                 <Skeleton className="h-6 w-8 bg-slate-200 dark:bg-slate-700" />
               ) : (
@@ -204,86 +253,6 @@ export default function PlayerHome() {
             </div>
           </Card>
         </div>
-
-        {/* Outstanding Fines Section */}
-        {payableFines.length > 0 && (
-          <Card className="overflow-hidden shadow-xl border-2 border-emerald-500/50">
-            <div className="p-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base">Settle Up</h3>
-                  <p className="text-lg font-extrabold mt-1">
-                    {formatCurrency(payableFines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0))}
-                  </p>
-                  <p className="text-xs text-green-200 mt-1">
-                    {payableFines.length} {payableFines.length === 1 ? 'fine' : 'fines'} outstanding
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setLocation("/payment")}
-                  className="bg-white text-emerald-600 hover:bg-green-50 h-10 px-5 font-bold shadow-lg text-sm flex items-center gap-1"
-                >
-                  Pay Now
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 pt-3 pb-2">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                Fines Requiring Payment
-              </h4>
-            </div>
-
-            <div className="px-4 pb-4 space-y-3">
-              {payableFines.map((fine) => (
-                <Card
-                  key={fine.id}
-                  className={`p-3 cursor-pointer transition-all bg-white dark:bg-slate-800 border-l-8 
-                    ${expandedFineId === fine.id ? 'border-red-700 shadow-md ring-1 ring-red-200' : 'border-red-600/80 hover:border-red-600'}
-                  `}
-                  onClick={() => toggleFineExpansion(fine.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-base font-extrabold text-slate-900 dark:text-white leading-tight flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-red-500" />
-                        {fine.subcategory?.name || 'Fine Issued'}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {fine.issuedByUser?.firstName || 'Admin'}
-                        </span>
-                        <span>• {formatDate(fine.createdAt)}</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <p className="text-xl font-black text-red-700 dark:text-red-400 whitespace-nowrap">
-                        {formatCurrency(parseFloat(fine.amount))}
-                      </p>
-                      <button className="text-slate-500 hover:text-slate-700 p-1">
-                        {expandedFineId === fine.id ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  {expandedFineId === fine.id && fine.description && (
-                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Note: <span className="font-normal">{fine.description}</span>
-                      </p>
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </Card>
-        )}
 
         {/* Empty State */}
         {!isLoading && fines.length === 0 && (
@@ -371,16 +340,26 @@ export default function PlayerHome() {
               {analytics.topOffenders.slice(0, 8).map((offender, index) => {
                 const isCurrentUser = offender.playerId === user.id;
                 const getMedalIcon = (position: number) => {
-                  switch (position) {
-                    case 0: return <Medal className="w-6 h-6 text-yellow-500" />;
-                    case 1: return <Medal className="w-6 h-6 text-slate-400" />;
-                    case 2: return <Medal className="w-6 h-6 text-orange-500" />;
-                    default: return (
-                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 font-medium text-xs">
-                        {position + 1}
+                  const medalColors: Record<number, string> = {
+                    0: 'text-yellow-500',
+                    1: 'text-slate-400',
+                    2: 'text-orange-500',
+                  };
+                  if (position <= 2) {
+                    return (
+                      <div className="relative">
+                        <Medal className={`w-6 h-6 ${medalColors[position]}`} />
+                        <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-bold ${position === 0 ? 'text-yellow-800' : position === 1 ? 'text-slate-600' : 'text-orange-800'} mt-[1px]`}>
+                          {position + 1}
+                        </span>
                       </div>
                     );
                   }
+                  return (
+                    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 font-medium text-xs">
+                      {position + 1}
+                    </div>
+                  );
                 };
 
                 const getBackgroundStyle = (position: number) => {

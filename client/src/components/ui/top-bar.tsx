@@ -45,7 +45,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
     <>
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="px-4 py-2">
-          {/* First Row: Logo and User Controls */}
+          {/* First Row: Logo + View Switcher + User Controls */}
           <div className="flex items-center justify-between mb-2">
             {/* Logo */}
             <div className="flex-shrink-0">
@@ -56,8 +56,51 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
               />
             </div>
 
-            {/* User Controls - Help, Theme, Profile */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* View Switcher - Center */}
+            <div className="flex-shrink-0">
+              {effectiveCanSwitchView ? (
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                  <button
+                    onClick={() => handleViewSwitch('player')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      currentView === 'player' 
+                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    data-testid="view-switcher-player"
+                  >
+                    Player
+                  </button>
+                  <button
+                    onClick={() => handleViewSwitch('admin')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      currentView === 'admin' 
+                        ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    data-testid="view-switcher-admin"
+                  >
+                    Admin
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400 capitalize">
+                    {currentView}
+                  </span>
+                  <div 
+                    className={`h-2 w-2 rounded-full ${
+                      currentView === 'player' 
+                        ? 'bg-blue-500' 
+                        : 'bg-amber-500'
+                    }`}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* User Controls - Help, Theme, Profile - equally distributed */}
+            <div className="flex items-center justify-between gap-3 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -93,51 +136,11 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
             </div>
           </div>
 
-          {/* Second Row: Page Title and View Switcher */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0 mr-3">
+          {/* Second Row: Page Title */}
+          <div className="flex items-center">
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
               {pageTitle}
             </h1>
-
-            {effectiveCanSwitchView ? (
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0">
-                <button
-                  onClick={() => handleViewSwitch('player')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    currentView === 'player' 
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                  data-testid="view-switcher-player"
-                >
-                  Player
-                </button>
-                <button
-                  onClick={() => handleViewSwitch('admin')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    currentView === 'admin' 
-                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                  data-testid="view-switcher-admin"
-                >
-                  Admin
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1 flex-shrink-0">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 capitalize">
-                  {currentView}
-                </span>
-                <div 
-                  className={`h-2 w-2 rounded-full ${
-                    currentView === 'player' 
-                      ? 'bg-blue-500' 
-                      : 'bg-amber-500'
-                  }`}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
