@@ -45,7 +45,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-card border-b border-slate-200 dark:border-border shadow-sm">
         <div className="px-4 py-2">
           {/* First Row: Logo and Icon Controls */}
           <div className="flex items-center justify-between mb-2">
@@ -54,7 +54,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
               <img 
                 src={logoUrl} 
                 alt="FoulPay Logo" 
-                className="h-8 w-auto object-contain"
+                className="h-8 w-auto object-contain dark-logo-glow"
               />
             </div>
 
@@ -78,11 +78,11 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 variant="ghost"
                 size="icon"
                 onClick={() => setLocation('/help')}
-                className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-muted"
                 data-testid="button-help"
                 aria-label="Help and support"
               >
-                <HelpCircle className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                <HelpCircle className="h-4 w-4 text-slate-600 dark:text-muted-foreground" />
               </Button>
 
               <ThemeToggle />
@@ -93,7 +93,7 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 data-testid="button-profile-avatar"
                 aria-label="User profile"
               >
-                <Avatar className="h-8 w-8 shadow-md ring-1 ring-slate-200 dark:ring-slate-600">
+                <Avatar className="h-8 w-8 shadow-md ring-1 ring-slate-200 dark:ring-border">
                   {user?.profileImageUrl && (
                     <AvatarImage 
                       src={user.profileImageUrl} 
@@ -116,13 +116,13 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
             </h1>
 
             {effectiveCanSwitchView ? (
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0" style={{ width: '160px' }}>
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-muted rounded-lg p-1 flex-shrink-0" style={{ width: '160px' }}>
                 <button
                   onClick={() => handleViewSwitch('player')}
                   className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors text-center ${
                     currentView === 'player' 
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-white dark:bg-accent text-blue-600 dark:text-blue-400 shadow-sm' 
+                      : 'text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground'
                   }`}
                   data-testid="view-switcher-player"
                 >
@@ -132,8 +132,8 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                   onClick={() => handleViewSwitch('admin')}
                   className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors text-center ${
                     currentView === 'admin' 
-                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-white dark:bg-accent text-amber-600 dark:text-amber-400 shadow-sm' 
+                      : 'text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground'
                   }`}
                   data-testid="view-switcher-admin"
                 >
@@ -141,8 +141,8 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg py-1 flex-shrink-0" style={{ width: '160px' }}>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 capitalize">
+              <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-muted rounded-lg py-1 flex-shrink-0" style={{ width: '160px' }}>
+                <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground capitalize">
                   {currentView}
                 </span>
                 <div 

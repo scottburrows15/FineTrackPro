@@ -50,7 +50,7 @@ export default function PlayerSettings() {
     >
       <div className="max-w-lg mx-auto px-4 py-6 pb-32">
         <div className="flex items-center gap-4 mb-8">
-          <Avatar className="h-14 w-14 shadow-md ring-1 ring-slate-200 dark:ring-slate-600">
+          <Avatar className="h-14 w-14 shadow-md ring-1 ring-slate-200 dark:ring-border">
             {user.profileImageUrl && (
               <AvatarImage
                 src={user.profileImageUrl}
@@ -80,7 +80,7 @@ export default function PlayerSettings() {
 
         <section className="mb-6">
           <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">General</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <SettingsRow
               icon={Bell}
               label="Push Notifications"
@@ -104,8 +104,8 @@ export default function PlayerSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Appearance</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Appearance</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <div className="p-4">
               <div className="flex items-center gap-3 mb-4">
                 <Palette className="w-5 h-5 text-slate-400" />
@@ -136,8 +136,8 @@ export default function PlayerSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Other</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Other</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <SettingsRow
               icon={HelpCircle}
               label="Help & Support"
@@ -175,19 +175,19 @@ function SettingsRow({ icon: Icon, label, onClick, trailing, subtitle }: {
       <div className="flex items-center gap-3 min-w-0">
         <Icon className="w-5 h-5 text-slate-400 shrink-0" />
         <div className="min-w-0">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-foreground">{label}</span>
           {subtitle && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-slate-400 dark:text-muted-foreground mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
-      {trailing || (onClick && <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />)}
+      {trailing || (onClick && <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-foreground shrink-0" />)}
     </div>
   );
 
   if (onClick) {
     return (
-      <button onClick={onClick} className="w-full text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+      <button onClick={onClick} className="w-full text-left hover:bg-slate-50 dark:hover:bg-muted transition-colors">
         {content}
       </button>
     );
@@ -207,7 +207,7 @@ function ThemeOption({ icon: Icon, label, active, onClick }: {
       className={`flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-all ${
         active
           ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-          : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"
+          : "border-slate-100 dark:border-border hover:border-slate-200 dark:hover:border-muted-foreground/30"
       }`}
     >
       <Icon className={`w-4 h-4 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
@@ -219,5 +219,5 @@ function ThemeOption({ icon: Icon, label, active, onClick }: {
 }
 
 function Divider() {
-  return <div className="h-px bg-slate-100 dark:bg-slate-700 mx-4" />;
+  return <div className="h-px bg-slate-100 dark:bg-border mx-4" />;
 }

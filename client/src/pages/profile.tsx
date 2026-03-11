@@ -218,7 +218,7 @@ export default function Profile() {
               {/* Profile Picture Section */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative group">
-                  <div className="w-24 h-24 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center overflow-hidden shadow-lg">
+                  <div className="w-24 h-24 bg-slate-200 dark:bg-muted rounded-full flex items-center justify-center overflow-hidden shadow-lg">
                     {previewImage || currentUser?.profileImageUrl ? (
                       <img
                         src={previewImage || currentUser?.profileImageUrl || ""}
@@ -227,7 +227,7 @@ export default function Profile() {
                         data-testid="img-profile-preview"
                       />
                     ) : (
-                      <span className="text-2xl font-medium text-slate-600 dark:text-slate-300">
+                      <span className="text-2xl font-medium text-slate-600 dark:text-muted-foreground">
                         {currentUser ? getDisplayName(currentUser).split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                       </span>
                     )}
@@ -348,7 +348,7 @@ export default function Profile() {
                 <Input
                   value={currentUser?.email || ''}
                   disabled
-                  className="bg-slate-50 dark:bg-slate-900"
+                  className="bg-slate-50 dark:bg-card"
                   data-testid="input-email"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -396,7 +396,7 @@ export default function Profile() {
                     <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
                   </div>
                 ) : teams.length === 0 ? (
-                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <div className="text-center py-6 bg-slate-50 dark:bg-muted/50 rounded-lg">
                     <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                     <p className="text-muted-foreground">You're not a member of any teams yet.</p>
                   </div>
@@ -410,7 +410,7 @@ export default function Profile() {
                           className={`p-4 rounded-lg border transition-all ${
                             isActive 
                               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                              : 'border-slate-200 dark:border-border hover:border-slate-300 dark:hover:border-muted-foreground/30'
                           }`}
                           data-testid={`team-membership-${membership.teamId}`}
                         >
@@ -419,7 +419,7 @@ export default function Profile() {
                               <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
                                 isActive 
                                   ? 'bg-blue-500 text-white' 
-                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                  : 'bg-slate-200 dark:bg-muted text-slate-600 dark:text-muted-foreground'
                               }`}>
                                 <Users className="h-5 w-5" />
                               </div>
@@ -463,7 +463,7 @@ export default function Profile() {
                                 {isActive && (membership.role === 'admin' || membership.role === 'both') && canSwitchView && (
                                   <div className="flex items-center gap-2 mt-2">
                                     <span className="text-xs text-muted-foreground">Current view:</span>
-                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-muted rounded-lg p-1">
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -472,8 +472,8 @@ export default function Profile() {
                                         }}
                                         className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                                           activeView === 'player' 
-                                            ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                            ? 'bg-white dark:bg-muted text-blue-600 dark:text-blue-400 shadow-sm' 
+                                            : 'text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground'
                                         }`}
                                         data-testid="profile-view-switcher-player"
                                       >
@@ -487,8 +487,8 @@ export default function Profile() {
                                         }}
                                         className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                                           activeView === 'admin' 
-                                            ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
-                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                            ? 'bg-white dark:bg-muted text-amber-600 dark:text-amber-400 shadow-sm' 
+                                            : 'text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground'
                                         }`}
                                         data-testid="profile-view-switcher-admin"
                                       >

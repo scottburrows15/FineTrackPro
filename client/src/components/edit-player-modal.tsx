@@ -102,10 +102,10 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-card flex flex-col max-h-[90vh]">
 
         {/* --- HEADER --- */}
-        <div className="bg-slate-50 dark:bg-slate-950 p-6 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-slate-50 dark:bg-background p-6 border-b border-slate-100 dark:border-border">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
               <UserCog className="w-6 h-6 text-white" />
@@ -121,7 +121,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
           {/* Avatar Edit Section */}
           <div className="mt-6 flex flex-col items-center">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-[32px] bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-700 shadow-xl overflow-hidden">
+              <div className="w-24 h-24 rounded-[32px] bg-white dark:bg-muted border-4 border-white dark:border-border shadow-xl overflow-hidden">
                 {previewImage ? (
                   <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -160,7 +160,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
             <div className="space-y-1.5 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">First Name</Label>
               <Input
-                className="h-11 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner"
+                className="h-11 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner"
                 value={formData.firstName}
                 onChange={(e) => setFormData(p => ({ ...p, firstName: e.target.value }))}
                 required
@@ -169,7 +169,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
             <div className="space-y-1.5 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Last Name</Label>
               <Input
-                className="h-11 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner"
+                className="h-11 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner"
                 value={formData.lastName}
                 onChange={(e) => setFormData(p => ({ ...p, lastName: e.target.value }))}
                 required
@@ -183,7 +183,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
               <Mail className="absolute left-3 top-3.5 text-slate-400 w-4 h-4" />
               <Input
                 type="email"
-                className="h-11 pl-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner"
+                className="h-11 pl-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner"
                 value={formData.email}
                 onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
                 required
@@ -197,7 +197,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
               <div className="relative">
                 <AtSign className="absolute left-3 top-3.5 text-slate-400 w-4 h-4" />
                 <Input
-                  className="h-11 pl-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner"
+                  className="h-11 pl-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner"
                   value={formData.nickname}
                   onChange={(e) => setFormData(p => ({ ...p, nickname: e.target.value }))}
                   placeholder="e.g. 'The Wall'"
@@ -207,7 +207,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
             <div className="space-y-1.5 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Role</Label>
               <Select value={formData.role} onValueChange={(v) => setFormData(p => ({ ...p, role: v }))}>
-                <SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner">
+                <SelectTrigger className="h-11 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -222,7 +222,7 @@ export default function EditPlayerModal({ isOpen, onClose, player }: EditPlayerM
             <div className="space-y-1.5 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Primary Position</Label>
               <Select value={formData.position} onValueChange={(v) => setFormData(p => ({ ...p, position: v }))}>
-                <SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold shadow-inner">
+                <SelectTrigger className="h-11 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold shadow-inner">
                   <MapPin className="w-4 h-4 text-slate-400 mr-2" />
                   <SelectValue placeholder="Select Position..." />
                 </SelectTrigger>

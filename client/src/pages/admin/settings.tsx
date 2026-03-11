@@ -143,8 +143,8 @@ export default function AdminSettings() {
     >
       <div className="max-w-lg mx-auto px-4 py-6 pb-32">
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Team Management</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Team Management</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <SettingsRow
               icon={Settings}
               label="Club Identity"
@@ -162,22 +162,22 @@ export default function AdminSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Payments</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Payments</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <div className="px-4 py-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <Building2 className="w-5 h-5 text-slate-400 shrink-0" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Open Banking</span>
+                      <span className="text-sm font-medium text-slate-700 dark:text-foreground">Open Banking</span>
                       {gcStatus?.connected && (
                         <Badge className="bg-emerald-100 text-emerald-700 border-0 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] px-1.5 py-0">
                           <Check className="w-2.5 h-2.5 mr-0.5" /> Active
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-400 dark:text-muted-foreground mt-0.5">
                       {gcStatus?.connected
                         ? `Connected ${gcStatus.connectedAt ? new Date(gcStatus.connectedAt).toLocaleDateString() : ""}`
                         : "Receive instant bank payments"}
@@ -216,15 +216,15 @@ export default function AdminSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Preferences</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Preferences</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3.5">
               <div className="flex items-center gap-3">
                 <Bell className="w-5 h-5 text-slate-400 shrink-0" />
                 <div>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Push Notifications</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-foreground">Push Notifications</span>
                   {(!pushSupported || pushPermission === "denied") && (
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-400 dark:text-muted-foreground mt-0.5">
                       {!pushSupported ? "Not supported" : "Blocked in browser"}
                     </p>
                   )}
@@ -243,8 +243,8 @@ export default function AdminSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">Other</h3>
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Other</h3>
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <SettingsRow
               icon={Shield}
               label="Audit Trail"
@@ -260,7 +260,7 @@ export default function AdminSettings() {
         </section>
 
         <section className="mb-6">
-          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-red-100 dark:border-red-900/30">
+          <div className="bg-white dark:bg-card rounded-xl overflow-hidden border border-red-100 dark:border-red-900/30">
             <div className="flex items-center justify-between px-4 py-3.5">
               <div className="flex items-center gap-3">
                 <Trash2 className="w-5 h-5 text-red-400 shrink-0" />
@@ -287,7 +287,7 @@ export default function AdminSettings() {
             <LogOut className="w-4 h-4" />
             Sign Out
           </button>
-          <p className="text-center text-[11px] text-slate-300 dark:text-slate-600 mt-3">
+          <p className="text-center text-[11px] text-slate-300 dark:text-muted-foreground mt-3">
             FoulPay v1.0.0
           </p>
         </div>
@@ -307,7 +307,7 @@ export default function AdminSettings() {
               You are about to permanently delete <span className="underline underline-offset-4">{teamInfo?.name}</span> and all its data.
             </DialogDescription>
           </div>
-          <div className="p-6 space-y-4 bg-white dark:bg-slate-900">
+          <div className="p-6 space-y-4 bg-white dark:bg-card">
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Type team name to confirm</Label>
               <Input 
@@ -351,17 +351,17 @@ function SettingsRow({ icon: Icon, label, subtitle, onClick }: {
       <div className="flex items-center gap-3 min-w-0">
         <Icon className="w-5 h-5 text-slate-400 shrink-0" />
         <div className="min-w-0">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-foreground">{label}</span>
           {subtitle && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-slate-400 dark:text-muted-foreground mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
-      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
+      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-foreground shrink-0" />
     </button>
   );
 }
 
 function Divider() {
-  return <div className="h-px bg-slate-100 dark:bg-slate-700 mx-4" />;
+  return <div className="h-px bg-slate-100 dark:bg-border mx-4" />;
 }

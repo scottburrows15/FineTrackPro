@@ -115,10 +115,10 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-slate-900 flex flex-col max-h-[85vh]">
+      <DialogContent className="max-w-[480px] w-[94vw] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white dark:bg-card flex flex-col max-h-[85vh]">
         
         {/* --- HEADER --- */}
-        <div className="bg-slate-50 dark:bg-slate-950 p-5 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-slate-50 dark:bg-background p-5 border-b border-slate-100 dark:border-border">
           <div className="flex items-center justify-between gap-4 pr-10">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm">
@@ -157,7 +157,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
           </div>
 
           {!editingTeam ? (
-            <div className="mt-4 flex gap-4 items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="mt-4 flex gap-4 items-center justify-between bg-white dark:bg-card p-3 rounded-2xl border border-slate-100 dark:border-border shadow-sm">
               <div className="min-w-0 flex-1 text-left">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Active Club</p>
                 <p className="text-sm font-black text-slate-900 dark:text-white truncate">{teamInfo?.name}</p>
@@ -175,7 +175,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                 <div className="space-y-1 text-left">
                   <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Club Name</Label>
                   <Input 
-                    className="h-9 bg-white dark:bg-slate-900 border-none rounded-lg font-bold text-sm shadow-sm"
+                    className="h-9 bg-white dark:bg-card border-none rounded-lg font-bold text-sm shadow-sm"
                     value={teamForm.name}
                     onChange={(e) => setTeamForm(p => ({ ...p, name: e.target.value }))}
                   />
@@ -183,7 +183,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                 <div className="space-y-1 text-left">
                   <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Sport</Label>
                   <Select value={teamForm.sport} onValueChange={(v) => setTeamForm(p => ({ ...p, sport: v }))}>
-                    <SelectTrigger className="h-9 bg-white dark:bg-slate-900 border-none rounded-lg font-bold text-xs shadow-sm">
+                    <SelectTrigger className="h-9 bg-white dark:bg-card border-none rounded-lg font-bold text-xs shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -197,7 +197,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
         </div>
 
         {/* --- ROSTER --- */}
-        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-900">
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-card">
           <div className="px-5 pt-4 pb-2 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
@@ -217,7 +217,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
               <Input 
                 placeholder="Search players..."
-                className="h-9 pl-9 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-medium placeholder:text-slate-400 shadow-inner"
+                className="h-9 pl-9 bg-slate-50 dark:bg-muted border-none rounded-xl text-xs font-medium placeholder:text-slate-400 shadow-inner"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -231,7 +231,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
               <div 
                 key={member.id} 
                 className={cn(
-                  "group relative flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-transparent hover:border-blue-100 transition-all overflow-hidden",
+                  "group relative flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-muted/50 rounded-xl border border-transparent hover:border-blue-100 transition-all overflow-hidden",
                   member.role === 'admin' ? "pl-5" : "pl-3"
                 )}
               >
@@ -245,7 +245,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                 )}
 
                 <div className="relative shrink-0">
-                  <Avatar className="h-10 w-10 rounded-lg overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm">
+                  <Avatar className="h-10 w-10 rounded-lg overflow-hidden border-2 border-white dark:border-border shadow-sm">
                     <AvatarImage 
                       src={member.profileImageUrl || undefined} 
                       className="object-cover w-full h-full aspect-square" 
@@ -255,7 +255,7 @@ export default function ManageTeamModal({ isOpen, onClose }: ManageTeamModalProp
                     </AvatarFallback>
                   </Avatar>
                   {member.role === 'admin' && (
-                    <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 border border-white dark:border-slate-700 shadow-sm">
+                    <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 border border-white dark:border-border shadow-sm">
                       <Crown className="w-2.5 h-2.5 text-amber-900" />
                     </div>
                   )}

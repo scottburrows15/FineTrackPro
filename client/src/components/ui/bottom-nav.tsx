@@ -46,7 +46,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.3)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-slate-200 dark:border-border shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.3)]">
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
@@ -62,8 +62,8 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg
                   transition-all duration-200 min-w-[60px] sm:min-w-[70px] relative
                   ${isActive 
-                    ? 'bg-blue-50 dark:bg-blue-900/20' 
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-blue-50 dark:bg-primary/10' 
+                    : 'hover:bg-slate-100 dark:hover:bg-muted'
                   }
                 `}
                 data-testid={`bottom-nav-${item.id}`}
@@ -72,12 +72,12 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   <Icon 
                     className={`
                       h-5 w-5 sm:h-6 sm:w-6 transition-colors
-                      ${isActive ? item.color : 'text-slate-600 dark:text-slate-400'}
+                      ${isActive ? item.color : 'text-slate-600 dark:text-muted-foreground'}
                     `}
                   />
                   {showBadge && (
                     <div 
-                      className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 px-1"
+                      className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-card px-1"
                       data-testid={`badge-${item.id}`}
                     >
                       <span className="text-[10px] font-bold text-white leading-none">
@@ -91,7 +91,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                     text-[10px] sm:text-xs font-medium transition-colors
                     ${isActive 
                       ? 'text-blue-600 dark:text-blue-400' 
-                      : 'text-slate-600 dark:text-slate-400'
+                      : 'text-slate-600 dark:text-muted-foreground'
                     }
                   `}
                 >
@@ -112,8 +112,8 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg
                   transition-all duration-200 min-w-[60px] sm:min-w-[70px] relative
                   ${teamMenuOpen 
-                    ? 'bg-blue-50 dark:bg-blue-900/20' 
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-blue-50 dark:bg-primary/10' 
+                    : 'hover:bg-slate-100 dark:hover:bg-muted'
                   }
                 `}
                 data-testid="bottom-nav-team"
@@ -122,7 +122,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                   <Users 
                     className={`
                       h-5 w-5 sm:h-6 sm:w-6 transition-colors
-                      ${teamMenuOpen ? 'text-amber-500' : 'text-slate-600 dark:text-slate-400'}
+                      ${teamMenuOpen ? 'text-amber-500' : 'text-slate-600 dark:text-muted-foreground'}
                     `}
                   />
                   <ChevronUp className={`h-3 w-3 ml-0.5 transition-transform ${teamMenuOpen ? 'rotate-180' : ''} text-slate-400`} />
@@ -132,7 +132,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
                     text-[10px] sm:text-xs font-medium transition-colors truncate max-w-[60px]
                     ${teamMenuOpen 
                       ? 'text-blue-600 dark:text-blue-400' 
-                      : 'text-slate-600 dark:text-slate-400'
+                      : 'text-slate-600 dark:text-muted-foreground'
                     }
                   `}
                 >
@@ -143,7 +143,7 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
             <DropdownMenuContent 
               align="end" 
               side="top" 
-              className="w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-2"
+              className="w-64 bg-white dark:bg-popover border border-slate-200 dark:border-border mb-2"
               data-testid="team-switcher-menu"
             >
               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">

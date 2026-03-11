@@ -168,7 +168,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-slate-800 border-border">
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-3 sm:p-6 bg-white dark:bg-card border-border">
         <DialogHeader>
           <DialogTitle>Issue New Fine</DialogTitle>
         </DialogHeader>

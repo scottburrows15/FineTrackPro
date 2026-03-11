@@ -124,7 +124,7 @@ export default function PlayerHome() {
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
         {/* Greeting + Pay Button + Expandable Fines */}
-        <Card className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <Card className="rounded-xl overflow-hidden border border-slate-200 dark:border-border bg-white dark:bg-card">
           <div className="p-4">
             <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -205,7 +205,7 @@ export default function PlayerHome() {
 
         {/* Stats Overview - 3 columns */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Card className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 min-h-[100px] sm:min-h-[120px]">
+          <Card className="p-3 sm:p-4 bg-white dark:bg-card border border-slate-200 dark:border-border min-h-[100px] sm:min-h-[120px]">
             <div className="flex flex-col items-center justify-between h-full text-center">
               <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-2">
                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />
@@ -221,7 +221,7 @@ export default function PlayerHome() {
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 min-h-[100px] sm:min-h-[120px]">
+          <Card className="p-3 sm:p-4 bg-white dark:bg-card border border-slate-200 dark:border-border min-h-[100px] sm:min-h-[120px]">
             <div className="flex flex-col items-center justify-between h-full text-center">
               <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg mb-2">
                 <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
@@ -237,7 +237,7 @@ export default function PlayerHome() {
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 min-h-[100px] sm:min-h-[120px]">
+          <Card className="p-3 sm:p-4 bg-white dark:bg-card border border-slate-200 dark:border-border min-h-[100px] sm:min-h-[120px]">
             <div className="flex flex-col items-center justify-between h-full text-center">
               <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg mb-2">
                 <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
@@ -313,7 +313,7 @@ export default function PlayerHome() {
         )}
 
         {/* Hall of Shame Leaderboard */}
-        <Card className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+        <Card className="p-4 bg-white dark:bg-card border border-slate-200 dark:border-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />

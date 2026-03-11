@@ -31,7 +31,7 @@ export default function UnifiedFineIssuer({ isOpen, onClose }: UnifiedFineIssuer
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
-        <Card className="w-full max-w-md bg-white dark:bg-slate-800 border-border" onClick={(e) => e.stopPropagation()}>
+        <Card className="w-full max-w-md bg-white dark:bg-card border-border" onClick={(e) => e.stopPropagation()}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-foreground">Issue Fines</h2>

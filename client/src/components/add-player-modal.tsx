@@ -69,10 +69,10 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[400px] w-[92vw] p-0 overflow-hidden border-none shadow-2xl rounded-[24px] bg-white dark:bg-slate-900">
+      <DialogContent className="max-w-[400px] w-[92vw] p-0 overflow-hidden border-none shadow-2xl rounded-[24px] bg-white dark:bg-card">
         
         {/* --- TIGHT HEADER --- */}
-        <div className="pt-5 px-6 pb-3 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800">
+        <div className="pt-5 px-6 pb-3 flex items-center gap-3 border-b border-slate-50 dark:border-border">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
             <UserPlus className="w-5 h-5 text-white" />
           </div>
@@ -93,7 +93,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">First Name</Label>
               <Input
-                className="h-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold text-sm"
+                className="h-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold text-sm"
                 value={formData.firstName}
                 onChange={(e) => setFormData(p => ({ ...p, firstName: e.target.value }))}
                 placeholder="John"
@@ -103,7 +103,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Last Name</Label>
               <Input
-                className="h-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold text-sm"
+                className="h-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold text-sm"
                 value={formData.lastName}
                 onChange={(e) => setFormData(p => ({ ...p, lastName: e.target.value }))}
                 placeholder="Doe"
@@ -121,7 +121,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
               <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-300" />
               <Input
                 type="email"
-                className="h-10 pl-9 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold text-sm"
+                className="h-10 pl-9 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold text-sm"
                 value={formData.email}
                 onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
                 placeholder="player@example.com"
@@ -134,7 +134,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Nickname</Label>
               <Input
-                className="h-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold text-sm"
+                className="h-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold text-sm"
                 value={formData.nickname}
                 onChange={(e) => setFormData(p => ({ ...p, nickname: e.target.value }))}
                 placeholder="The Wall"
@@ -143,7 +143,7 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Position</Label>
               <Select value={formData.position} onValueChange={(v) => setFormData(p => ({ ...p, position: v }))}>
-                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold text-xs">
+                <SelectTrigger className="h-10 bg-slate-50 dark:bg-muted border-none rounded-xl font-bold text-xs">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
