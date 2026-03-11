@@ -61,15 +61,12 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
     const firstName = (player.firstName || '').toLowerCase();
     const lastName = (player.lastName || '').toLowerCase();
     const fullName = `${firstName} ${lastName}`;
-    const position = (player.position || '').toLowerCase();
+    const nickname = (player.nickname || '').toLowerCase();
     
-    // Match against first name, last name, full name, or position
     return firstName.includes(searchLower) || 
            lastName.includes(searchLower) || 
-           fullName.includes(searchLower) || 
-           position.includes(searchLower) ||
-           // Also match initials (e.g., "JS" matches "John Smith")
-           (firstName[0] + lastName[0]).includes(searchLower);
+           fullName.includes(searchLower) ||
+           nickname.includes(searchLower);
   });
 
   // Unified fine mutation that works for any number of players
@@ -197,7 +194,7 @@ export default function IssueFineModal({ isOpen, onClose }: IssueFineModalProps)
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input
-                placeholder="Search players by name or position..."
+                placeholder="Search by first name, surname or nickname..."
                 value={playerSearchTerm}
                 onChange={(e) => setPlayerSearchTerm(e.target.value)}
                 onKeyDown={(e) => {
