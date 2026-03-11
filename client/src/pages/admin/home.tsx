@@ -117,9 +117,11 @@ export default function AdminHome() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter((f) => {
-        const nameToSearch = f.player?.nickname || `${f.player?.firstName || ""} ${f.player?.lastName || ""}`;
-        const description = (f.description || "").toLowerCase();
-        return nameToSearch.toLowerCase().includes(query) || description.includes(query);
+        const firstName = (f.player?.firstName || "").toLowerCase();
+        const lastName = (f.player?.lastName || "").toLowerCase();
+        const nickname = (f.player?.nickname || "").toLowerCase();
+        const fullName = `${firstName} ${lastName}`.trim();
+        return firstName.includes(query) || lastName.includes(query) || nickname.includes(query) || fullName.includes(query);
       });
     }
     return result;
@@ -277,7 +279,7 @@ export default function AdminHome() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search player or reason..."
+                  placeholder="Search player"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-11 rounded-2xl bg-white border-0 shadow-lg shadow-slate-200/50 focus-visible:ring-2 focus-visible:ring-blue-500 text-sm font-medium"
