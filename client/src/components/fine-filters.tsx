@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import type { FineWithDetails, User as UserType, FineSubcategory } from "@shared/schema";
+import { getDisplayName } from "@/lib/userUtils";
 
 interface FineFiltersProps {
   fines: FineWithDetails[];
@@ -80,15 +81,18 @@ export default function FineFilters({
     return counts;
   }, [fines]);
 
-  // Filter team members by player search query (nickname, first name, surname)
+  // Filter team members by player search query — mirrors issue fine modal logic exactly
+  // Searches: nickname, first name, surname, full name, email prefix
   const filteredTeamMembers = useMemo(() => {
     const q = playerSearch.toLowerCase().trim();
     if (!q) return teamMembers;
     return teamMembers.filter(p => {
       const first = (p.firstName || "").toLowerCase();
       const last = (p.lastName || "").toLowerCase();
+      const fullName = `${first} ${last}`.trim();
       const nick = (p.nickname || "").toLowerCase();
-      return first.includes(q) || last.includes(q) || `${first} ${last}`.includes(q) || nick.includes(q);
+      const emailPrefix = (p.email?.split("@")[0] || "").toLowerCase();
+      return first.includes(q) || last.includes(q) || fullName.includes(q) || nick.includes(q) || emailPrefix.includes(q);
     });
   }, [teamMembers, playerSearch]);
 
@@ -372,7 +376,7 @@ export default function FineFilters({
                         onClick={() => togglePlayerSelection(player.id)}
                         className="text-xs"
                       >
-                        {player.nickname || `${player.firstName} ${player.lastName}`}
+                        {getDisplayName(player)}
                       </Button>
                     ))}
                   </div>
