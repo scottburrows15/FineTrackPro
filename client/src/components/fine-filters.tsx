@@ -61,6 +61,7 @@ export default function FineFilters({
 }: FineFiltersProps) {
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState("");
 
   const { data: teamMembers = [] } = useQuery<UserType[]>({
     queryKey: ['/api/admin/team-members'],
@@ -79,6 +80,18 @@ export default function FineFilters({
     return counts;
   }, [fines]);
 
+  // Filter team members by player search query (nickname, first name, surname)
+  const filteredTeamMembers = useMemo(() => {
+    const q = playerSearch.toLowerCase().trim();
+    if (!q) return teamMembers;
+    return teamMembers.filter(p => {
+      const first = (p.firstName || "").toLowerCase();
+      const last = (p.lastName || "").toLowerCase();
+      const nick = (p.nickname || "").toLowerCase();
+      return first.includes(q) || last.includes(q) || `${first} ${last}`.includes(q) || nick.includes(q);
+    });
+  }, [teamMembers, playerSearch]);
+
   // Apply filters whenever filters or fines change
   useEffect(() => {
     let filtered = [...fines];
@@ -89,6 +102,7 @@ export default function FineFilters({
       filtered = filtered.filter(fine =>
         fine.player.firstName?.toLowerCase().includes(searchLower) ||
         fine.player.lastName?.toLowerCase().includes(searchLower) ||
+        fine.player.nickname?.toLowerCase().includes(searchLower) ||
         fine.player.email?.toLowerCase().includes(searchLower) ||
         fine.subcategory.name.toLowerCase().includes(searchLower) ||
         fine.description?.toLowerCase().includes(searchLower)
@@ -338,8 +352,19 @@ export default function FineFilters({
                     <User className="w-4 h-4" />
                     Players ({filters.selectedPlayers.length} selected)
                   </label>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                    <Input
+                      placeholder="Search by name or nickname..."
+                      value={playerSearch}
+                      onChange={(e) => setPlayerSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg">
-                    {teamMembers.map((player) => (
+                    {filteredTeamMembers.length === 0 ? (
+                      <span className="text-xs text-slate-400 p-1">No players found</span>
+                    ) : filteredTeamMembers.map((player) => (
                       <Button
                         key={player.id}
                         variant={filters.selectedPlayers.includes(player.id) ? "default" : "outline"}
@@ -347,7 +372,7 @@ export default function FineFilters({
                         onClick={() => togglePlayerSelection(player.id)}
                         className="text-xs"
                       >
-                        {player.firstName} {player.lastName}
+                        {player.nickname || `${player.firstName} ${player.lastName}`}
                       </Button>
                     ))}
                   </div>
