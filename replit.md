@@ -13,7 +13,7 @@ FoulPay is a comprehensive fine management system designed specifically for UK s
 
 ### Comprehensive Enhancement Initiative (January 12, 2025)
 - ✅ **Step 1 - Modern Design System**: Enhanced CSS architecture with improved color palette, typography scale, spacing system, glass morphism effects, and comprehensive accessibility features
-- ✅ **Theme System Implementation**: Complete theme provider with dark mode support and persistent theme storage
+- ⏸️ **Theme System**: Dark mode disabled and toggle removed (light-only for now); ThemeProvider/ThemeToggle components retained for future re-enablement
 - ✅ **UI Component Library Expansion**: Added loading skeletons, error boundaries, empty states, and advanced search components for better UX
 - ✅ **Enhanced Landing Page**: Modern hero section with gradient backgrounds, glass cards, animated elements, and improved call-to-action buttons
 - ✅ **Step 2 - Feature Expansion**: Advanced fine search with date ranges, filtering, real-time updates system with automatic notifications and offline handling

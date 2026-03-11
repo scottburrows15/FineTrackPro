@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HelpCircle, Gavel } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 import { useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
 import { getDisplayName } from "@/lib/userUtils";
@@ -84,8 +84,6 @@ export default function TopBar({ user, currentView, pageTitle, onViewChange, can
               >
                 <HelpCircle className="h-4 w-4 text-slate-600 dark:text-muted-foreground" />
               </Button>
-
-              <ThemeToggle />
 
               <button
                 onClick={() => setLocation('/profile')}

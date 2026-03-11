@@ -6,24 +6,19 @@ import { useLocation } from "wouter";
 import type { Notification } from "@shared/schema";
 import { 
   Bell, 
-  Moon, 
-  Sun,
   LogOut,
   HelpCircle,
-  ChevronRight,
-  Laptop,
-  Palette
+  ChevronRight
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useTheme } from "@/components/ui/theme-provider";
+
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { getDisplayName } from "@/lib/userUtils";
 
 export default function PlayerSettings() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const { theme, setTheme } = useTheme();
   const { isSupported, permission, isSubscribed, requestPermission, unsubscribe } = usePushNotifications();
 
   const { data: notifications = [] } = useQuery<Notification[]>({
@@ -104,38 +99,6 @@ export default function PlayerSettings() {
         </section>
 
         <section className="mb-6">
-          <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Appearance</h3>
-          <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Palette className="w-5 h-5 text-slate-400" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Theme</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <ThemeOption
-                  icon={Sun}
-                  label="Light"
-                  active={theme === "light"}
-                  onClick={() => setTheme("light")}
-                />
-                <ThemeOption
-                  icon={Moon}
-                  label="Dark"
-                  active={theme === "dark"}
-                  onClick={() => setTheme("dark")}
-                />
-                <ThemeOption
-                  icon={Laptop}
-                  label="System"
-                  active={theme === "system"}
-                  onClick={() => setTheme("system")}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-6">
           <h3 className="text-xs font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider mb-2 px-1">Other</h3>
           <div className="bg-white dark:bg-card rounded-xl overflow-hidden">
             <SettingsRow
@@ -195,28 +158,6 @@ function SettingsRow({ icon: Icon, label, onClick, trailing, subtitle }: {
   return content;
 }
 
-function ThemeOption({ icon: Icon, label, active, onClick }: {
-  icon: any;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-all ${
-        active
-          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-          : "border-slate-100 dark:border-border hover:border-slate-200 dark:hover:border-muted-foreground/30"
-      }`}
-    >
-      <Icon className={`w-4 h-4 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
-      <span className={`text-xs font-medium ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"}`}>
-        {label}
-      </span>
-    </button>
-  );
-}
 
 function Divider() {
   return <div className="h-px bg-slate-100 dark:bg-border mx-4" />;
