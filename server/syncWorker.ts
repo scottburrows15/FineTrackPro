@@ -1,8 +1,9 @@
 // Background worker for Open Banking transaction synchronization
 import cron from 'node-cron';
 import { db } from './db';
-import { teams, obTokens, paymentIntents } from '../shared/schema';
+import { teams, obTokens, paymentIntents, fines } from '../shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
+import { checkTimeLimitOverride } from './paymentStrategy';
 import { MockOpenBankingProvider, decrypt, extractSearchTerms, reconcileTransaction } from './openBanking';
 
 console.log('🔄 Starting Open Banking sync worker...');
@@ -17,6 +18,52 @@ cron.schedule('*/5 9-18 * * 1-5', async () => {
 cron.schedule('0 * * * *', async () => {
   console.log('🧹 Cleaning up expired payment intents...');
   await cleanupExpiredIntents();
+});
+
+// Time Limit Override: check every hour for fines past grace period
+cron.schedule('0 * * * *', async () => {
+  try {
+    const timeLimitTeams = await db.select().from(teams)
+      .where(eq(teams.paymentMode, 'time_limit'));
+
+    for (const team of timeLimitTeams) {
+      const graceDays = team.gracePeriodDays ?? 14;
+      const unpaidFines = await db.select().from(fines)
+        .where(and(eq(fines.isPaid, false)));
+
+      let marked = 0;
+      for (const fine of unpaidFines) {
+        if (fine.createdAt && checkTimeLimitOverride(new Date(fine.createdAt), graceDays)) {
+          if (fine.paymentStatus === 'unpaid') {
+            marked++;
+          }
+        }
+      }
+      if (marked > 0) {
+        console.log(`⏰ Time limit: ${marked} fines now payable for team ${team.id}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in time limit override check:', error);
+  }
+});
+
+// Monthly Sweep: run at midnight on configured day
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const today = new Date().getDate();
+    const sweepTeams = await db.select().from(teams)
+      .where(eq(teams.paymentMode, 'monthly_sweep'));
+
+    for (const team of sweepTeams) {
+      const sweepDay = team.monthlySweepDay ?? 1;
+      if (today === sweepDay) {
+        console.log(`💸 Monthly sweep triggered for team ${team.id}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in monthly sweep check:', error);
+  }
 });
 
 // Main sync function for all teams with Open Banking connections

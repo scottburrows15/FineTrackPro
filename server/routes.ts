@@ -9,8 +9,10 @@ import path from "path";
 import express from "express";
 import { insertFineSchema, insertFineCategorySchema, insertFineSubcategorySchema } from "@shared/schema";
 import { db } from "./db";
-import { fines, notifications, auditLog, processedPayments, users } from "@shared/schema";
-import { eq, inArray, and } from "drizzle-orm";
+import { fines, notifications, auditLog, processedPayments, users, teams, playerWallets, walletTransactions } from "@shared/schema";
+import { eq, inArray, and, sql } from "drizzle-orm";
+import { calculatePaymentForMode, checkThreshold, checkTimeLimitOverride, WALLET_TOPUP_OPTIONS_PENCE, type FeeBreakdown } from "./paymentStrategy";
+import type { PaymentMode } from "@shared/schema";
 
 // Use dummy Stripe key for testing if not provided
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -912,6 +914,271 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching funds summary:", error);
       res.status(500).json({ message: "Failed to fetch funds summary" });
+    }
+  });
+
+  // ──────────────────────────────────────────
+  // Payment Settings (Payment Logic Engine)
+  // ──────────────────────────────────────────
+
+  app.get('/api/admin/payment-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const team = await db.select({
+        paymentMode: teams.paymentMode,
+        thresholdAmountPence: teams.thresholdAmountPence,
+        gracePeriodDays: teams.gracePeriodDays,
+        monthlySweepDay: teams.monthlySweepDay,
+        passFeesToPlayer: teams.passFeesToPlayer,
+      }).from(teams).where(eq(teams.id, user.teamId)).limit(1);
+
+      if (!team.length) return res.status(404).json({ message: "Team not found" });
+      res.json(team[0]);
+    } catch (error) {
+      console.error("Error fetching payment settings:", error);
+      res.status(500).json({ message: "Failed to fetch payment settings" });
+    }
+  });
+
+  app.patch('/api/admin/payment-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { paymentMode, thresholdAmountPence, gracePeriodDays, monthlySweepDay } = req.body;
+      const validModes: PaymentMode[] = ['fee_absorbed', 'fee_surcharged', 'wallet', 'threshold', 'time_limit', 'monthly_sweep'];
+
+      const updates: Record<string, any> = {};
+      if (paymentMode && validModes.includes(paymentMode)) {
+        updates.paymentMode = paymentMode;
+      }
+      if (thresholdAmountPence !== undefined) {
+        updates.thresholdAmountPence = Math.max(100, Math.round(thresholdAmountPence));
+      }
+      if (gracePeriodDays !== undefined) {
+        updates.gracePeriodDays = Math.max(1, Math.min(90, Math.round(gracePeriodDays)));
+      }
+      if (monthlySweepDay !== undefined) {
+        updates.monthlySweepDay = Math.max(1, Math.min(28, Math.round(monthlySweepDay)));
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      await db.update(teams).set(updates).where(eq(teams.id, user.teamId));
+      res.json({ message: "Payment settings updated", ...updates });
+    } catch (error) {
+      console.error("Error updating payment settings:", error);
+      res.status(500).json({ message: "Failed to update payment settings" });
+    }
+  });
+
+  app.post('/api/payments/calculate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId) return res.status(403).json({ message: "Not in a team" });
+
+      const team = await db.select().from(teams).where(eq(teams.id, user.teamId)).limit(1);
+      if (!team.length) return res.status(404).json({ message: "Team not found" });
+
+      const { subtotalPence, isWalletDeduction } = req.body;
+      if (!subtotalPence || subtotalPence <= 0) {
+        return res.status(400).json({ message: "Invalid subtotal" });
+      }
+
+      const mode = (team[0].paymentMode || 'fee_absorbed') as PaymentMode;
+      const breakdown = calculatePaymentForMode(mode, subtotalPence, isWalletDeduction || false);
+      res.json({ mode, ...breakdown });
+    } catch (error) {
+      console.error("Error calculating fees:", error);
+      res.status(500).json({ message: "Failed to calculate fees" });
+    }
+  });
+
+  // ──────────────────────────────────────────
+  // Player Wallet (Pre-paid) Endpoints
+  // ──────────────────────────────────────────
+
+  app.get('/api/wallet/balance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId) return res.status(403).json({ message: "Not in a team" });
+
+      const [wallet] = await db.select().from(playerWallets)
+        .where(and(eq(playerWallets.userId, userId), eq(playerWallets.teamId, user.teamId)));
+
+      res.json({
+        balancePence: wallet?.balancePence ?? 0,
+        walletId: wallet?.id ?? null,
+        topUpOptions: WALLET_TOPUP_OPTIONS_PENCE,
+      });
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+      res.status(500).json({ message: "Failed to fetch wallet balance" });
+    }
+  });
+
+  app.post('/api/wallet/topup', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId) return res.status(403).json({ message: "Not in a team" });
+
+      const { amountPence } = req.body;
+      if (!amountPence || amountPence < 100) {
+        return res.status(400).json({ message: "Minimum top-up is £1.00" });
+      }
+
+      const breakdown = calculatePaymentForMode('wallet', amountPence, false);
+
+      let [wallet] = await db.select().from(playerWallets)
+        .where(and(eq(playerWallets.userId, userId), eq(playerWallets.teamId, user.teamId)));
+
+      if (!wallet) {
+        const [newWallet] = await db.insert(playerWallets).values({
+          userId,
+          teamId: user.teamId,
+          balancePence: 0,
+        }).returning();
+        wallet = newWallet;
+      }
+
+      await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        type: 'topup',
+        amountPence,
+        feePence: breakdown.totalFeePence,
+        status: 'pending',
+        description: `Wallet top-up of £${(amountPence / 100).toFixed(2)} (awaiting payment)`,
+      });
+
+      res.json({
+        message: "Top-up initiated — balance will be credited once payment is confirmed",
+        currentBalancePence: wallet.balancePence,
+        feeBreakdown: breakdown,
+      });
+    } catch (error) {
+      console.error("Error topping up wallet:", error);
+      res.status(500).json({ message: "Failed to top up wallet" });
+    }
+  });
+
+  app.post('/api/wallet/pay-fine', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId) return res.status(403).json({ message: "Not in a team" });
+
+      const { fineId } = req.body;
+      if (!fineId) return res.status(400).json({ message: "Fine ID required" });
+
+      const [fine] = await db.select().from(fines).where(eq(fines.id, fineId));
+      if (!fine || fine.playerId !== userId) {
+        return res.status(404).json({ message: "Fine not found" });
+      }
+      if (fine.isPaid) {
+        return res.status(400).json({ message: "Fine already paid" });
+      }
+
+      const fineAmountPence = Math.round(parseFloat(fine.amount) * 100);
+
+      const [wallet] = await db.select().from(playerWallets)
+        .where(and(eq(playerWallets.userId, userId), eq(playerWallets.teamId, user.teamId)));
+
+      if (!wallet || wallet.balancePence < fineAmountPence) {
+        return res.status(400).json({
+          message: "Insufficient wallet balance",
+          required: fineAmountPence,
+          available: wallet?.balancePence ?? 0,
+        });
+      }
+
+      await db.update(playerWallets)
+        .set({ balancePence: wallet.balancePence - fineAmountPence, updatedAt: new Date() })
+        .where(eq(playerWallets.id, wallet.id));
+
+      await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        type: 'deduction',
+        amountPence: fineAmountPence,
+        feePence: 0,
+        fineId,
+        description: `Fine payment (fee-free wallet deduction)`,
+      });
+
+      await db.update(fines).set({
+        isPaid: true,
+        paymentStatus: 'paid',
+        paymentMethod: 'wallet',
+        paidAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(fines.id, fineId));
+
+      await storage.creditWallet(user.teamId, fineAmountPence);
+
+      res.json({
+        message: "Fine paid from wallet",
+        newBalancePence: wallet.balancePence - fineAmountPence,
+        fineId,
+      });
+    } catch (error) {
+      console.error("Error paying fine from wallet:", error);
+      res.status(500).json({ message: "Failed to pay fine from wallet" });
+    }
+  });
+
+  // ──────────────────────────────────────────
+  // Threshold & Time Limit Check
+  // ──────────────────────────────────────────
+
+  app.get('/api/payments/threshold-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserWithTeam(userId);
+      if (!user?.teamId) return res.status(403).json({ message: "Not in a team" });
+
+      const team = await db.select().from(teams).where(eq(teams.id, user.teamId)).limit(1);
+      if (!team.length) return res.status(404).json({ message: "Team not found" });
+
+      const mode = team[0].paymentMode as PaymentMode;
+      if (mode !== 'threshold' && mode !== 'time_limit') {
+        return res.json({ mode, isPayable: true, message: "No threshold in effect" });
+      }
+
+      const unpaidFines = await db.select().from(fines)
+        .where(and(eq(fines.playerId, userId), eq(fines.isPaid, false)));
+
+      const pendingAmounts = unpaidFines.map(f => Math.round(parseFloat(f.amount) * 100));
+      const thresholdCheck = checkThreshold(pendingAmounts, team[0].thresholdAmountPence ?? 1000);
+
+      let overriddenByTime = false;
+      if (mode === 'time_limit' && !thresholdCheck.isPayable) {
+        const graceDays = team[0].gracePeriodDays ?? 14;
+        overriddenByTime = unpaidFines.some(f =>
+          f.createdAt && checkTimeLimitOverride(new Date(f.createdAt), graceDays)
+        );
+      }
+
+      res.json({
+        mode,
+        ...thresholdCheck,
+        isPayable: thresholdCheck.isPayable || overriddenByTime,
+        overriddenByTime,
+        fineCount: unpaidFines.length,
+      });
+    } catch (error) {
+      console.error("Error checking threshold:", error);
+      res.status(500).json({ message: "Failed to check threshold status" });
     }
   });
 

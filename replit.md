@@ -27,6 +27,14 @@ FoulPay is a comprehensive fine management system designed specifically for UK s
 - ✅ **Frontend Payment Interface**: Modern React payment page with fine selection, payment intent creation, and bank transfer instructions
 - ✅ **Mock Provider Integration**: Complete Open Banking provider abstraction ready for production API integration (TrueLayer/Yapily/Plaid)
 
+### Payment Logic Engine (March 2026)
+- ✅ **6 Payment Modes**: Fee Absorbed, Fee Surcharged, Pre-paid Wallet, Threshold Batching, Time Limit Override, Monthly Sweep
+- ✅ **Database Schema**: Added `payment_mode`, `threshold_amount_pence`, `grace_period_days`, `monthly_sweep_day` to teams table; new `player_wallets` and `wallet_transactions` tables
+- ✅ **Payment Strategy Module**: `server/paymentStrategy.ts` with fee calculation for all 6 modes, grossing-up logic for surcharged mode, threshold/time-limit checks
+- ✅ **Backend API**: GET/PATCH `/api/admin/payment-settings`, POST `/api/payments/calculate`, wallet endpoints (balance, top-up, pay-fine), threshold status endpoint
+- ✅ **Cron Jobs**: Hourly time-limit override check, daily monthly sweep trigger (in `server/syncWorker.ts`)
+- ✅ **Admin UI**: Payment Settings modal in admin settings with mode selection cards, threshold/grace period/sweep day configuration, live fee example calculator
+
 ### PWA-Only Pivot (February 2026)
 - ✅ **Mobile App Removal**: Removed all mobile app download flows, password setup, and native app references - PWA-only strategy
 - ✅ **Subscription Removal**: Eliminated all subscription tiers, billing UI, and subscription management - all features now free

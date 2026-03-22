@@ -69,6 +69,11 @@ export const teams = pgTable("teams", {
   currentSubscriptionId: varchar("current_subscription_id"),
   isTrialActive: boolean("is_trial_active").default(false),
   trialEndsAt: timestamp("trial_ends_at"),
+  // Payment Logic Engine settings
+  paymentMode: varchar("payment_mode", { length: 30 }).default("fee_absorbed"),
+  thresholdAmountPence: integer("threshold_amount_pence").default(1000),
+  gracePeriodDays: integer("grace_period_days").default(14),
+  monthlySweepDay: integer("monthly_sweep_day").default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -602,6 +607,50 @@ export const insertGcBillingRequestSchema = createInsertSchema(gcBillingRequests
 });
 export type GcBillingRequest = typeof gcBillingRequests.$inferSelect;
 export type InsertGcBillingRequest = z.infer<typeof insertGcBillingRequestSchema>;
+
+// Player Wallets table - pre-paid wallet balances per player per team
+export const playerWallets = pgTable("player_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  teamId: varchar("team_id").references(() => teams.id).notNull(),
+  balancePence: integer("balance_pence").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wallet Transactions table - audit log for wallet top-ups and deductions
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").references(() => playerWallets.id).notNull(),
+  type: varchar("type", { length: 20 }).notNull(),
+  amountPence: integer("amount_pence").notNull(),
+  feePence: integer("fee_pence").default(0),
+  status: varchar("status", { length: 20 }).default("completed"),
+  fineId: varchar("fine_id").references(() => fines.id),
+  description: text("description"),
+  paymentReference: varchar("payment_reference", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Player Wallets insert schema and types
+export const insertPlayerWalletSchema = createInsertSchema(playerWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type PlayerWallet = typeof playerWallets.$inferSelect;
+export type InsertPlayerWallet = z.infer<typeof insertPlayerWalletSchema>;
+
+// Wallet Transactions insert schema and types
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+
+// Payment mode type
+export type PaymentMode = 'fee_absorbed' | 'fee_surcharged' | 'wallet' | 'threshold' | 'time_limit' | 'monthly_sweep';
 
 // Push subscriptions table for PWA push notifications
 export const pushSubscriptions = pgTable("push_subscriptions", {

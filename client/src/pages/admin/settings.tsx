@@ -21,13 +21,14 @@ import {
   FileText, Shield, 
   LogOut, Bell, HelpCircle, 
   ChevronRight, AlertTriangle, Trash2, Loader2,
-  Settings, CreditCard, Building2, Check, ExternalLink, Unlink
+  Settings, CreditCard, Building2, Check, ExternalLink, Unlink, Banknote
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import ManageTeamModal from "@/components/manage-team-modal";
 import ManageCategoriesModal from "@/components/manage-categories-modal";
 import AuditTrailModal from "@/components/audit-trail-modal";
 import AdminWalletModal from "@/components/admin-wallet-modal";
+import PaymentSettingsModal from "@/components/payment-settings-modal";
 import { useToast } from "@/hooks/use-toast";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -207,6 +208,13 @@ export default function AdminSettings() {
             </div>
             <Divider />
             <SettingsRow
+              icon={Banknote}
+              label="Payment Mode"
+              subtitle="How fines are collected and fees split"
+              onClick={() => setActiveModal('paymentSettings')}
+            />
+            <Divider />
+            <SettingsRow
               icon={CreditCard}
               label="Team Wallet"
               subtitle="Balance and withdrawals"
@@ -297,6 +305,7 @@ export default function AdminSettings() {
       <ManageCategoriesModal isOpen={activeModal === 'categories'} onClose={() => setActiveModal(null)} />
       <AuditTrailModal isOpen={activeModal === 'audit'} onClose={() => setActiveModal(null)} />
       <AdminWalletModal isOpen={activeModal === 'wallet'} onClose={() => setActiveModal(null)} />
+      <PaymentSettingsModal open={activeModal === 'paymentSettings'} onClose={() => setActiveModal(null)} />
 
       <Dialog open={activeModal === 'delete-confirm'} onOpenChange={() => setActiveModal(null)}>
         <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
