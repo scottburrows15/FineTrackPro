@@ -19,6 +19,7 @@ import NotFound from "@/pages/not-found";
 import PlayerHome from "@/pages/player/home";
 import PlayerNotifications from "@/pages/player/notifications";
 import PlayerSettings from "@/pages/player/settings";
+import PlayerWallet from "@/pages/player/wallet";
 
 // Admin pages
 import AdminHome from "@/pages/admin/home";
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/player/stats" component={PlayerHome} />
       <Route path="/player/notifications" component={PlayerNotifications} />
       <Route path="/player/settings" component={PlayerSettings} />
+      <Route path="/player/wallet" component={PlayerWallet} />
       
       {/* Admin routes */}
       <Route path="/admin/home" component={AdminHome} />

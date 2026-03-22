@@ -1082,6 +1082,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { fineId } = req.body;
       if (!fineId) return res.status(400).json({ message: "Fine ID required" });
 
+      const team = await db.select().from(teams).where(eq(teams.id, user.teamId)).limit(1);
+      if (!team[0] || team[0].paymentMode !== 'wallet') {
+        return res.status(403).json({ message: "Wallet payments are not enabled for this team" });
+      }
+
       const [fine] = await db.select().from(fines).where(eq(fines.id, fineId));
       if (!fine || fine.playerId !== userId) {
         return res.status(404).json({ message: "Fine not found" });

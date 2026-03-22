@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { BarChart3, Home, Bell, Users, ChevronUp, Check, Settings, PlusCircle } from "lucide-react";
+import { BarChart3, Home, Bell, Users, ChevronUp, Check, Settings, PlusCircle, Wallet } from "lucide-react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
 import {
   DropdownMenu,
@@ -20,13 +21,23 @@ export default function BottomNav({ currentView, unreadCount }: BottomNavProps) 
   const [location, setLocation] = useLocation();
   const { teams, activeTeam, switchTeam, isLoading } = useTeam();
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  
+
+  const { data: teamInfo } = useQuery<{ paymentMode?: string }>({
+    queryKey: ["/api/team/info"],
+    enabled: currentView === 'player',
+  });
+
+  const isWalletMode = teamInfo?.paymentMode === 'wallet';
+
+  const playerItems = [
+    { id: 'notifications', path: '/player/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
+    { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
+    ...(isWalletMode ? [{ id: 'wallet', path: '/player/wallet', icon: Wallet, label: 'Wallet', color: 'text-emerald-500', badge: 0 }] : []),
+    { id: 'settings', path: '/player/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
+  ];
+
   const navItems = currentView === 'player' 
-    ? [
-        { id: 'notifications', path: '/player/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
-        { id: 'home', path: '/player/home', icon: Home, label: 'Home', color: 'text-blue-500' },
-        { id: 'settings', path: '/player/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
-      ]
+    ? playerItems
     : [
         { id: 'notifications', path: '/admin/notifications', icon: Bell, label: 'Alerts', color: 'text-purple-500', badge: unreadCount },
         { id: 'analytics', path: '/admin/analytics', icon: BarChart3, label: 'Stats', color: 'text-indigo-500' },

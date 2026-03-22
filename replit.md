@@ -34,6 +34,10 @@ FoulPay is a comprehensive fine management system designed specifically for UK s
 - ✅ **Backend API**: GET/PATCH `/api/admin/payment-settings`, POST `/api/payments/calculate`, wallet endpoints (balance, top-up, pay-fine), threshold status endpoint
 - ✅ **Cron Jobs**: Hourly time-limit override check, daily monthly sweep trigger (in `server/syncWorker.ts`)
 - ✅ **Admin UI**: Payment Settings modal in admin settings with mode selection cards, threshold/grace period/sweep day configuration, live fee example calculator
+- ✅ **Player Wallet Page**: `/player/wallet` with balance display, preset/custom top-up amounts, fee preview, and "how it works" guide
+- ✅ **Conditional Wallet Nav**: Bottom nav shows "Wallet" tab for players when team payment mode is set to wallet
+- ✅ **Wallet Fine Payment**: Players can pay individual fines directly from wallet balance on fines page and home page
+- ✅ **Server-side Wallet Guard**: `/api/wallet/pay-fine` enforces team must have `paymentMode === 'wallet'` before allowing deductions
 
 ### PWA-Only Pivot (February 2026)
 - ✅ **Mobile App Removal**: Removed all mobile app download flows, password setup, and native app references - PWA-only strategy

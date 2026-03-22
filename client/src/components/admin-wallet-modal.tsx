@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Wallet, ArrowDownToLine, Clock, CheckCircle2, 
-  AlertCircle, Loader2, Banknote, Info, Play, XCircle, Ban, ChevronDown, CreditCard
+  AlertCircle, Loader2, Info, Play, XCircle, Ban, ChevronDown, CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Team } from "@shared/schema";
@@ -146,25 +145,6 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
     },
   });
 
-  const feeSettingsMutation = useMutation({
-    mutationFn: async (passFeesToPlayer: boolean) => 
-      apiRequest("PATCH", "/api/admin/team/fee-settings", { passFeesToPlayer }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/team/info"] });
-      toast({
-        title: "Settings updated",
-        description: "Fee settings have been saved.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update fee settings.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const withdrawMutation = useMutation({
     mutationFn: async (amountPence: number) => 
       apiRequest("POST", "/api/admin/wallet/withdraw", { amountPence }),
@@ -267,47 +247,6 @@ export default function AdminWalletModal({ isOpen, onClose }: AdminWalletModalPr
         <ScrollArea className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950">
           <div className="p-5 space-y-6 pb-8">
             
-            <div className="space-y-3">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Fee Settings</h3>
-              
-              <Card className="border-none shadow-sm bg-white dark:bg-slate-800">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Banknote className="w-4 h-4 text-slate-400" />
-                        <Label className="text-sm font-bold text-slate-900 dark:text-white">
-                          Pass fees to players
-                        </Label>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">
-                        When enabled, players pay transaction fees on top of their fines. 
-                        When disabled, your team covers the fees.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={teamInfo?.passFeesToPlayer ?? false}
-                      onCheckedChange={(checked) => feeSettingsMutation.mutate(checked)}
-                      disabled={feeSettingsMutation.isPending}
-                      data-testid="toggle-pass-fees"
-                    />
-                  </div>
-                  
-                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        {teamInfo?.passFeesToPlayer 
-                          ? "Example: A £2.00 fine will cost the player approximately £2.06 at checkout."
-                          : "Example: A £2.00 fine will show as £2.00, with fees deducted from your wallet balance."
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {!isWithdrawing ? (
               <Button 
                 onClick={() => setIsWithdrawing(true)}

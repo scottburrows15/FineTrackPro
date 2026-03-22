@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getDisplayName } from "@/lib/userUtils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import AppLayout from "@/components/ui/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -30,6 +32,7 @@ import {
   Loader2,
   Trophy,
   Medal,
+  Wallet,
 } from "lucide-react";
 
 interface TeamAnalytics {
@@ -44,11 +47,13 @@ interface TeamAnalytics {
 export default function PlayerHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [showPaidFines, setShowPaidFines] = useState(false);
   const [showFines, setShowFines] = useState(false);
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [payingFineId, setPayingFineId] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<PlayerStats>({
     queryKey: ["/api/stats/player"],
@@ -66,6 +71,43 @@ export default function PlayerHome() {
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
+  });
+
+  const { data: teamInfo } = useQuery<{ paymentMode?: string }>({
+    queryKey: ["/api/team/info"],
+    enabled: !!user,
+  });
+
+  const isWalletMode = teamInfo?.paymentMode === 'wallet';
+
+  const { data: walletData } = useQuery<{ balancePence: number }>({
+    queryKey: ["/api/wallet/balance"],
+    enabled: !!user && isWalletMode,
+  });
+
+  const walletPayMutation = useMutation({
+    mutationFn: async (fineId: string) => {
+      const res = await apiRequest("POST", "/api/wallet/pay-fine", { fineId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/player"] });
+      setPayingFineId(null);
+      toast({
+        title: "Fine paid",
+        description: `Deducted from your wallet. Balance: £${(data.newBalancePence / 100).toFixed(2)}`,
+      });
+    },
+    onError: (error: any) => {
+      setPayingFineId(null);
+      toast({
+        title: "Payment failed",
+        description: error?.message?.includes?.("Insufficient") ? "Not enough funds. Top up your wallet first." : "Something went wrong.",
+        variant: "destructive",
+      });
+    },
   });
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -142,14 +184,44 @@ export default function PlayerHome() {
                 </div>
               </div>
               {totalOutstanding > 0 && (
-                <Button
-                  onClick={() => setLocation("/payment")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap flex-shrink-0"
-                  size="sm"
-                >
-                  <PoundSterling className="mr-1 h-4 w-4" />
-                  Pay £{totalOutstanding.toFixed(2)}
-                </Button>
+                isWalletMode ? (
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <Button
+                      onClick={() => {
+                        if (payableFines.length > 0) {
+                          setPayingFineId(payableFines[0].id);
+                          walletPayMutation.mutate(payableFines[0].id);
+                        }
+                      }}
+                      disabled={walletPayMutation.isPending || !walletData || walletData.balancePence < Math.round(parseFloat(payableFines[0]?.amount || "0") * 100)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap"
+                      size="sm"
+                    >
+                      {walletPayMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Wallet className="mr-1 h-4 w-4" />
+                          Pay from Wallet
+                        </>
+                      )}
+                    </Button>
+                    {walletData && (
+                      <span className="text-[10px] text-slate-400">
+                        Balance: £{(walletData.balancePence / 100).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setLocation("/payment")}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap flex-shrink-0"
+                    size="sm"
+                  >
+                    <PoundSterling className="mr-1 h-4 w-4" />
+                    Pay £{totalOutstanding.toFixed(2)}
+                  </Button>
+                )
               )}
             </div>
 

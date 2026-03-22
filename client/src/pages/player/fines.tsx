@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { FineWithDetails, Notification } from "@shared/schema";
 import { 
   Clock, 
@@ -23,7 +25,8 @@ import {
   Zap,
   ArrowRight,
   Hourglass,
-  Loader2
+  Loader2,
+  Wallet
 } from "lucide-react";
 import AppLayout from "@/components/ui/app-layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,10 +34,12 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PlayerFines() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [showPaidFines, setShowPaidFines] = useState(false);
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
+  const [payingFineId, setPayingFineId] = useState<string | null>(null);
 
   const { data: fines = [], isLoading } = useQuery<FineWithDetails[]>({
     queryKey: ["/api/fines/my"],
@@ -45,6 +50,54 @@ export default function PlayerFines() {
     enabled: !!user,
   });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const { data: teamInfo } = useQuery<{ paymentMode?: string }>({
+    queryKey: ["/api/team/info"],
+    enabled: !!user,
+  });
+
+  const isWalletMode = teamInfo?.paymentMode === 'wallet';
+
+  const { data: walletData } = useQuery<{ balancePence: number }>({
+    queryKey: ["/api/wallet/balance"],
+    enabled: !!user && isWalletMode,
+  });
+
+  const walletPayMutation = useMutation({
+    mutationFn: async (fineId: string) => {
+      const res = await apiRequest("POST", "/api/wallet/pay-fine", { fineId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/fines/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
+      setPayingFineId(null);
+      toast({
+        title: "Fine paid",
+        description: `Deducted from your wallet. New balance: £${(data.newBalancePence / 100).toFixed(2)}`,
+      });
+    },
+    onError: (error: any) => {
+      setPayingFineId(null);
+      const msg = error?.message || "Could not pay from wallet.";
+      toast({
+        title: "Payment failed",
+        description: msg.includes("Insufficient") ? "Not enough funds in your wallet. Please top up first." : msg,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleWalletPay = (fineId: string) => {
+    setPayingFineId(fineId);
+    walletPayMutation.mutate(fineId);
+  };
+
+  const handlePayAllFromWallet = () => {
+    if (unpaidFines.length === 0) return;
+    const firstFine = unpaidFines[0];
+    handleWalletPay(firstFine.id);
+  };
 
   // Separate fines: unpaid (can be paid now), pending_payment (awaiting confirmation), and paid
   const payableFines = fines.filter(fine => !fine.isPaid && fine.paymentStatus !== 'pending_payment').sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
@@ -150,15 +203,39 @@ export default function PlayerFines() {
                   <p className="text-xs text-green-200 mt-1">
                     {unpaidFines.length} {unpaidFines.length === 1 ? 'fine' : 'fines'} outstanding
                   </p>
+                  {isWalletMode && walletData && (
+                    <p className="text-xs text-green-100 mt-1 flex items-center gap-1">
+                      <Wallet className="w-3 h-3" />
+                      Wallet: £{(walletData.balancePence / 100).toFixed(2)}
+                    </p>
+                  )}
                 </div>
-                <Button
-                  onClick={() => setLocation("/payment")}
-                  className="bg-white text-emerald-600 hover:bg-green-50 h-10 px-5 font-bold shadow-lg text-sm flex items-center gap-1"
-                  data-testid="button-pay-outstanding"
-                >
-                  Pay Now
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                {isWalletMode ? (
+                  <div className="flex flex-col gap-2 items-end">
+                    <Button
+                      onClick={() => setLocation("/player/wallet")}
+                      className="bg-white text-emerald-600 hover:bg-green-50 h-10 px-5 font-bold shadow-lg text-sm flex items-center gap-1"
+                      data-testid="button-pay-outstanding"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      My Wallet
+                    </Button>
+                    {walletData && (
+                      <span className="text-xs text-green-100">
+                        Balance: £{(walletData.balancePence / 100).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setLocation("/payment")}
+                    className="bg-white text-emerald-600 hover:bg-green-50 h-10 px-5 font-bold shadow-lg text-sm flex items-center gap-1"
+                    data-testid="button-pay-outstanding"
+                  >
+                    Pay Now
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -212,9 +289,8 @@ export default function PlayerFines() {
                     </div>
                   </div>
 
-                  {/* Expanded Description */}
                   <AnimatePresence>
-                    {expandedFineId === fine.id && fine.description && (
+                    {expandedFineId === fine.id && (
                       <motion.div 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -222,9 +298,30 @@ export default function PlayerFines() {
                         transition={{ duration: 0.2 }}
                         className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 overflow-hidden"
                       >
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Note: <span className="font-normal">{fine.description}</span>
-                        </p>
+                        {fine.description && (
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Note: <span className="font-normal">{fine.description}</span>
+                          </p>
+                        )}
+                        {isWalletMode && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleWalletPay(fine.id); }}
+                            disabled={payingFineId === fine.id || !walletData || walletData.balancePence < Math.round(parseFloat(fine.amount) * 100)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 mt-1"
+                          >
+                            {payingFineId === fine.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : walletData && walletData.balancePence < Math.round(parseFloat(fine.amount) * 100) ? (
+                              "Insufficient balance — top up"
+                            ) : (
+                              <>
+                                <Wallet className="w-3 h-3 mr-1" />
+                                Pay {formatCurrency(parseFloat(fine.amount))} from Wallet
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
