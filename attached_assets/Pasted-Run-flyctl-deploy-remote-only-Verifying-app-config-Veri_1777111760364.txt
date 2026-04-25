@@ -1,0 +1,125 @@
+Run flyctl deploy --remote-only
+==> Verifying app config
+--> Verified app config
+Validating /home/runner/work/FineTrackPro/FineTrackPro/fly.toml
+✓ Configuration is valid
+==> Building image
+Waiting for depot builder...
+
+==> Building image with Depot
+--> build:  (​)
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 370B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 137B 0.0s done
+#3 DONE 0.0s
+
+#4 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#4 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 22.82MB 0.4s done
+#5 DONE 0.4s
+
+#6 [builder 2/6] WORKDIR /app
+#6 CACHED
+
+#7 [builder 3/6] COPY package*.json ./
+#7 CACHED
+
+#8 [runner 4/5] RUN npm ci --omit=dev && npm cache clean --force
+#8 CACHED
+
+#9 [builder 4/6] RUN npm ci
+#9 CACHED
+
+#10 [builder 5/6] COPY . .
+#10 DONE 0.2s
+
+#11 [builder 6/6] RUN npm run build
+#11 0.675 
+#11 0.675 > rest-express@1.0.0 build
+#11 0.675 > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+#11 0.675 
+#11 1.202 vite v5.4.19 building for production...
+#11 1.957 transforming...
+#11 4.339 
+#11 4.339 warn - The class `ease-[cubic-bezier(0.32,0.72,0,1)]` is ambiguous and matches multiple utilities.
+#11 4.339 warn - If this is content and not a class, replace it with `ease-&lsqb;cubic-bezier(0.32,0.72,0,1)&rsqb;` to silence this warning.
+#11 15.13 ✓ 3221 modules transformed.
+#11 16.34 rendering chunks...
+#11 16.37 computing gzip size...
+#11 16.43 ../dist/public/index.html                                 2.22 kB │ gzip:   0.88 kB
+#11 16.43 ../dist/public/assets/foulpay-logo-VAGLCdP6.png         175.00 kB
+#11 16.43 ../dist/public/assets/hero-phone-mockup-BM_TcJM2.png  1,177.93 kB
+#11 16.43 ../dist/public/assets/index-9KT0TqWq.css                142.35 kB │ gzip:  22.20 kB
+#11 16.43 ../dist/public/assets/index-DDaizmHx.js               1,347.25 kB │ gzip: 383.59 kB
+#11 16.43 
+#11 16.43 (!) Some chunks are larger than 500 kB after minification. Consider:
+#11 16.43 - Using dynamic import() to code-split the application
+#11 16.43 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#11 16.43 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#11 16.43 ✓ built in 15.19s
+#11 16.62 
+#11 16.62   dist/index.js  259.0kb
+#11 16.62 
+#11 16.62 ⚡ Done in 24ms
+#11 DONE 16.7s
+
+#12 [runner 5/5] COPY --from=builder /app/dist ./dist
+#12 DONE 1.1s
+
+#13 exporting to image
+#13 exporting layers
+#13 exporting layers 13.6s done
+#13 exporting manifest sha256:3bdf98f7f0f72c79fd680c8a8760c64142be8d2214a4274cf4c22bd9fa08474b done
+#13 exporting config sha256:49aab99293f6173a961c1354601e07ec6e3e420517d60ccd98742c1824b6c16d done
+#13 pushing layers for registry.fly.io/finetrackpro:deployment-01KQ20YNCDA5VGWRYZPMMCC8HJ@sha256:3bdf98f7f0f72c79fd680c8a8760c64142be8d2214a4274cf4c22bd9fa08474b
+#13 pushing layer sha256:49aab99293f6173a961c1354601e07ec6e3e420517d60ccd98742c1824b6c16d
+#13 pushing layer sha256:f51ba891a46f1c94f81f10986cb5733bed651f633ab0d95e68704e77a95e85ea
+#13 pushing layer sha256:4808ad57a1eb43c863bb05deca6f7fa3b8a6ee3f65b6f69d84874e626b35e700
+#13 pushing layer sha256:6a7eb92d37306aec83d27193324ad5d0f72580be566d2b0d62e6fcc871f10a09
+#13 pushing layer sha256:6192b2ebda7e80c553b1b16924ead076606be91d7769d10ba9ec066621b41632
+#13 pushing layer sha256:1c7f9b6c07a76147766c1efbea9c1fba8d3bc76d8cbece5c13abe8afc1ffc36f
+#13 pushing layer sha256:79162180734b88ff8cc67216853fcd9fe1fc55fc61873d5bfd6e8f93d0897bf4
+#13 pushing layer sha256:4b0509c947003be1323a5a38977845d73b4980e37144df3290035d51059ccb48
+#13 pushing layer sha256:c59f4feb5aa577638f9280b984a9bdd2d8a599eafeb85538ea635e3a54545cdb 0.1s done
+#13 pushing layer sha256:6192b2ebda7e80c553b1b16924ead076606be91d7769d10ba9ec066621b41632 0.6s done
+#13 pushing layer sha256:79162180734b88ff8cc67216853fcd9fe1fc55fc61873d5bfd6e8f93d0897bf4 0.6s done
+#13 pushing layer sha256:49aab99293f6173a961c1354601e07ec6e3e420517d60ccd98742c1824b6c16d 0.6s done
+#13 pushing layer sha256:f51ba891a46f1c94f81f10986cb5733bed651f633ab0d95e68704e77a95e85ea 0.6s done
+#13 pushing layer sha256:4808ad57a1eb43c863bb05deca6f7fa3b8a6ee3f65b6f69d84874e626b35e700 0.6s done
+#13 pushing layer sha256:4b0509c947003be1323a5a38977845d73b4980e37144df3290035d51059ccb48 0.7s done
+#13 pushing layer sha256:6a7eb92d37306aec83d27193324ad5d0f72580be566d2b0d62e6fcc871f10a09 1.1s done
+#13 pushing layers for registry.fly.io/finetrackpro:deployment-01KQ20YNCDA5VGWRYZPMMCC8HJ@sha256:3bdf98f7f0f72c79fd680c8a8760c64142be8d2214a4274cf4c22bd9fa08474b 1.2s done
+#13 pushing layer sha256:1c7f9b6c07a76147766c1efbea9c1fba8d3bc76d8cbece5c13abe8afc1ffc36f 1.2s done
+#13 pushing manifest for registry.fly.io/finetrackpro:deployment-01KQ20YNCDA5VGWRYZPMMCC8HJ@sha256:3bdf98f7f0f72c79fd680c8a8760c64142be8d2214a4274cf4c22bd9fa08474b 0.1s done
+#13 DONE 15.0s
+--> Build Summary:  (​)
+--> Building image done
+image: registry.fly.io/finetrackpro:deployment-01KQ20YNCDA5VGWRYZPMMCC8HJ
+image size: 76 MB
+
+Watch your deployment at https://fly.io/apps/finetrackpro/monitoring
+
+Provisioning ips for finetrackpro
+  Dedicated ipv6: 2a09:8280:1::f6:bc9a:0
+  Shared ipv4: 66.241.125.85
+  Add a dedicated ipv4 with: fly ips allocate-v4
+
+This deployment will:
+ * create 2 "app" machines
+
+> Launching new machine
+No machines in group app, launching a new machine
+> Machine 7819653c012568 [app] was created
+WARN failed to release lease for machine 7819653c012568 [app]: lease not found
+✖ Failed: timeout reached waiting for health checks to pass for machine 7819653c012568: failed to get VM 7819653c012568: Get "https://api.machines.dev/v1/apps/finetrackpro/machines/7819653c012568": net/http: request canceled
+Error: timeout reached waiting for health checks to pass for machine 7819653c012568: failed to get VM 7819653c012568: Get "https://api.machines.dev/v1/apps/finetrackpro/machines/7819653c012568": net/http: request canceled
