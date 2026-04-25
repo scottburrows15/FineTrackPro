@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+.local
+.env
+.env.*
+*.log
+attached_assets
+*.png
+*.jpg
+*.jpeg
+.DS_Store
+.replit
+replit.nix
+.cache
+.upm
