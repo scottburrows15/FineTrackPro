@@ -1,4 +1,4 @@
-app = "finetrackpro"
+app = "foulpay"
 primary_region = "lhr"
 
 [build]
