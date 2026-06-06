@@ -196,6 +196,17 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Password reset tokens (single-use, time-limited). Stores a hash of the token,
+// never the plaintext token that is emailed to the user.
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  tokenHash: varchar("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   team: one(teams, {
@@ -352,6 +363,7 @@ export type TeamMembership = typeof teamMemberships.$inferSelect;
 export type InsertTeamMembership = z.infer<typeof insertTeamMembershipSchema>;
 export type PaymentHistory = typeof paymentHistory.$inferSelect;
 export type InsertPaymentHistory = z.infer<typeof insertPaymentHistorySchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 // Extended types with relations
 export type UserWithTeam = User & {

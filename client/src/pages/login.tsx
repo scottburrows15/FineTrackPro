@@ -31,11 +31,16 @@ const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+const forgotSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
 type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
+type ForgotValues = z.infer<typeof forgotSchema>;
 
 export default function Login() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -47,6 +52,11 @@ export default function Login() {
   const registerForm = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { firstName: "", email: "", password: "" },
+  });
+
+  const forgotForm = useForm<ForgotValues>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: { email: "" },
   });
 
   const onSuccess = async () => {
@@ -84,6 +94,30 @@ export default function Login() {
     },
   });
 
+  const forgotMutation = useMutation({
+    mutationFn: async (values: ForgotValues) => {
+      const res = await apiRequest("POST", "/api/forgot-password", values);
+      return res.json();
+    },
+    onSuccess: (data: { message?: string }) => {
+      toast({
+        title: "Check your email",
+        description:
+          data?.message ||
+          "If an account exists for that email, we've sent a link to reset your password.",
+      });
+      forgotForm.reset();
+      setMode("login");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Something went wrong",
+        description: error.message.replace(/^\d+:\s*/, ""),
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-10">
       <button
@@ -98,15 +132,59 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-lg border-slate-200">
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center text-slate-900">
-            {mode === "login" ? "Welcome back" : "Create your account"}
+            {mode === "login"
+              ? "Welcome back"
+              : mode === "register"
+                ? "Create your account"
+                : "Reset your password"}
           </h1>
           <p className="text-center text-sm text-slate-500 mt-1 mb-6">
             {mode === "login"
               ? "Sign in to manage your team fines"
-              : "Get started with FoulPay in seconds"}
+              : mode === "register"
+                ? "Get started with FoulPay in seconds"
+                : "Enter your email and we'll send you a reset link"}
           </p>
 
-          {mode === "login" ? (
+          {mode === "forgot" ? (
+            <Form {...forgotForm}>
+              <form
+                onSubmit={forgotForm.handleSubmit((v) => forgotMutation.mutate(v))}
+                className="space-y-4"
+              >
+                <FormField
+                  control={forgotForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          autoComplete="email"
+                          placeholder="you@example.com"
+                          data-testid="input-forgot-email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={forgotMutation.isPending}
+                  data-testid="button-submit-forgot"
+                >
+                  {forgotMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Send reset link
+                </Button>
+              </form>
+            </Form>
+          ) : mode === "login" ? (
             <Form {...loginForm}>
               <form
                 onSubmit={loginForm.handleSubmit((v) => loginMutation.mutate(v))}
@@ -150,6 +228,16 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
+                <div className="flex justify-end -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setMode("forgot")}
+                    className="text-sm font-medium text-primary hover:underline"
+                    data-testid="button-forgot-password"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <Button
                   type="submit"
                   className="w-full"
@@ -255,7 +343,7 @@ export default function Login() {
                   Sign up
                 </button>
               </>
-            ) : (
+            ) : mode === "register" ? (
               <>
                 Already have an account?{" "}
                 <button
@@ -265,6 +353,18 @@ export default function Login() {
                   data-testid="button-switch-login"
                 >
                   Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Remembered your password?{" "}
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="font-semibold text-primary hover:underline"
+                  data-testid="button-switch-login"
+                >
+                  Back to sign in
                 </button>
               </>
             )}

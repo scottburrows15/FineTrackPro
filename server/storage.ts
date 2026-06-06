@@ -9,6 +9,8 @@ import {
   adminPreferences,
   teamMemberships,
   pushSubscriptions,
+  passwordResetTokens,
+  type PasswordResetToken,
   type User,
   type UpsertUser,
   type Team,
@@ -46,7 +48,7 @@ import {
   paymentHistory,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql, gte, inArray } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql, gte, gt, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -170,6 +172,12 @@ export interface IStorage {
   savePushSubscription(userId: string, subscription: { endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription>;
   removePushSubscription(endpoint: string): Promise<void>;
   getPushSubscriptionsForUser(userId: string): Promise<PushSubscription[]>;
+
+  // Password reset tokens
+  createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<PasswordResetToken>;
+  getValidPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenUsed(id: string): Promise<void>;
+  invalidatePasswordResetTokensForUser(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1554,6 +1562,47 @@ export class DatabaseStorage implements IStorage {
 
   async removePushSubscription(endpoint: string): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<PasswordResetToken> {
+    const [token] = await db
+      .insert(passwordResetTokens)
+      .values({ userId, tokenHash, expiresAt })
+      .returning();
+    return token;
+  }
+
+  async getValidPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined> {
+    const [token] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.tokenHash, tokenHash),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, new Date()),
+        ),
+      );
+    return token;
+  }
+
+  async markPasswordResetTokenUsed(id: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, id));
+  }
+
+  async invalidatePasswordResetTokensForUser(userId: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(
+        and(
+          eq(passwordResetTokens.userId, userId),
+          isNull(passwordResetTokens.usedAt),
+        ),
+      );
   }
 
   async getPushSubscriptionsForUser(userId: string): Promise<PushSubscription[]> {

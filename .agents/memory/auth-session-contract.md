@@ -20,8 +20,17 @@ email/password auth using passport sessions + `req.login()`. It exports
 keep them.
 
 **Endpoint split (deliberate, to avoid collisions):**
-- Web session auth: `POST /api/login`, `POST /api/register`, `GET /api/logout`.
+- Web session auth: `POST /api/login`, `POST /api/register`, `GET /api/logout`,
+  `POST /api/forgot-password`, `POST /api/reset-password`.
 - Mobile/JWT auth (`server/mobileAuth.ts`): `/api/auth/*`.
+
+**Password reset (forgot-password):** `forgot-password` always returns the same
+generic 200 (no account enumeration). Tokens stored as sha256 hash in
+`password_reset_tokens` (never plaintext); the plaintext is only emailed. Single-
+use (usedAt) + 1h TTL. Email delivery in `server/email.ts` sends via Resend if
+`RESEND_API_KEY` is set, otherwise logs the reset link to the server console — it
+never throws, so callers can't infer delivery status. This is the migration path
+for legacy OIDC-era users who have an email but no `passwordHash`.
 
 **Why:** Replit OIDC was dropped because it does not work on the custom domain
 (foulpay.co.uk). OIDC required `/api/login` GET redirects; that path is now a
