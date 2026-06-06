@@ -1,0 +1,1 @@
+- [Auth session contract](auth-session-contract.md) — backend reads only `req.user.claims.sub`; any auth must produce that session shape. Web session login lives at `/api/login|register|logout` (mobile JWT owns `/api/auth/*`).

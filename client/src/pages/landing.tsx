@@ -24,13 +24,13 @@ export default function Landing() {
           <img src={logoUrl} alt="FoulPay" className="h-8 w-auto object-contain" />
           <div className="flex items-center gap-3">
             <button
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2"
             >
               Sign In
             </button>
             <button
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               className="text-sm font-semibold text-white px-5 py-2.5 rounded-full transition-all hover:opacity-90 active:scale-95"
               style={{ backgroundColor: '#48C0A3' }}
             >
@@ -61,7 +61,7 @@ export default function Landing() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => window.location.href = '/api/login'}
+                onClick={() => window.location.href = '/login'}
                 className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
                 style={{ backgroundColor: '#48C0A3', boxShadow: '0 8px 30px rgba(72,192,163,0.3)' }}
               >
@@ -335,7 +335,7 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
               style={{ backgroundColor: '#48C0A3', boxShadow: '0 8px 30px rgba(72,192,163,0.3)' }}
             >
@@ -343,7 +343,7 @@ export default function Landing() {
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               className="inline-flex items-center justify-center gap-2 font-semibold px-8 py-4 rounded-2xl text-base border-2 border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-[0.98]"
             >
               Sign In
@@ -362,7 +362,7 @@ export default function Landing() {
 
             <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
               <button onClick={() => { const el = document.getElementById('features'); el?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-gray-900 transition-colors">Features</button>
-              <button onClick={() => window.location.href = '/api/login'} className="hover:text-gray-900 transition-colors">Sign In</button>
+              <button onClick={() => window.location.href = '/login'} className="hover:text-gray-900 transition-colors">Sign In</button>
               <a href="mailto:support@foulpay.com" className="hover:text-gray-900 transition-colors">Contact</a>
             </nav>
 

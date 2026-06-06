@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { TeamProvider } from "@/contexts/TeamContext";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Landing from "@/pages/landing";
+import Login from "@/pages/login";
 import Home from "@/pages/home";
 import JoinTeam from "@/pages/join-team";
 import Payment from "@/pages/payment";
@@ -41,6 +42,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
         <Route path="/join/:inviteCode" component={JoinTeam} />
         {/* Payment confirmed needs to be accessible during loading state since session may take time to restore after GoCardless redirect */}
         <Route path="/payment-confirmed" component={PaymentConfirmed} />

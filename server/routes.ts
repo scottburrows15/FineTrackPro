@@ -63,6 +63,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUserWithTeam(userId);
+      if (user) {
+        const { passwordHash, ...safeUser } = user as any;
+        return res.json(safeUser);
+      }
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
