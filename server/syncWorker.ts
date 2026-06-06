@@ -5,6 +5,7 @@ import { teams, obTokens, paymentIntents, fines } from '../shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import { checkTimeLimitOverride } from './paymentStrategy';
 import { MockOpenBankingProvider, decrypt, extractSearchTerms, reconcileTransaction } from './openBanking';
+import { storage } from './storage';
 
 console.log('🔄 Starting Open Banking sync worker...');
 
@@ -63,6 +64,19 @@ cron.schedule('0 0 * * *', async () => {
     }
   } catch (error) {
     console.error('Error in monthly sweep check:', error);
+  }
+});
+
+// Cleanup expired/used password reset tokens daily at midnight
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const removed = await storage.deleteExpiredPasswordResetTokens(cutoff);
+    if (removed > 0) {
+      console.log(`🧹 Cleaned up ${removed} expired/used password reset tokens`);
+    }
+  } catch (error) {
+    console.error('Error cleaning up password reset tokens:', error);
   }
 });
 

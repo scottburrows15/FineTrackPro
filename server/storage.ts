@@ -48,7 +48,7 @@ import {
   paymentHistory,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql, gte, gt, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sum, count, sql, gte, gt, lt, isNull, isNotNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -178,6 +178,7 @@ export interface IStorage {
   getValidPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenUsed(id: string): Promise<void>;
   invalidatePasswordResetTokensForUser(userId: string): Promise<void>;
+  deleteExpiredPasswordResetTokens(olderThan: Date): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1603,6 +1604,22 @@ export class DatabaseStorage implements IStorage {
           isNull(passwordResetTokens.usedAt),
         ),
       );
+  }
+
+  async deleteExpiredPasswordResetTokens(olderThan: Date): Promise<number> {
+    const deleted = await db
+      .delete(passwordResetTokens)
+      .where(
+        or(
+          lt(passwordResetTokens.expiresAt, olderThan),
+          and(
+            isNotNull(passwordResetTokens.usedAt),
+            lt(passwordResetTokens.usedAt, olderThan),
+          ),
+        ),
+      )
+      .returning({ id: passwordResetTokens.id });
+    return deleted.length;
   }
 
   async getPushSubscriptionsForUser(userId: string): Promise<PushSubscription[]> {
