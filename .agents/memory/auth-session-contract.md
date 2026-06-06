@@ -46,3 +46,12 @@ JSON POST, and the landing page navigates to the client `/login` page instead.
 - Legacy OIDC-era users (no `passwordHash`) cannot log in with a password; a
   reset/migration flow would be needed if such users exist (prod DB was fresh at
   launch, so this was acceptable).
+
+**Testing auth:** Integration tests (`server/auth.test.ts`, Vitest + supertest)
+build a minimal Express harness that calls the real `setupAuth()` and mirrors the
+production `/api/auth/user` handler — they deliberately do NOT import
+`registerRoutes()`, which would pull in `syncWorker` cron jobs + Stripe init.
+Run via `npx vitest run` (registered as the "test" validation command); the
+project's `package.json` scripts are forbidden to edit so there is no `test`
+script. Tests hit the real dev `DATABASE_URL`, use unique `auth-test-` emails,
+and clean up users in `afterAll`.
