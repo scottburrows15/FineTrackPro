@@ -4,6 +4,17 @@ import { setupVite, serveStatic, log } from "./vite";
 import "./syncWorker"; // Initialize Open Banking sync worker
 
 const app = express();
+
+const CANONICAL_HOST = "foulpay.co.uk";
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV !== "production") return next();
+  const host = req.headers.host?.toLowerCase();
+  if (host && host !== CANONICAL_HOST && /foulpay\.(co\.uk|fly\.dev)$/.test(host)) {
+    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
