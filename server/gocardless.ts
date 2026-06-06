@@ -5,7 +5,7 @@ import { markAsPaid, setFinesPendingPayment, revertPendingPayment } from './paym
 import type { Team } from '@shared/schema';
 import crypto from 'crypto';
 import gocardless from 'gocardless-nodejs';
-import { Environments } from 'gocardless-nodejs/constants';
+import { Environments } from 'gocardless-nodejs/constants.js';
 
 const router = Router();
 
